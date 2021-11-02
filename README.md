@@ -1,2 +1,8 @@
-# postchain-client-ue4
-Postchain client as Unreal Engine plugin. 
+# Postchain-client-cpp
+
+## Setup
+
+1) Clone https://github.com/Cherden/postchain-client-cpp under \Plugins\ChromaClient\Source\ChromaClient\
+2)
+3)
+
