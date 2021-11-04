@@ -13,5 +13,7 @@ void AChromaClientTestGameModeBase::BeginPlay()
 
 	BlockchainClient->InitializeBRIDFromChainID();
 
-	BlockchainClient->RegisterUser("qwerty");
+	/*BlockchainClient->RegisterUser("qwerty");*/
+
+	BlockchainClient->CheckUser("qwertygggg");
 }

@@ -36,6 +36,8 @@ public:
 
 	void RegisterUser(FString username);
 
+	void CheckUser(FString username);
+
 	void WaitForBlockchainConfirmation();
 
 	/*Called when the server has responded to InitializeBRIDFromChainID http request*/
@@ -44,6 +46,8 @@ public:
 	void OnTransactionResponseReceived(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bWasSuccessful);
 
 	void OnBlockchainConfirmationReceived(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bWasSuccessful);
+
+	void OnQueryResponseReceived(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bWasSuccessful);
 
 private:
 	FString BlockchainRID;

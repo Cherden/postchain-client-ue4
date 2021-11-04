@@ -110,6 +110,57 @@ void UBlockchainClient::RegisterUser(FString username)
 }
 
 
+void UBlockchainClient::CheckUser(FString username)
+{
+	//std::shared_ptr<Query> query = std::make_shared<Query>(this->BlockchainRID, this->BaseURL);
+
+	std::vector<QueryObject> query_objects;
+	query_objects.push_back(QueryObject("name", AbstractValueFactory::Build(ChromaUtils::FStringToSTDString(username))));
+
+	std::string json = PostchainUtil::QueryToJSONString("check_user", query_objects);
+	FString payload = ChromaUtils::STDStringToFString(json);
+
+	UE_LOG(LogTemp, Display, TEXT("CHROMA::Query json: [%s]"), *payload);
+
+	TSharedRef<IHttpRequest, ESPMode::ThreadSafe> Request = FHttpModule::Get().CreateRequest();
+
+	Request->OnProcessRequestComplete().BindUObject(this, &UBlockchainClient::OnQueryResponseReceived);
+
+	FString url = FString::Printf(TEXT("%s/query/%s"), *(this->BaseURL), *(this->BlockchainRID));
+	UE_LOG(LogTemp, Display, TEXT("CHROMA::URL : [%s]"), *url);
+	UE_LOG(LogTemp, Display, TEXT("CHROMA::Payload Length : [%d]"), payload.Len());
+	UE_LOG(LogTemp, Display, TEXT("CHROMA::Payload : [%s]"), *payload);
+
+	Request->SetURL(*url);
+
+	Request->SetVerb("POST");
+	Request->SetHeader(TEXT("User-Agent"), TEXT("X-UnrealEngine-Agent"));
+	Request->SetHeader(TEXT("Content-Type"), TEXT("application/json"));
+	//Request->SetHeader(TEXT("Accepts"), TEXT("application/json"));
+
+	Request->SetContentAsString(*payload);
+	//Request->SetHeader("Content-Type", "application/json");
+
+	//Send the request
+	Request->ProcessRequest();
+
+	//this._urlBase, "query/" + this._brid);
+
+;	/*var request = new PostchainQuery<T>(this._baseURL, this._blockchainRID);
+
+	yield return request.Query(queryName, queryObject);
+
+	if (request.error)
+	{
+		onError(request.errorMessage);
+	}
+	else
+	{
+		onSuccess(request.content);
+	}*/
+}
+
+
 void UBlockchainClient::WaitForBlockchainConfirmation()
 {
 	TSharedRef<IHttpRequest, ESPMode::ThreadSafe> Request = FHttpModule::Get().CreateRequest();
@@ -193,7 +244,16 @@ void UBlockchainClient::OnBlockchainConfirmationReceived(FHttpRequestPtr Request
 		{
 			WaitForBlockchainConfirmation();
 		}
-		//this->BlockchainRID = Response->GetContentAsString();
+	}
+}
+
+void UBlockchainClient::OnQueryResponseReceived(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bWasSuccessful)
+{
+	UE_LOG(LogTemp, Display, TEXT("CHROMA::OnQueryResponseReceived. Valid: %d"), bWasSuccessful);
+
+	if (bWasSuccessful)
+	{
+		UE_LOG(LogTemp, Display, TEXT("CHROMA::OnQueryResponseReceived %s"), *(Response->GetContentAsString()));
 	}
 }
 
