@@ -5,9 +5,9 @@
 #include "Interfaces/IHttpResponse.h"
 #include "Kismet/BlueprintFunctionLibrary.h"
 
-#include "../Chroma/common.h"
-#include "../Chroma/transaction.h"
-#include "../Chroma/GTX/gtx.h"
+#include "../chroma-cpp-pure/src/common.h"
+#include "../chroma-cpp-pure/src/transaction.h"
+#include "../chroma-cpp-pure/src/GTX/gtx.h"
 
 #include <memory>
 #include <vector>

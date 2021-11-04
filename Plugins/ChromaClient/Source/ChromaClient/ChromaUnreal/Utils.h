@@ -1,7 +1,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "../Chroma/common.h"
+#include "../chroma-cpp-pure/src/common.h"
 #include <vector>
 
 using namespace chromia;

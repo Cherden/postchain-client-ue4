@@ -1,6 +1,7 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 using UnrealBuildTool;
+using Tools.DotNETCommon;
 
 public class ChromaClient : ModuleRules
 {
@@ -20,13 +21,19 @@ public class ChromaClient : ModuleRules
         PublicDefinitions.Add("ECMULT_WINDOW_SIZE=15");
         PublicDefinitions.Add("ECMULT_GEN_PREC_BITS=4");
 
+        string OpenSSLRoot = System.Environment.GetEnvironmentVariable("OPENSSL_ROOT_DIR");
+
+        //Log.TraceWarning("OpenSSLRoot: " + OpenSSLRoot);
+        //Log.TraceWarning("ModuleDir: " + ModuleDirectory);
+        //Log.TraceWarning(System.IO.Path.Combine(ModuleDirectory, "../chroma-cpp-pure/src"));
+
         PublicIncludePaths.AddRange(
-			new string[] {
-                "C:/Program Files/OpenSSL-Win64/include" // TODO - parametrize
+            new string[] {
+                System.IO.Path.Combine(OpenSSLRoot, "include")
             }
-			);
+		);
 				
-		
+
 		PrivateIncludePaths.AddRange(
 			new string[] {
 				// ... add other private include paths required here ...
@@ -64,8 +71,10 @@ public class ChromaClient : ModuleRules
 			);
 
         PublicAdditionalLibraries.AddRange(new string[] {
-                "C:/Program Files/OpenSSL-Win64/lib/VC/libssl64MDd.lib",
-                "C:/Program Files/OpenSSL-Win64/lib/VC/libcrypto64MDd.lib"
+                //"C:/Program Files/OpenSSL-Win64/lib/VC/libssl64MDd.lib",
+                //"C:/Program Files/OpenSSL-Win64/lib/VC/libcrypto64MDd.lib"
+                System.IO.Path.Combine(OpenSSLRoot, "lib/VC/libssl64MDd.lib"),
+                System.IO.Path.Combine(OpenSSLRoot, "lib/VC/libcrypto64MDd.lib")
         });
     }
 }

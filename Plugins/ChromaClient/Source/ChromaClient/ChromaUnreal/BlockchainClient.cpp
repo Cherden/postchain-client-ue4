@@ -1,6 +1,6 @@
 #include "BlockchainClient.h"
 #include "Utils.h"
-#include "../Chroma/postchain_util.h"
+#include "../chroma-cpp-pure/src/postchain_util.h"
 
 UBlockchainClient::UBlockchainClient(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
