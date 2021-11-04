@@ -14,6 +14,8 @@
 
 1. Clone` https://github.com/Cherden/postchain-client-cpp` under `\Plugins\ChromaClient\Source\ChromaClient\` .
 Make sure dir name remains `postchain-client-cpp`
+The structure should look like this at this moment: 
+![image](https://user-images.githubusercontent.com/85849035/140369944-0f6673a5-8ff0-4a06-b97d-a1ae08dc9517.png)
 
 2. Create new environment variable (if not already existing):
 
