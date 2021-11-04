@@ -1,8 +1,12 @@
+
 #include "BlockchainClient.h"
+#include "Engine/GameEngine.h"
+#include "Misc/OutputDeviceDebug.h"
+
 #include "Utils.h"
 #include "../chroma-cpp-pure/src/postchain_util.h"
 
-UBlockchainClient::UBlockchainClient(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
+ABlockchainClient::ABlockchainClient(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
 	std::vector<unsigned char> private_key;
 	std::vector<unsigned char> public_key;
@@ -23,14 +27,18 @@ UBlockchainClient::UBlockchainClient(const FObjectInitializer& ObjectInitializer
 }
 
 
-void UBlockchainClient::Setup(FString blockchainRID, FString baseURL)
+void ABlockchainClient::Setup(FString blockchainRID, FString baseURL)
 {
 	this->BlockchainRID = blockchainRID;
 	this->BaseURL = baseURL;
+
+	/*const FString command = FString::Printf(TEXT("SetConsoleTest %s"), TEXT("Blockchain"));
+	FOutputDeviceDebug debug;
+	MainWidget->CallFunctionByNameWithArguments(*command, debug, this, true);*/
 }
 
 
-TSharedPtr<Transaction> UBlockchainClient::NewTransaction(TArray<TArray<byte>> signers)
+TSharedPtr<Transaction> ABlockchainClient::NewTransaction(TArray<TArray<byte>> signers)
 {
 	std::shared_ptr<Gtx> gtx = std::make_shared<Gtx>(ChromaUtils::FStringToSTDString(this->BlockchainRID));
 
@@ -45,7 +53,7 @@ TSharedPtr<Transaction> UBlockchainClient::NewTransaction(TArray<TArray<byte>> s
 }
 
 
-void UBlockchainClient::RegisterUser(FString username)
+void ABlockchainClient::RegisterUser(FString username)
 {
 	if (!KeyPairIsValid())
 	{
@@ -82,7 +90,7 @@ void UBlockchainClient::RegisterUser(FString username)
 
 	TSharedRef<IHttpRequest, ESPMode::ThreadSafe> Request = FHttpModule::Get().CreateRequest();
 
-	Request->OnProcessRequestComplete().BindUObject(this, &UBlockchainClient::OnTransactionResponseReceived);
+	Request->OnProcessRequestComplete().BindUObject(this, &ABlockchainClient::OnTransactionResponseReceived);
 
 	FString url = FString::Printf(TEXT("%s/tx/%s"), *(this->BaseURL), *(this->BlockchainRID));
 	UE_LOG(LogTemp, Display, TEXT("CHROMA::URL : [%s]"), *url);
@@ -110,7 +118,7 @@ void UBlockchainClient::RegisterUser(FString username)
 }
 
 
-void UBlockchainClient::CheckUser(FString username)
+void ABlockchainClient::CheckUser(FString username)
 {
 	//std::shared_ptr<Query> query = std::make_shared<Query>(this->BlockchainRID, this->BaseURL);
 
@@ -124,7 +132,7 @@ void UBlockchainClient::CheckUser(FString username)
 
 	TSharedRef<IHttpRequest, ESPMode::ThreadSafe> Request = FHttpModule::Get().CreateRequest();
 
-	Request->OnProcessRequestComplete().BindUObject(this, &UBlockchainClient::OnQueryResponseReceived);
+	Request->OnProcessRequestComplete().BindUObject(this, &ABlockchainClient::OnQueryResponseReceived);
 
 	FString url = FString::Printf(TEXT("%s/query/%s"), *(this->BaseURL), *(this->BlockchainRID));
 	UE_LOG(LogTemp, Display, TEXT("CHROMA::URL : [%s]"), *url);
@@ -161,11 +169,11 @@ void UBlockchainClient::CheckUser(FString username)
 }
 
 
-void UBlockchainClient::WaitForBlockchainConfirmation()
+void ABlockchainClient::WaitForBlockchainConfirmation()
 {
 	TSharedRef<IHttpRequest, ESPMode::ThreadSafe> Request = FHttpModule::Get().CreateRequest();
 
-	Request->OnProcessRequestComplete().BindUObject(this, &UBlockchainClient::OnBlockchainConfirmationReceived);
+	Request->OnProcessRequestComplete().BindUObject(this, &ABlockchainClient::OnBlockchainConfirmationReceived);
 
 	FString url = FString::Printf(TEXT("%s/tx/%s/%s/status"), *(this->BaseURL), *(this->BlockchainRID), *(this->TxRID));
 
@@ -185,11 +193,11 @@ void UBlockchainClient::WaitForBlockchainConfirmation()
 }
 
 
-void UBlockchainClient::InitializeBRIDFromChainID()
+void ABlockchainClient::InitializeBRIDFromChainID()
 {
 	TSharedRef<IHttpRequest, ESPMode::ThreadSafe> Request = FHttpModule::Get().CreateRequest();
 
-	Request->OnProcessRequestComplete().BindUObject(this, &UBlockchainClient::OnBRIDResponseReceived);
+	Request->OnProcessRequestComplete().BindUObject(this, &ABlockchainClient::OnBRIDResponseReceived);
 
 	FString url = FString::Printf(TEXT("%s/brid/iid_%d"), *(this->BaseURL), this->ChainID);
 	//Request->SetURL(TEXT("http://rellide-staging.chromia.dev/node/15927/brid/iid_0"));
@@ -209,7 +217,7 @@ void UBlockchainClient::InitializeBRIDFromChainID()
 }
 
 
-void UBlockchainClient::OnBRIDResponseReceived(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bWasSuccessful)
+void ABlockchainClient::OnBRIDResponseReceived(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bWasSuccessful)
 {
 	UE_LOG(LogTemp, Display, TEXT("CHROMA::OnBRIDResponseReceived. Valid: %d"), bWasSuccessful);
 
@@ -221,7 +229,7 @@ void UBlockchainClient::OnBRIDResponseReceived(FHttpRequestPtr Request, FHttpRes
 }
 
 
-void UBlockchainClient::OnTransactionResponseReceived(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bWasSuccessful)
+void ABlockchainClient::OnTransactionResponseReceived(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bWasSuccessful)
 {
 	UE_LOG(LogTemp, Display, TEXT("CHROMA::OnTransactionResponseReceived. Valid: %d"), bWasSuccessful);
 
@@ -229,10 +237,14 @@ void UBlockchainClient::OnTransactionResponseReceived(FHttpRequestPtr Request, F
 	{
 		UE_LOG(LogTemp, Display, TEXT("CHROMA::OnTransactionResponseReceived %s"), *(Response->GetContentAsString()));
 		//this->BlockchainRID = Response->GetContentAsString();
+		if (GEngine)
+		{
+			GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Blue, *(Response->GetContentAsString()));
+		}
 	}
 }
 
-void UBlockchainClient::OnBlockchainConfirmationReceived(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bWasSuccessful)
+void ABlockchainClient::OnBlockchainConfirmationReceived(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bWasSuccessful)
 {
 	UE_LOG(LogTemp, Display, TEXT("CHROMA::OnBlockchainConfirmationReceived. Valid: %d"), bWasSuccessful);
 
@@ -244,20 +256,31 @@ void UBlockchainClient::OnBlockchainConfirmationReceived(FHttpRequestPtr Request
 		{
 			WaitForBlockchainConfirmation();
 		}
+		else 
+		{
+			if (GEngine)
+			{
+				GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Blue, *content);
+			}
+		}
 	}
 }
 
-void UBlockchainClient::OnQueryResponseReceived(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bWasSuccessful)
+void ABlockchainClient::OnQueryResponseReceived(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bWasSuccessful)
 {
 	UE_LOG(LogTemp, Display, TEXT("CHROMA::OnQueryResponseReceived. Valid: %d"), bWasSuccessful);
 
 	if (bWasSuccessful)
 	{
 		UE_LOG(LogTemp, Display, TEXT("CHROMA::OnQueryResponseReceived %s"), *(Response->GetContentAsString()));
+		if (GEngine)
+		{
+			GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Blue, *(Response->GetContentAsString()));
+		}
 	}
 }
 
-bool UBlockchainClient::KeyPairIsValid()
+bool ABlockchainClient::KeyPairIsValid()
 {
 	if (!(PrivateKey.Num() == 32)) return false;
 	if (!(PublicKey.Num() == 33)) return false;

@@ -1,9 +1,11 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "GameFramework/Actor.h"
 #include "HttpModule.h"
 #include "Interfaces/IHttpResponse.h"
 #include "Kismet/BlueprintFunctionLibrary.h"
+#include "Blueprint/UserWidget.h"
 
 #include "../chroma-cpp-pure/src/common.h"
 #include "../chroma-cpp-pure/src/transaction.h"
@@ -19,27 +21,33 @@ using namespace chromia::postchain;
 using namespace chromia::postchain::client;
 
 UCLASS()
-class CHROMACLIENT_API UBlockchainClient : public UBlueprintFunctionLibrary {
+class CHROMACLIENT_API ABlockchainClient : public AActor {
 
 	GENERATED_BODY()
 
 public:
-	UBlockchainClient(const FObjectInitializer& ObjectInitializer);
+	ABlockchainClient(const FObjectInitializer& ObjectInitializer);
 
-	UFUNCTION()
+	// Begin blueprint exposed
+
+	UFUNCTION(BlueprintCallable)
 	void Setup(FString blockchainRID, FString baseURL);
 
-	TSharedPtr<Transaction> NewTransaction(TArray<TArray<byte>> signers);
-
-	UFUNCTION()
+	UFUNCTION(BlueprintCallable)
 	void InitializeBRIDFromChainID();
 
+	UFUNCTION(BlueprintCallable)
 	void RegisterUser(FString username);
 
+	UFUNCTION(BlueprintCallable)
 	void CheckUser(FString username);
+	
+	// End blueprint exposed
 
 	void WaitForBlockchainConfirmation();
 
+	TSharedPtr<Transaction> NewTransaction(TArray<TArray<byte>> signers);
+	
 	/*Called when the server has responded to InitializeBRIDFromChainID http request*/
 	void OnBRIDResponseReceived(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bWasSuccessful);
 
@@ -48,6 +56,14 @@ public:
 	void OnBlockchainConfirmationReceived(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bWasSuccessful);
 
 	void OnQueryResponseReceived(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bWasSuccessful);
+
+	UFUNCTION(BlueprintCallable)
+	void SetMainWidget(UObject* mw)
+	{
+		this->MainWidget = mw;
+	}
+
+	UObject* MainWidget;
 
 private:
 	FString BlockchainRID;
@@ -59,4 +75,6 @@ private:
 	TArray<byte> PublicKey;
 
 	bool KeyPairIsValid();
+
+	
 };
