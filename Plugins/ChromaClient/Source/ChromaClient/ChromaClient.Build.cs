@@ -57,7 +57,8 @@ public class ChromaClient : ModuleRules
 				"Engine",
 				"Slate",
 				"SlateCore",
-                "HTTP"
+                "HTTP",
+                "UMG"
 				// ... add private dependencies that you statically link with here ...	
 			}
 			);

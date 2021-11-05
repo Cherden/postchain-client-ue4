@@ -27,14 +27,24 @@ ABlockchainClient::ABlockchainClient(const FObjectInitializer& ObjectInitializer
 }
 
 
+void ABlockchainClient::SetMainWidget(UUserWidget* mw)
+{
+	this->MainWidget = mw;
+	int y = 0;
+	y++;
+	y++;
+
+	const FString command = FString::Printf(TEXT("SetConsoleTest %s"), TEXT("Blockchain"));
+	FOutputDeviceDebug debug;
+	MainWidget->CallFunctionByNameWithArguments(*command, debug, this, true);
+
+}
+
+
 void ABlockchainClient::Setup(FString blockchainRID, FString baseURL)
 {
 	this->BlockchainRID = blockchainRID;
 	this->BaseURL = baseURL;
-
-	/*const FString command = FString::Printf(TEXT("SetConsoleTest %s"), TEXT("Blockchain"));
-	FOutputDeviceDebug debug;
-	MainWidget->CallFunctionByNameWithArguments(*command, debug, this, true);*/
 }
 
 
@@ -171,6 +181,7 @@ void ABlockchainClient::CheckUser(FString username)
 
 void ABlockchainClient::WaitForBlockchainConfirmation()
 {
+
 	TSharedRef<IHttpRequest, ESPMode::ThreadSafe> Request = FHttpModule::Get().CreateRequest();
 
 	Request->OnProcessRequestComplete().BindUObject(this, &ABlockchainClient::OnBlockchainConfirmationReceived);
@@ -224,6 +235,8 @@ void ABlockchainClient::OnBRIDResponseReceived(FHttpRequestPtr Request, FHttpRes
 	if (bWasSuccessful)
 	{
 		UE_LOG(LogTemp, Display, TEXT("CHROMA::OnBRIDResponseReceived %s"), *(Response->GetContentAsString()));
+		PrintLogOnScreen(*(Response->GetContentAsString()));
+
 		this->BlockchainRID = Response->GetContentAsString();
 	}
 }
@@ -236,11 +249,7 @@ void ABlockchainClient::OnTransactionResponseReceived(FHttpRequestPtr Request, F
 	if (bWasSuccessful)
 	{
 		UE_LOG(LogTemp, Display, TEXT("CHROMA::OnTransactionResponseReceived %s"), *(Response->GetContentAsString()));
-		//this->BlockchainRID = Response->GetContentAsString();
-		if (GEngine)
-		{
-			GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Blue, *(Response->GetContentAsString()));
-		}
+		PrintLogOnScreen(*(Response->GetContentAsString()));
 	}
 }
 
@@ -251,34 +260,42 @@ void ABlockchainClient::OnBlockchainConfirmationReceived(FHttpRequestPtr Request
 	if (bWasSuccessful)
 	{
 		UE_LOG(LogTemp, Display, TEXT("CHROMA::OnBlockchainConfirmationReceived %s"), *(Response->GetContentAsString()));
+		PrintLogOnScreen(*(Response->GetContentAsString()));
+
 		FString content = Response->GetContentAsString();
 		if (content.Contains("waiting"))
 		{
 			WaitForBlockchainConfirmation();
-		}
-		else 
-		{
-			if (GEngine)
-			{
-				GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Blue, *content);
-			}
 		}
 	}
 }
 
 void ABlockchainClient::OnQueryResponseReceived(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bWasSuccessful)
 {
-	UE_LOG(LogTemp, Display, TEXT("CHROMA::OnQueryResponseReceived. Valid: %d"), bWasSuccessful);
+	//UE_LOG(LogTemp, Display, TEXT("CHROMA::OnQueryResponseReceived. Valid: %d"), bWasSuccessful);
 
 	if (bWasSuccessful)
 	{
 		UE_LOG(LogTemp, Display, TEXT("CHROMA::OnQueryResponseReceived %s"), *(Response->GetContentAsString()));
-		if (GEngine)
+		PrintLogOnScreen(*(Response->GetContentAsString()));
+
+		/*if (GEngine)
 		{
 			GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Blue, *(Response->GetContentAsString()));
-		}
+		}*/
 	}
 }
+
+
+void ABlockchainClient::PrintLogOnScreen(FString message)
+{
+	if (MainWidget == nullptr) return;
+
+	const FString command = FString::Printf(TEXT("PrintLog %s"), *message);
+	FOutputDeviceDebug debug;
+	MainWidget->CallFunctionByNameWithArguments(*command, debug, this, true);
+}
+
 
 bool ABlockchainClient::KeyPairIsValid()
 {
