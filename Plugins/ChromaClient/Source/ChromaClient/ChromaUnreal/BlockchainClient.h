@@ -28,8 +28,7 @@ class CHROMACLIENT_API ABlockchainClient : public AActor {
 public:
 	ABlockchainClient(const FObjectInitializer& ObjectInitializer);
 
-	// Begin blueprint exposed
-
+	// Begin blueprint exposed functions
 	UFUNCTION(BlueprintCallable)
 	void Setup(FString blockchainRID, FString baseURL);
 
@@ -44,22 +43,34 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 	void CheckUser(FString username);
-	
-	// End blueprint exposed
+	// End blueprint exposed functions
 
+	/**
+	* Init GET request to wait for some POST transaction insert operation
+	*/
 	void WaitForBlockchainConfirmation();
 
+	/**
+	* Init new transaction from signers list
+	*/
 	TSharedPtr<Transaction> NewTransaction(TArray<TArray<byte>> signers);
 	
 	/*Called when the server has responded to InitializeBRIDFromChainID http request*/
 	void OnBRIDResponseReceived(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bWasSuccessful);
 
+	/*Called when the server has responded to RegisterUser http request*/
 	void OnTransactionResponseReceived(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bWasSuccessful);
 
+	/*Called when the server has responded to WaitForBlockchainConfirmation http request*/
 	void OnBlockchainConfirmationReceived(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bWasSuccessful);
 
+	/*Called when the server has responded to CheckUser http request*/
 	void OnQueryResponseReceived(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bWasSuccessful);
 
+	/**
+	* Add some message to the end of the on-screen console view. 
+	* The message will be forwarded to main widget blueprint.
+	*/
 	void PrintLogOnScreen(FString message);
 
 private:
