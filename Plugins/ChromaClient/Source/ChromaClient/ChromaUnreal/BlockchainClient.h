@@ -33,7 +33,7 @@ public:
 	void Setup(FString blockchainRID, FString baseURL);
 
 	UFUNCTION(BlueprintCallable)
-	void SetMainWidget(UUserWidget* mw);
+	void SetMainWidget(UObject* mw);
 
 	UFUNCTION(BlueprintCallable)
 	void InitializeBRIDFromChainID();
@@ -73,6 +73,9 @@ public:
 	*/
 	void PrintLogOnScreen(FString message);
 
+
+	//void OnHttpResponse(int status, std::string content);
+
 private:
 	FString BlockchainRID;
 	int ChainID = 0;
@@ -83,7 +86,7 @@ private:
 	TArray<byte> PublicKey;
 
 	// Reference to owning Widget Blueprint
-	UUserWidget* MainWidget = nullptr;
+	UObject* MainWidget = nullptr;
 
 	bool KeyPairIsValid();
 };

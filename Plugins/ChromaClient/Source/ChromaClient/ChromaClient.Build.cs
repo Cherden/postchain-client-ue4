@@ -16,6 +16,7 @@ public class ChromaClient : ModuleRules
         //SharedPCHHeaderFile = "";
 
         bUseRTTI = true;
+        //bEnableUndefinedIdentifierWarnings = false;
 
         PublicDefinitions.Add("_CRT_HAS_CXX17=0");
         PublicDefinitions.Add("ECMULT_WINDOW_SIZE=15");
@@ -57,8 +58,7 @@ public class ChromaClient : ModuleRules
 				"Engine",
 				"Slate",
 				"SlateCore",
-                "HTTP",
-                "UMG"
+                "HTTP"
 				// ... add private dependencies that you statically link with here ...	
 			}
 			);

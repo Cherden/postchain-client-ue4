@@ -19,10 +19,11 @@ ABlockchainClient::ABlockchainClient(const FObjectInitializer& ObjectInitializer
 		PrivateKey = ChromaUtils::STDArrayToTArray(private_key);
 		PublicKey = ChromaUtils::STDArrayToTArray(public_key);
 	}
+
 }
 
 
-void ABlockchainClient::SetMainWidget(UUserWidget* mw)
+void ABlockchainClient::SetMainWidget(UObject* mw)
 {
 	this->MainWidget = mw;
 }
@@ -169,6 +170,17 @@ void ABlockchainClient::WaitForBlockchainConfirmation()
 
 void ABlockchainClient::InitializeBRIDFromChainID()
 {
+	/*std::function<void(int, std::string)> callback = [](int error, std::string content) {
+		UE_LOG(LogTemp, Error, TEXT("CHROMA::onSuccess lambda called: %d  %s"), error, *(ChromaUtils::STDStringToFString(content)));
+	};
+
+	FString url = FString::Printf(TEXT("%s/brid/iid_%d"), *(this->BaseURL), this->ChainID);
+	chromia::postchain::http::HttpRequest request(ChromaUtils::FStringToSTDString(url), callback);
+	request.Get();*/
+
+	// HTTPS
+	FString url = FString::Printf(TEXT("%s/brid/iid_%d"), *(this->BaseURL), this->ChainID);
+	
 	TSharedRef<IHttpRequest, ESPMode::ThreadSafe> Request = FHttpModule::Get().CreateRequest();
 
 	// Reqister callback
