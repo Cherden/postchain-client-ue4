@@ -6,8 +6,30 @@
 #include "Utils.h"
 #include "../chroma-cpp-pure/src/postchain_util.h"
 
+#include "../chroma-cpp-pure/tests/FT3/account_test.h"
+
 ABlockchainClient::ABlockchainClient(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
+
+	AccountTest account_test;
+	bool pass = account_test.AccountTest2();
+	UE_LOG(LogTemp, Warning, TEXT("CHROMA::AccountTest2: [%d]"), pass);
+
+	//this->BlockchainRID = "1711E1936B67292DB3D6E72DFBB8969DB12F199E2E6D75F9138011A3343FAB95";
+	//this->BaseURL = "https://rellide-staging.chromia.dev/node/16283/";
+
+
+	//std::shared_ptr<ArrayValue> body = AbstractValueFactory::EmptyArray();
+	//std::vector<byte> rid_as_byte = PostchainUtil::HexStringToByteVector(std::string("1711E1936B67292DB3D6E72DFBB8969DB12F199E2E6D75F9138011A3343FAB95"));
+	////body->Add(AbstractValueFactory::Build(std::string("1711E1936B67292DB3D6E72DFBB8969DB12F199E2E6D75F9138011A3343FAB95")));
+	//body->Add(AbstractValueFactory::Build(rid_as_byte));
+
+	//std::shared_ptr<AbstractValue> body_as_value = body;
+
+	//std::vector<byte> encoded_buffer = AbstractValue::Hash(body_as_value);
+	//std::string hash_str = PostchainUtil::ByteVectorToHexString(encoded_buffer);
+	//UE_LOG(LogTemp, Warning, TEXT("CHROMA::gtx string: [%d] [%s]"), hash_str.size(), *(ChromaUtils::STDStringToFString(hash_str)));
+
 	std::vector<unsigned char> private_key;
 	std::vector<unsigned char> public_key;
 	if (!PostchainUtil::GenerateKeyPair(private_key, public_key))
@@ -20,6 +42,8 @@ ABlockchainClient::ABlockchainClient(const FObjectInitializer& ObjectInitializer
 		PublicKey = ChromaUtils::STDArrayToTArray(public_key);
 	}
 
+	
+	//RegisterUser("abcdef");
 }
 
 
@@ -36,7 +60,7 @@ void ABlockchainClient::Setup(FString blockchainRID, FString baseURL)
 }
 
 
-TSharedPtr<Transaction> ABlockchainClient::NewTransaction(TArray<TArray<byte>> signers)
+TSharedPtr<PostchainTransaction> ABlockchainClient::NewTransaction(TArray<TArray<byte>> signers)
 {
 	std::shared_ptr<Gtx> gtx = std::make_shared<Gtx>(ChromaUtils::FStringToSTDString(this->BlockchainRID));
 
@@ -46,7 +70,11 @@ TSharedPtr<Transaction> ABlockchainClient::NewTransaction(TArray<TArray<byte>> s
 		gtx->AddSignerToGtx(arr);
 	}
 
-	TSharedPtr<Transaction> transaction = MakeShared<Transaction>(gtx, ChromaUtils::FStringToSTDString(this->BaseURL), ChromaUtils::FStringToSTDString(this->BlockchainRID));
+	TSharedPtr<PostchainTransaction> transaction = MakeShared<PostchainTransaction>(
+		gtx, 
+		ChromaUtils::FStringToSTDString(this->BaseURL), 
+		ChromaUtils::FStringToSTDString(this->BlockchainRID),
+		[](std::string error) {});
 	return transaction;
 }
 
@@ -58,7 +86,7 @@ void ABlockchainClient::RegisterUser(FString username)
 		UE_LOG(LogTemp, Display, TEXT("CHROMA::RegisterUser fail. Missing KeyPair"));
 		return;
 	}
-	TSharedPtr<Transaction> transaction = NewTransaction({PublicKey});
+	TSharedPtr<PostchainTransaction> transaction = NewTransaction({PublicKey});
 
 	std::shared_ptr<gtv::ArrayValue> operation_values = AbstractValueFactory::EmptyArray();
 	operation_values->Add(AbstractValueFactory::Build(ChromaUtils::FStringToSTDString(username)));
@@ -70,7 +98,7 @@ void ABlockchainClient::RegisterUser(FString username)
 	//	the blockchain.
 	//*/
 	std::shared_ptr<gtv::ArrayValue> nop_operation_values = AbstractValueFactory::EmptyArray();
-	static int nonce = PostchainUtil::RandomIntInRange(0, 100000);
+	static int nonce = 123; // PostchainUtil::RandomIntInRange(0, 100000);
 	UE_LOG(LogTemp, Display, TEXT("CHROMA transaction nop nonce: %d"), nonce);
 	nop_operation_values->Add(AbstractValueFactory::Build(std::to_string(nonce)));
 	transaction->AddOperation(std::string("nop"), nop_operation_values);
@@ -179,7 +207,7 @@ void ABlockchainClient::InitializeBRIDFromChainID()
 	request.Get();*/
 
 	// HTTPS
-	FString url = FString::Printf(TEXT("%s/brid/iid_%d"), *(this->BaseURL), this->ChainID);
+	//FString url = FString::Printf(TEXT("%s/brid/iid_%d"), *(this->BaseURL), this->ChainID);
 	
 	TSharedRef<IHttpRequest, ESPMode::ThreadSafe> Request = FHttpModule::Get().CreateRequest();
 

@@ -8,7 +8,7 @@
 #include "Blueprint/UserWidget.h"
 
 #include "../chroma-cpp-pure/src/common.h"
-#include "../chroma-cpp-pure/src/transaction.h"
+#include "../chroma-cpp-pure/src/postchain_transaction.h"
 #include "../chroma-cpp-pure/src/GTX/gtx.h"
 
 #include <memory>
@@ -53,7 +53,7 @@ public:
 	/**
 	* Init new transaction from signers list
 	*/
-	TSharedPtr<Transaction> NewTransaction(TArray<TArray<byte>> signers);
+	TSharedPtr<PostchainTransaction> NewTransaction(TArray<TArray<byte>> signers);
 	
 	/*Called when the server has responded to InitializeBRIDFromChainID http request*/
 	void OnBRIDResponseReceived(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bWasSuccessful);
