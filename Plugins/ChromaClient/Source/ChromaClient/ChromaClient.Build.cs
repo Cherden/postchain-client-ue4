@@ -21,6 +21,7 @@ public class ChromaClient : ModuleRules
         PublicDefinitions.Add("_CRT_HAS_CXX17=0");
         PublicDefinitions.Add("ECMULT_WINDOW_SIZE=15");
         PublicDefinitions.Add("ECMULT_GEN_PREC_BITS=4");
+        // PublicDefinitions.Add("NDEBUG=1");
 
         string OpenSSLRoot = System.Environment.GetEnvironmentVariable("OPENSSL_ROOT_DIR");
 

@@ -18,18 +18,6 @@ ABlockchainClient::ABlockchainClient(const FObjectInitializer& ObjectInitializer
 	//this->BlockchainRID = "1711E1936B67292DB3D6E72DFBB8969DB12F199E2E6D75F9138011A3343FAB95";
 	//this->BaseURL = "https://rellide-staging.chromia.dev/node/16283/";
 
-
-	//std::shared_ptr<ArrayValue> body = AbstractValueFactory::EmptyArray();
-	//std::vector<byte> rid_as_byte = PostchainUtil::HexStringToByteVector(std::string("1711E1936B67292DB3D6E72DFBB8969DB12F199E2E6D75F9138011A3343FAB95"));
-	////body->Add(AbstractValueFactory::Build(std::string("1711E1936B67292DB3D6E72DFBB8969DB12F199E2E6D75F9138011A3343FAB95")));
-	//body->Add(AbstractValueFactory::Build(rid_as_byte));
-
-	//std::shared_ptr<AbstractValue> body_as_value = body;
-
-	//std::vector<byte> encoded_buffer = AbstractValue::Hash(body_as_value);
-	//std::string hash_str = PostchainUtil::ByteVectorToHexString(encoded_buffer);
-	//UE_LOG(LogTemp, Warning, TEXT("CHROMA::gtx string: [%d] [%s]"), hash_str.size(), *(ChromaUtils::STDStringToFString(hash_str)));
-
 	std::vector<unsigned char> private_key;
 	std::vector<unsigned char> public_key;
 	if (!PostchainUtil::GenerateKeyPair(private_key, public_key))
