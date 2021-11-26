@@ -6,14 +6,181 @@
 #include "Utils.h"
 #include "../chroma-cpp-pure/src/postchain_util.h"
 
+#include "../chroma-cpp-pure/tests/FT3/asset_test.h"
 #include "../chroma-cpp-pure/tests/FT3/account_test.h"
+#include "../chroma-cpp-pure/tests/FT3/asset_balance_test.h"
+#include "../chroma-cpp-pure/tests/FT3/auth_descriptor_rule_test.h"
+#include "../chroma-cpp-pure/tests/FT3/blockchain_test.h"
 
 ABlockchainClient::ABlockchainClient(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
+	bool pass = false;
 
-	AccountTest account_test;
-	bool pass = account_test.AccountTest2();
+	long long ms = PostchainUtil::GetCurrentTimeMillis();
+	ms += 1;
+	ms += 1;
+	
+	UE_LOG(LogTemp, Warning, TEXT("CHROMA::GetCurrentTimeMicroseconds(): [%d]"), ms);
+
+	//BlockchainTest blockchain_test;
+
+	/*pass = blockchain_test.BlockchainTestRun1();
+	UE_LOG(LogTemp, Warning, TEXT("CHROMA::BlockchainTestRun1: [%d]"), pass);
+
+	pass = blockchain_test.BlockchainTestRun2();
+	UE_LOG(LogTemp, Warning, TEXT("CHROMA::BlockchainTestRun2: [%d]"), pass);
+
+	pass = blockchain_test.BlockchainTestRun3();
+	UE_LOG(LogTemp, Warning, TEXT("CHROMA::BlockchainTestRun3: [%d]"), pass);*/
+
+	/*pass = blockchain_test.BlockchainTestRun4();
+	UE_LOG(LogTemp, Warning, TEXT("CHROMA::BlockchainTestRun4: [%d]"), pass);*/
+
+	//pass = blockchain_test.BlockchainTestRun5();
+	//UE_LOG(LogTemp, Warning, TEXT("CHROMA::BlockchainTestRun5: [%d]"), pass);
+
+	//pass = blockchain_test.BlockchainTestRun6();
+	//UE_LOG(LogTemp, Warning, TEXT("CHROMA::BlockchainTestRun6: [%d]"), pass);
+
+	/*pass = blockchain_test.BlockchainTestRun7();
+	UE_LOG(LogTemp, Warning, TEXT("CHROMA::BlockchainTestRun7: [%d]"), pass);
+
+	pass = blockchain_test.BlockchainTestRun8();
+	UE_LOG(LogTemp, Warning, TEXT("CHROMA::BlockchainTestRun8: [%d]"), pass);*/
+
+	/*AuthDescriptorRuleTest auth_descriptor_rule_test;
+
+	pass = auth_descriptor_rule_test.AuthDescriptorRuleTestRun1();
+	UE_LOG(LogTemp, Warning, TEXT("CHROMA::AuthDescriptorRuleTestRun1: [%d]"), pass);
+
+	pass = auth_descriptor_rule_test.AuthDescriptorRuleTestRun2();
+	UE_LOG(LogTemp, Warning, TEXT("CHROMA::AuthDescriptorRuleTestRun2: [%d]"), pass);*/
+	
+	/*pass = auth_descriptor_rule_test.AuthDescriptorRuleTestRun3();
+	UE_LOG(LogTemp, Warning, TEXT("CHROMA::AuthDescriptorRuleTestRun3: [%d]"), pass);
+	
+	pass = auth_descriptor_rule_test.AuthDescriptorRuleTestRun4();
+	UE_LOG(LogTemp, Warning, TEXT("CHROMA::AuthDescriptorRuleTestRun4: [%d]"), pass);*/
+
+	/*pass = auth_descriptor_rule_test.AuthDescriptorRuleTestRun5();
+	UE_LOG(LogTemp, Warning, TEXT("CHROMA::AuthDescriptorRuleTestRun5: [%d]"), pass);
+	
+	pass = auth_descriptor_rule_test.AuthDescriptorRuleTestRun6();
+	UE_LOG(LogTemp, Warning, TEXT("CHROMA::AuthDescriptorRuleTestRun6: [%d]"), pass);
+
+	pass = auth_descriptor_rule_test.AuthDescriptorRuleTestRun7();
+	UE_LOG(LogTemp, Warning, TEXT("CHROMA::AuthDescriptorRuleTestRun7: [%d]"), pass);
+
+	pass = auth_descriptor_rule_test.AuthDescriptorRuleTestRun8();
+	UE_LOG(LogTemp, Warning, TEXT("CHROMA::AuthDescriptorRuleTestRun8: [%d]"), pass);
+
+	pass = auth_descriptor_rule_test.AuthDescriptorRuleTestRun9();
+	UE_LOG(LogTemp, Warning, TEXT("CHROMA::AuthDescriptorRuleTestRun9: [%d]"), pass);
+
+	pass = auth_descriptor_rule_test.AuthDescriptorRuleTestRun10();
+	UE_LOG(LogTemp, Warning, TEXT("CHROMA::AuthDescriptorRuleTestRun10: [%d]"), pass);
+	*/
+
+	/*pass = auth_descriptor_rule_test.AuthDescriptorRuleTestRun11();
+	UE_LOG(LogTemp, Warning, TEXT("CHROMA::AuthDescriptorRuleTestRun11: [%d]"), pass);*/
+
+	/*pass = auth_descriptor_rule_test.AuthDescriptorRuleTestRun12();
+	UE_LOG(LogTemp, Warning, TEXT("CHROMA::AuthDescriptorRuleTestRun12: [%d]"), pass);
+
+	pass = auth_descriptor_rule_test.AuthDescriptorRuleTestRun13();
+	UE_LOG(LogTemp, Warning, TEXT("CHROMA::AuthDescriptorRuleTestRun13: [%d]"), pass);
+
+	pass = auth_descriptor_rule_test.AuthDescriptorRuleTestRun14();
+	UE_LOG(LogTemp, Warning, TEXT("CHROMA::AuthDescriptorRuleTestRun14: [%d]"), pass);
+
+	pass = auth_descriptor_rule_test.AuthDescriptorRuleTestRun15();
+	UE_LOG(LogTemp, Warning, TEXT("CHROMA::AuthDescriptorRuleTestRun15: [%d]"), pass);
+
+	pass = auth_descriptor_rule_test.AuthDescriptorRuleTestRun16();
+	UE_LOG(LogTemp, Warning, TEXT("CHROMA::AuthDescriptorRuleTestRun16: [%d]"), pass);
+
+	pass = auth_descriptor_rule_test.AuthDescriptorRuleTestRun17();
+	UE_LOG(LogTemp, Warning, TEXT("CHROMA::AuthDescriptorRuleTestRun17: [%d]"), pass);
+
+	pass = auth_descriptor_rule_test.AuthDescriptorRuleTestRun18();
+	UE_LOG(LogTemp, Warning, TEXT("CHROMA::AuthDescriptorRuleTestRun18: [%d]"), pass);
+
+	pass = auth_descriptor_rule_test.AuthDescriptorRuleTestRun19();
+	UE_LOG(LogTemp, Warning, TEXT("CHROMA::AuthDescriptorRuleTestRun19: [%d]"), pass);
+
+	pass = auth_descriptor_rule_test.AuthDescriptorRuleTestRun20();
+	UE_LOG(LogTemp, Warning, TEXT("CHROMA::AuthDescriptorRuleTestRun20: [%d]"), pass);
+
+	pass = auth_descriptor_rule_test.AuthDescriptorRuleTestRun21();
+	UE_LOG(LogTemp, Warning, TEXT("CHROMA::AuthDescriptorRuleTestRun21: [%d]"), pass);
+
+	pass = auth_descriptor_rule_test.AuthDescriptorRuleTestRun22();
+	UE_LOG(LogTemp, Warning, TEXT("CHROMA::AuthDescriptorRuleTestRun22: [%d]"), pass);
+
+	pass = auth_descriptor_rule_test.AuthDescriptorRuleTestRun23();
+	UE_LOG(LogTemp, Warning, TEXT("CHROMA::AuthDescriptorRuleTestRun23: [%d]"), pass);*/
+
+	/*AssetTest asset_test;
+
+	pass = asset_test.AssetTestRun1();
+	UE_LOG(LogTemp, Warning, TEXT("CHROMA::AccountTest1: [%d]"), pass);
+	
+	pass = asset_test.AssetTestRun2();
 	UE_LOG(LogTemp, Warning, TEXT("CHROMA::AccountTest2: [%d]"), pass);
+
+	pass = asset_test.AssetTestRun3();
+	UE_LOG(LogTemp, Warning, TEXT("CHROMA::AccountTest3: [%d]"), pass);
+	
+	pass = asset_test.AssetTestRun4();
+	UE_LOG(LogTemp, Warning, TEXT("CHROMA::AccountTest4: [%d]"), pass);*/
+
+	/*AssetBalanceTest asset_balance_test;
+	bool pass = asset_balance_test.AssetBalanceTestRun();
+	UE_LOG(LogTemp, Warning, TEXT("CHROMA::AssetBalanceTestRun() [%d]"), pass);*/
+	
+	//AccountTest account_test;
+
+	/*pass = account_test.AccountTest1();
+	UE_LOG(LogTemp, Warning, TEXT("CHROMA::AccountTest1: [%d]"), pass);*/
+
+	/*pass = account_test.AccountTest2();
+	UE_LOG(LogTemp, Warning, TEXT("CHROMA::AccountTest2: [%d]"), pass);*/
+
+	/*pass = account_test.AccountTest3();
+	UE_LOG(LogTemp, Warning, TEXT("CHROMA::AccountTest3: [%d]"), pass);*/
+
+	/*pass = account_test.AccountTest4();
+	UE_LOG(LogTemp, Warning, TEXT("CHROMA::AccountTest4: [%d]"), pass);*/
+
+	/*pass = account_test.AccountTest5();
+	UE_LOG(LogTemp, Warning, TEXT("CHROMA::AccountTest5: [%d]"), pass);*/
+
+	/*pass = account_test.AccountTest6();
+	UE_LOG(LogTemp, Warning, TEXT("CHROMA::AccountTest6: [%d]"), pass);*/
+
+	/*pass = account_test.AccountTest7();
+	UE_LOG(LogTemp, Warning, TEXT("CHROMA::AccountTest7: [%d]"), pass);*/
+
+	/*pass = account_test.AccountTest8();
+	UE_LOG(LogTemp, Warning, TEXT("CHROMA::AccountTest8: [%d]"), pass);*/
+
+	/*pass = account_test.AccountTest9();
+	UE_LOG(LogTemp, Warning, TEXT("CHROMA::AccountTest9: [%d]"), pass);*/
+
+	/*pass = account_test.AccountTest10();
+	UE_LOG(LogTemp, Warning, TEXT("CHROMA::AccountTest10: [%d]"), pass);*/
+
+	/*pass = account_test.AccountTest11();
+	UE_LOG(LogTemp, Warning, TEXT("CHROMA::AccountTest11: [%d]"), pass);*/
+
+	/*pass = account_test.AccountTest12();
+	UE_LOG(LogTemp, Warning, TEXT("CHROMA::AccountTest12: [%d]"), pass);*/
+
+	/*pass = account_test.AccountTest13();
+	UE_LOG(LogTemp, Warning, TEXT("CHROMA::AccountTest13: [%d]"), pass);*/
+
+	//pass = account_test.AccountTest14(); // TO-DO
+	//UE_LOG(LogTemp, Warning, TEXT("CHROMA::AccountTest14: [%d]"), pass);
 
 	//this->BlockchainRID = "1711E1936B67292DB3D6E72DFBB8969DB12F199E2E6D75F9138011A3343FAB95";
 	//this->BaseURL = "https://rellide-staging.chromia.dev/node/16283/";
@@ -86,7 +253,7 @@ void ABlockchainClient::RegisterUser(FString username)
 	//	the blockchain.
 	//*/
 	std::shared_ptr<gtv::ArrayValue> nop_operation_values = AbstractValueFactory::EmptyArray();
-	static int nonce = 123; // PostchainUtil::RandomIntInRange(0, 100000);
+	static int nonce = PostchainUtil::RandomIntInRange(0, 100000);
 	UE_LOG(LogTemp, Display, TEXT("CHROMA transaction nop nonce: %d"), nonce);
 	nop_operation_values->Add(AbstractValueFactory::Build(std::to_string(nonce)));
 	transaction->AddOperation(std::string("nop"), nop_operation_values);
