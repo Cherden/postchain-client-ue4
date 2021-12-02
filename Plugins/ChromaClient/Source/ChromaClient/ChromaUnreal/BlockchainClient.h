@@ -10,6 +10,7 @@
 #include "../chroma-cpp-pure/src/common.h"
 #include "../chroma-cpp-pure/src/postchain_transaction.h"
 #include "../chroma-cpp-pure/src/GTX/gtx.h"
+#include "../chroma-cpp-pure/SSO/sso_store_local_storage.h"
 
 #include <memory>
 #include <vector>

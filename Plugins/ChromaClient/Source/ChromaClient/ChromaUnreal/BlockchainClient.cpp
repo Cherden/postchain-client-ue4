@@ -11,16 +11,105 @@
 #include "../chroma-cpp-pure/tests/FT3/asset_balance_test.h"
 #include "../chroma-cpp-pure/tests/FT3/auth_descriptor_rule_test.h"
 #include "../chroma-cpp-pure/tests/FT3/blockchain_test.h"
+#include "../chroma-cpp-pure/tests/FT3/rate_limit_test.h"
+#include "../chroma-cpp-pure/tests/SSO/sso_test.h"
+
+#include "../chroma-cpp-pure/SSO/sso.h"
+#include "../chroma-cpp-pure/SSO/protocol_handler.h"
+#include "../chroma-cpp-pure/SSO/file_manager.h"
+#include "../chroma-cpp-pure/FT3/Core/postchain.h"
 
 ABlockchainClient::ABlockchainClient(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
 	bool pass = false;
 
-	long long ms = PostchainUtil::GetCurrentTimeMillis();
-	ms += 1;
-	ms += 1;
+	/*SSOTest sso_test;
+
+	pass = sso_test.SSORegisterOperationTest();
+	UE_LOG(LogTemp, Warning, TEXT("CHROMA::SSORegisterOperationTest: [%d]"), pass);
+
+	pass = sso_test.SSOAddAuthOperationTest();
+	UE_LOG(LogTemp, Warning, TEXT("CHROMA::SSOAddAuthOperationTest: [%d]"), pass);*/
+
+	//-----------------------TEST SSO--------------------------
+	/*ft3::Postchain postchain("http://localhost:7740");
+	std::shared_ptr<Blockchain> blockchain;
+	postchain.Blockchain("849AD8C9AC720A21962187D0BDA6168DA274E1D17D39AAD513559171FDDC6914",
+		[&blockchain] (std::shared_ptr<Blockchain> _blockchain) {
+			blockchain = _blockchain;
+		},
+		[](std::string error) {
+			UE_LOG(LogTemp, Warning, TEXT("postchain.Blockchain error: [%s]"), *ChromaUtils::STDStringToFString(error));
+	});
+
+	if (blockchain == nullptr)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("blockchain == nullptr"));
+		return;
+	}
+
+
+	SSO sso(blockchain);
+	sso.InitiateLogin("http://localhost:3000/success", "http://localhost:3000/error");
+
+	while (sso.store_->GetTmpTx().size() == 0)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Wait for temp file update"));
+		PostchainUtil::SleepForMillis(3000);
+		sso.store_->Load();
+	}
+
+	std::string payload = sso.store_->GetTmpTx();
+	UE_LOG(LogTemp, Warning, TEXT("Wait for temp file update: [%s]"), *ChromaUtils::STDStringToFString(payload));
+
+	sso.FinalizeLogin(payload, [](SSO::AccUserPair user_pair) {
+		UE_LOG(LogTemp, Warning, TEXT("Authentication success for account: [%s]"), *ChromaUtils::STDStringToFString(user_pair.account->id_));
+	}, 
+	[](std::string content) {
+		UE_LOG(LogTemp, Warning, TEXT("Authentication failed with error: [%s]"), *ChromaUtils::STDStringToFString(content));
+	});
+
+	return;*/
+	/*
+
 	
-	UE_LOG(LogTemp, Warning, TEXT("CHROMA::GetCurrentTimeMicroseconds(): [%d]"), ms);
+	//ProtocolHandler::Register("ChromiaProtocol");
+
+
+
+	/*_sso.InitiateLogin(_successUrl, _cancelUrl);
+
+	while (_sso.Store.TmpTx == null)
+	{
+		yield return new WaitForSeconds(3);
+		_sso.Store.Load();
+	}
+
+	var payload = _sso.Store.TmpTx;
+	payload = payload.Split("?"[0])[1];
+	string raw = payload.Split("="[0])[1];
+
+	yield return _sso.FinalizeLogin(raw, PanelManager.AddOptionToPanel, DefaultErrorHandler);*/
+
+	//---------------------------------------------------------
+
+	//RateLimitTest rate_limit_test;
+
+	/*pass = rate_limit_test.RateLimitTestRun1();
+	UE_LOG(LogTemp, Warning, TEXT("CHROMA::RateLimitTestRun1: [%d]"), pass);
+
+	pass = rate_limit_test.RateLimitTestRun2();
+	UE_LOG(LogTemp, Warning, TEXT("CHROMA::RateLimitTestRun2: [%d]"), pass);
+
+	pass = rate_limit_test.RateLimitTestRun3();
+	UE_LOG(LogTemp, Warning, TEXT("CHROMA::RateLimitTestRun3: [%d]"), pass);
+
+	pass = rate_limit_test.RateLimitTestRun4();
+	UE_LOG(LogTemp, Warning, TEXT("CHROMA::RateLimitTestRun4: [%d]"), pass);
+
+	pass = rate_limit_test.RateLimitTestRun5();
+	UE_LOG(LogTemp, Warning, TEXT("CHROMA::RateLimitTestRun5: [%d]"), pass);
+	*/
 
 	//BlockchainTest blockchain_test;
 
