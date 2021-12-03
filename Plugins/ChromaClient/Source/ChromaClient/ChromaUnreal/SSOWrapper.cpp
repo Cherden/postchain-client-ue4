@@ -7,7 +7,6 @@
 #include "../chroma-cpp-pure/src/postchain_util.h"
 
 #include "../chroma-cpp-pure/SSO/sso.h"
-#include "../chroma-cpp-pure/SSO/protocol_handler.h"
 #include "../chroma-cpp-pure/SSO/file_manager.h"
 #include "../chroma-cpp-pure/FT3/Core/postchain.h"
 #include "../chroma-cpp-pure/FT3/Core/Blockchain/blockchain.h"

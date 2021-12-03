@@ -13,7 +13,6 @@
 #include "../chroma-cpp-pure/tests/FT3/rate_limit_test.h"
 #include "../chroma-cpp-pure/tests/SSO/sso_test.h"
 #include "../chroma-cpp-pure/SSO/sso.h"
-#include "../chroma-cpp-pure/SSO/protocol_handler.h"
 #include "../chroma-cpp-pure/SSO/file_manager.h"
 #include "../chroma-cpp-pure/SSO/sso_store_local_storage.h"
 

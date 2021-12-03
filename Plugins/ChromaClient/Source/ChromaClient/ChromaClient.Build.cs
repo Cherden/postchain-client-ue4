@@ -21,6 +21,8 @@ public class ChromaClient : ModuleRules
         PublicDefinitions.Add("_CRT_HAS_CXX17=0");
         PublicDefinitions.Add("ECMULT_WINDOW_SIZE=15");
         PublicDefinitions.Add("ECMULT_GEN_PREC_BITS=4");
+        PublicDefinitions.Add("CURL_STATICLIB");
+        //PublicDefinitions.Add("WIN32_LEAN_AND_MEAN");
         // PublicDefinitions.Add("NDEBUG=1");
 
         string OpenSSLRoot = System.Environment.GetEnvironmentVariable("OPENSSL_ROOT_DIR");
@@ -31,7 +33,10 @@ public class ChromaClient : ModuleRules
 
         PublicIncludePaths.AddRange(
             new string[] {
-                System.IO.Path.Combine(OpenSSLRoot, "include")
+                System.IO.Path.Combine(OpenSSLRoot, "include"),
+                //"C:/Projects/Chroma/curlpp-0.8.1/include",
+                "C:/Projects/Chroma/curl-7.80.0/include",
+                //"C:/Projects/Chroma/curlcpp/include"
             }
 		);
 				
@@ -76,7 +81,18 @@ public class ChromaClient : ModuleRules
                 //"C:/Program Files/OpenSSL-Win64/lib/VC/libssl64MDd.lib",
                 //"C:/Program Files/OpenSSL-Win64/lib/VC/libcrypto64MDd.lib"
                 System.IO.Path.Combine(OpenSSLRoot, "lib/VC/libssl64MDd.lib"),
-                System.IO.Path.Combine(OpenSSLRoot, "lib/VC/libcrypto64MDd.lib")
+                System.IO.Path.Combine(OpenSSLRoot, "lib/VC/libcrypto64MDd.lib"),
+            //"C:/Projects/Chroma/curlpp-0.8.1/build/Release/curlpp.lib",
+            //"C:/Projects/Chroma/curlpp-0.8.1/build/Release/libcurlpp.lib",
+
+                //"C:/Projects/Chroma/curlcpp/build/src/Release/curlcpp.lib",
+                "C:/Projects/Chroma/curl-7.80.0/build/lib/x64/libcurl.lib",
+                //"C:/Projects/Chroma/curl-7.80.0/build/lib/x64/libcurld.lib",
+
+                "C:/Program Files (x86)/Windows Kits/10/Lib/10.0.17763.0/um/x64/Crypt32.Lib",
+                "C:/Program Files (x86)/Windows Kits/10/Lib/10.0.17763.0/um/x64/WS2_32.Lib",
+                "C:/Program Files (x86)/Windows Kits/10/Lib/10.0.17763.0/um/x64/WinMM.Lib",
+                "C:/Program Files (x86)/Windows Kits/10/Lib/10.0.17763.0/um/x64/Wldap32.Lib"
         });
     }
 }
