@@ -10,7 +10,7 @@
 #include "../chroma-cpp-pure/src/common.h"
 #include "../chroma-cpp-pure/src/postchain_transaction.h"
 #include "../chroma-cpp-pure/src/GTX/gtx.h"
-#include "../chroma-cpp-pure/SSO/sso_store_local_storage.h"
+#include "../chroma-cpp-pure/src/blockchain_client.h"
 
 #include <memory>
 #include <vector>
@@ -37,9 +37,6 @@ public:
 	void SetMainWidget(UObject* mw);
 
 	UFUNCTION(BlueprintCallable)
-	void InitializeBRIDFromChainID();
-
-	UFUNCTION(BlueprintCallable)
 	void RegisterUser(FString username);
 
 	UFUNCTION(BlueprintCallable)
@@ -47,44 +44,15 @@ public:
 	// End blueprint exposed functions
 
 	/**
-	* Init GET request to wait for some POST transaction insert operation
-	*/
-	void WaitForBlockchainConfirmation();
-
-	/**
-	* Init new transaction from signers list
-	*/
-	TSharedPtr<PostchainTransaction> NewTransaction(TArray<TArray<byte>> signers);
-	
-	/*Called when the server has responded to InitializeBRIDFromChainID http request*/
-	void OnBRIDResponseReceived(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bWasSuccessful);
-
-	/*Called when the server has responded to RegisterUser http request*/
-	void OnTransactionResponseReceived(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bWasSuccessful);
-
-	/*Called when the server has responded to WaitForBlockchainConfirmation http request*/
-	void OnBlockchainConfirmationReceived(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bWasSuccessful);
-
-	/*Called when the server has responded to CheckUser http request*/
-	void OnQueryResponseReceived(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bWasSuccessful);
-
-	/**
 	* Add some message to the end of the on-screen console view. 
 	* The message will be forwarded to main widget blueprint.
 	*/
 	void PrintLogOnScreen(FString message);
 
-
-	//void OnHttpResponse(int status, std::string content);
-
 private:
-	FString BlockchainRID;
-	int ChainID = 0;
-	FString BaseURL;
-	FString TxRID;
-
-	TArray<byte> PrivateKey;
-	TArray<byte> PublicKey;
+	std::shared_ptr<BlockchainClient> BlockchainClientPtr;
+	std::vector<byte> PrivateKey;
+	std::vector<byte> PublicKey;
 
 	// Reference to owning Widget Blueprint
 	UObject* MainWidget = nullptr;

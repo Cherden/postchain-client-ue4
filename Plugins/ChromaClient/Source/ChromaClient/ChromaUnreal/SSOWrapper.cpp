@@ -29,13 +29,14 @@ void ASSOWrapper::Login()
 		[&blockchain](std::shared_ptr<Blockchain> _blockchain) {
 		blockchain = _blockchain;
 	},
-		[](std::string error) {
-		UE_LOG(LogTemp, Warning, TEXT("postchain.Blockchain error: [%s]"), *ChromaUtils::STDStringToFString(error));
+		[this](std::string error) {
+		FString message = FString::Printf(TEXT("postchain.Blockchain error: %s"), *ChromaUtils::STDStringToFString(error));
+		PrintLogOnScreen(message);
 	});
 
 	if (blockchain == nullptr)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("blockchain == nullptr"));
+		PrintLogOnScreen("Failed to initialize blockchain connection");
 		return;
 	}
 
@@ -45,7 +46,6 @@ void ASSOWrapper::Login()
 
 	while (sso.store_->GetTmpTx().size() == 0)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("Wait for temp file update"));
 		PostchainUtil::SleepForMillis(3000);
 		sso.store_->Load();
 	}
@@ -57,8 +57,9 @@ void ASSOWrapper::Login()
 		UE_LOG(LogTemp, Warning, TEXT("Authentication success for account: [%s]"), *ChromaUtils::STDStringToFString(user_pair.account->id_));
 		PrintLogOnScreen(FString("Authentication success for user: ") + ChromaUtils::STDStringToFString(user_pair.account->id_));
 	},
-	[](std::string content) {
-		UE_LOG(LogTemp, Warning, TEXT("Authentication failed with error: [%s]"), *ChromaUtils::STDStringToFString(content));
+	[this](std::string error) {
+		FString message = FString::Printf(TEXT("Authentication failed with error: %s"), *ChromaUtils::STDStringToFString(error));
+		PrintLogOnScreen(message);
 	});
 }
 
