@@ -22,6 +22,7 @@ public class ChromaClient : ModuleRules
         PublicDefinitions.Add("ECMULT_WINDOW_SIZE=15");
         PublicDefinitions.Add("ECMULT_GEN_PREC_BITS=4");
         PublicDefinitions.Add("CURL_STATICLIB");
+        PublicDefinitions.Add("CHROMIA_INSIDE_UNREAL_ENGINE");
         //PublicDefinitions.Add("WIN32_LEAN_AND_MEAN");
         // PublicDefinitions.Add("NDEBUG=1");
 
@@ -36,6 +37,7 @@ public class ChromaClient : ModuleRules
                 System.IO.Path.Combine(OpenSSLRoot, "include"),
                 //"C:/Projects/Chroma/curlpp-0.8.1/include",
                 "C:/Projects/Chroma/curl-7.80.0/include",
+                "C:/Projects/Chroma/Clean Commit/googletest-release-1.11.0/googletest/include",
                 //"C:/Projects/Chroma/curlcpp/include"
             }
 		);
@@ -85,7 +87,6 @@ public class ChromaClient : ModuleRules
             //"C:/Projects/Chroma/curlpp-0.8.1/build/Release/curlpp.lib",
             //"C:/Projects/Chroma/curlpp-0.8.1/build/Release/libcurlpp.lib",
 
-                //"C:/Projects/Chroma/curlcpp/build/src/Release/curlcpp.lib",
                 "C:/Projects/Chroma/curl-7.80.0/build/lib/x64/libcurl.lib",
                 //"C:/Projects/Chroma/curl-7.80.0/build/lib/x64/libcurld.lib",
 

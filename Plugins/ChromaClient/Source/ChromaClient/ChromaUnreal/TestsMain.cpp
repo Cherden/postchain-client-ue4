@@ -3,7 +3,7 @@
 #include "Misc/OutputDeviceDebug.h"
 
 #include "Utils.h"
-#include "../chroma-cpp-pure/src/postchain_util.h"
+#include "../chroma-cpp-pure/src/PostchainClient/postchain_util.h"
 
 #include "../chroma-cpp-pure/tests/FT3/asset_test.h"
 #include "../chroma-cpp-pure/tests/FT3/account_test.h"
@@ -12,15 +12,15 @@
 #include "../chroma-cpp-pure/tests/FT3/blockchain_test.h"
 #include "../chroma-cpp-pure/tests/FT3/rate_limit_test.h"
 #include "../chroma-cpp-pure/tests/SSO/sso_test.h"
-#include "../chroma-cpp-pure/SSO/sso.h"
-#include "../chroma-cpp-pure/SSO/file_manager.h"
-#include "../chroma-cpp-pure/SSO/sso_store_local_storage.h"
+#include "../chroma-cpp-pure/src/SSO/sso.h"
+#include "../chroma-cpp-pure/src/SSO/file_manager.h"
+#include "../chroma-cpp-pure/src/SSO/sso_store_local_storage.h"
 
-#include "../chroma-cpp-pure/FT3/Core/postchain.h"
+#include "../chroma-cpp-pure/src/FT3/Core/postchain.h"
 
-#include "../chroma-cpp-pure/src/common.h"
-#include "../chroma-cpp-pure/src/postchain_transaction.h"
-#include "../chroma-cpp-pure/src/GTX/gtx.h"
+#include "../chroma-cpp-pure/src/PostchainClient/common.h"
+#include "../chroma-cpp-pure/src/PostchainClient/postchain_transaction.h"
+#include "../chroma-cpp-pure/src/PostchainClient/GTX/gtx.h"
 
 #include <memory>
 #include <vector>

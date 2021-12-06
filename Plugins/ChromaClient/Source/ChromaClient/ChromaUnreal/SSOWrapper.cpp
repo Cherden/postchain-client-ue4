@@ -4,12 +4,12 @@
 #include "Misc/OutputDeviceDebug.h"
 
 #include "Utils.h"
-#include "../chroma-cpp-pure/src/postchain_util.h"
+#include "../chroma-cpp-pure/src/PostchainClient/postchain_util.h"
 
-#include "../chroma-cpp-pure/SSO/sso.h"
-#include "../chroma-cpp-pure/SSO/file_manager.h"
-#include "../chroma-cpp-pure/FT3/Core/postchain.h"
-#include "../chroma-cpp-pure/FT3/Core/Blockchain/blockchain.h"
+#include "../chroma-cpp-pure/src/SSO/sso.h"
+#include "../chroma-cpp-pure/src/SSO/file_manager.h"
+#include "../chroma-cpp-pure/src/FT3/Core/postchain.h"
+#include "../chroma-cpp-pure/src/FT3/Core/Blockchain/blockchain.h"
 
 
 using namespace chromia::postchain::ft3;

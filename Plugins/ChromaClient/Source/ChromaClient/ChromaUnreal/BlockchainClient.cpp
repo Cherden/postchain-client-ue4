@@ -2,8 +2,8 @@
 #include "Engine/GameEngine.h"
 #include "Misc/OutputDeviceDebug.h"
 #include "Utils.h"
-#include "../chroma-cpp-pure/src/postchain_util.h"
-#include "../chroma-cpp-pure/HTTP/httprequest.h"
+#include "../chroma-cpp-pure/src/PostchainClient/postchain_util.h"
+#include "../chroma-cpp-pure/src/HTTP/httprequest.h"
 
 
 ABlockchainClient::ABlockchainClient(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
