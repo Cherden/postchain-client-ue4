@@ -1,6 +1,7 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 using UnrealBuildTool;
+using Tools.DotNETCommon;
 
 public class ChromaClient : ModuleRules
 {
@@ -9,24 +10,25 @@ public class ChromaClient : ModuleRules
 		//PCHUsage = ModuleRules.PCHUsageMode.UseExplicitOrSharedPCHs;
 
         PCHUsage = ModuleRules.PCHUsageMode.NoSharedPCHs;
-        //MinFilesUsingPrecompiledHeaderOverride = 0;  // or other larger numbers
-        //Target.bForceIncludePrecompiledHeader = true;
-        //// If this is set it seems to want to look in the Engine/Source folder. Specifying a file relative to this also doesn't seem to be sufficient.
-        //SharedPCHHeaderFile = "";
 
         bUseRTTI = true;
 
         PublicDefinitions.Add("_CRT_HAS_CXX17=0");
         PublicDefinitions.Add("ECMULT_WINDOW_SIZE=15");
         PublicDefinitions.Add("ECMULT_GEN_PREC_BITS=4");
+        PublicDefinitions.Add("CURL_STATICLIB");
+        PublicDefinitions.Add("CHROMIA_INSIDE_UNREAL_ENGINE");
 
+        string OpenSSLRoot = System.Environment.GetEnvironmentVariable("OPENSSL_ROOT_DIR");
+        string CURLRoot = System.Environment.GetEnvironmentVariable("CURL_ROOT_DIR");
+        
         PublicIncludePaths.AddRange(
-			new string[] {
-                "C:/Program Files/OpenSSL-Win64/include" // TODO - parametrize
+            new string[] {
+                System.IO.Path.Combine(OpenSSLRoot, "include"),
+                System.IO.Path.Combine(CURLRoot, "include"),
             }
-			);
+		);
 				
-		
 		PrivateIncludePaths.AddRange(
 			new string[] {
 				// ... add other private include paths required here ...
@@ -50,7 +52,7 @@ public class ChromaClient : ModuleRules
 				"Engine",
 				"Slate",
 				"SlateCore",
-                "HTTP"
+                //"HTTP"
 				// ... add private dependencies that you statically link with here ...	
 			}
 			);
@@ -64,8 +66,15 @@ public class ChromaClient : ModuleRules
 			);
 
         PublicAdditionalLibraries.AddRange(new string[] {
-                "C:/Program Files/OpenSSL-Win64/lib/VC/libssl64MDd.lib",
-                "C:/Program Files/OpenSSL-Win64/lib/VC/libcrypto64MDd.lib"
+
+                System.IO.Path.Combine(OpenSSLRoot, "lib/VC/libssl64MDd.lib"),
+                System.IO.Path.Combine(OpenSSLRoot, "lib/VC/libcrypto64MDd.lib"),
+                System.IO.Path.Combine(CURLRoot, "build/lib/x64/libcurl.lib"),
+        
+                "C:/Program Files (x86)/Windows Kits/10/Lib/10.0.17763.0/um/x64/Crypt32.Lib",
+                "C:/Program Files (x86)/Windows Kits/10/Lib/10.0.17763.0/um/x64/WS2_32.Lib",
+                "C:/Program Files (x86)/Windows Kits/10/Lib/10.0.17763.0/um/x64/WinMM.Lib",
+                "C:/Program Files (x86)/Windows Kits/10/Lib/10.0.17763.0/um/x64/Wldap32.Lib"
         });
     }
 }
