@@ -19,17 +19,15 @@ public class ChromaClient : ModuleRules
         PublicDefinitions.Add("CURL_STATICLIB");
         PublicDefinitions.Add("CHROMIA_INSIDE_UNREAL_ENGINE");
 
-        string OpenSSLRoot = System.Environment.GetEnvironmentVariable("OPENSSL_ROOT_DIR");
-        string CURLRoot = System.Environment.GetEnvironmentVariable("CURL_ROOT_DIR");
-        
-        PublicIncludePaths.AddRange(
+		AddEngineThirdPartyPrivateStaticDependencies(Target, "libcurl");
+		AddEngineThirdPartyPrivateStaticDependencies(Target, "OpenSSL");
+
+		PublicIncludePaths.AddRange(
             new string[] {
-                System.IO.Path.Combine(OpenSSLRoot, "include"),
-                System.IO.Path.Combine(CURLRoot, "include"),
             }
-		);
-				
-		PrivateIncludePaths.AddRange(
+        );
+
+        PrivateIncludePaths.AddRange(
 			new string[] {
 				// ... add other private include paths required here ...
 			}
@@ -66,15 +64,6 @@ public class ChromaClient : ModuleRules
 			);
 
         PublicAdditionalLibraries.AddRange(new string[] {
-
-                System.IO.Path.Combine(OpenSSLRoot, "lib/VC/libssl64MDd.lib"),
-                System.IO.Path.Combine(OpenSSLRoot, "lib/VC/libcrypto64MDd.lib"),
-                System.IO.Path.Combine(CURLRoot, "build/lib/x64/libcurl.lib"),
-        
-                "C:/Program Files (x86)/Windows Kits/10/Lib/10.0.17763.0/um/x64/Crypt32.Lib",
-                "C:/Program Files (x86)/Windows Kits/10/Lib/10.0.17763.0/um/x64/WS2_32.Lib",
-                "C:/Program Files (x86)/Windows Kits/10/Lib/10.0.17763.0/um/x64/WinMM.Lib",
-                "C:/Program Files (x86)/Windows Kits/10/Lib/10.0.17763.0/um/x64/Wldap32.Lib"
         });
     }
 }
