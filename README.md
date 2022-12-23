@@ -6,7 +6,7 @@
 
 1. Unreal Engine (I used 4.27 for this, but there should be no problem with older versions)
 2. Visual Studio (I tested on both 2017 and 2019)
-
+3. Node JS
 
 ## Build
 
@@ -30,6 +30,15 @@ Modify `Blockchain_BRID` & `Blockchain_URL` with correct values
 Open Content/SSO/SSODemoWidget.uasset (Widget)
 Navigate to Graph -> Variables list
 Modify `Blockchain_BRID` & `Blockchain_URL` with correct values
+
+
+## Prepare SSO Auth Server
+
+This will launch a small js server wich will intercept the rawTx code from SSO auth success, and transfers it to UE4 plugin, via some json file. 
+```
+cd SSOAuthServer/
+node index.js
+``` 
 
 
 ## Test
