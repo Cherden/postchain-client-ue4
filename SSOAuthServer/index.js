@@ -4,19 +4,34 @@ const fs = require('fs');
 
 const hostname = '127.0.0.1';
 const port = 3000;
+const fileName = `${process.env.APPDATA}/ChromiaTemp/SSO.dat`;
 
-async function updateTmpTX(newValue) {
-  // Read the JSON file
-  const jsonString = await fs.promises.readFile(`${process.env.APPDATA}/ChromiaTemp/SSO.dat`, 'utf-8');
+function updateTmpTX(newValue) {
+    try { 
+        // Read the JSON file
+        
+        const jsonString = fs.readFileSync(fileName, 'utf-8');
 
-  // Parse the JSON string into an object
-  const data = JSON.parse(jsonString);
+        if (jsonString == null || jsonString.length == 0) {
+            console.log(`Missing file: ${fileName}`);
+            return false;
+        }
 
-  // Update the __tmpTX key
-  data.__tmpTX = newValue;
+        // Parse the JSON string into an object
+        const data = JSON.parse(jsonString);
 
-  // Stringify the updated object and write it back to the file
-  await fs.promises.writeFile(`${process.env.APPDATA}/ChromiaTemp/SSO.dat`, JSON.stringify(data));
+        // Update the __tmpTX key
+        data.__tmpTX = newValue;
+
+        // Stringify the updated object and write it back to the file
+        fs.writeFileSync(`${process.env.APPDATA}/ChromiaTemp/SSO.dat`, JSON.stringify(data));
+    } catch (e) {
+        console.log(`Failed to update json file: ${fileName} \n`);
+        console.log(`Error : ${e}`);
+        return false;
+    }
+
+    return true;
 }
 
 const server = http.createServer((req, res) => {
@@ -32,10 +47,12 @@ const server = http.createServer((req, res) => {
     if (rawTx == null || rawTx.length == 0)
     {
         res.end(`Error, invalid rawTx\n`);
-        updateTmpTX(rawTx);
     }else{
-        res.end(`Success!\n`);
-        updateTmpTX(rawTx);
+        if (updateTmpTX(rawTx) == true){
+            res.end(`Success!\n`);
+        }else{
+            res.end(`Error, failed to update json file \n`);
+        }
     }
    
   } else if (req.method === 'GET' && req.url.startsWith('/error')) {
