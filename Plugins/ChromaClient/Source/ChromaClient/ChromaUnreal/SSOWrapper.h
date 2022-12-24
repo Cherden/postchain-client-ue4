@@ -39,10 +39,16 @@ public:
 	*/
 	void PrintLogOnScreen(FString message);
 
+	// Get the state of login action, wich is executed async
+	bool IsLoginInProgress();
+
 private:
 	FString BlockchainRID;
 	FString BaseURL;
 
 	// Reference to owning Widget Blueprint
 	UObject* MainWidget = nullptr;
+
+	// The state of login action, wich is executed async
+	bool LoginInProgress = false;
 };

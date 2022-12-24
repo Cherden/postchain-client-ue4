@@ -1,11 +1,12 @@
 
 #include "SSOWrapper.h"
+
 #include "Engine/GameEngine.h"
 #include "Misc/OutputDeviceDebug.h"
-
+#include "Async/Async.h"
 #include "Utils.h"
-#include "../chroma-cpp-pure/src/PostchainClient/postchain_util.h"
 
+#include "../chroma-cpp-pure/src/PostchainClient/postchain_util.h"
 #include "../chroma-cpp-pure/src/SSO/sso.h"
 #include "../chroma-cpp-pure/src/SSO/file_manager.h"
 #include "../chroma-cpp-pure/src/FT3/Core/postchain.h"
@@ -22,43 +23,62 @@ ASSOWrapper::ASSOWrapper(const FObjectInitializer& ObjectInitializer) : Super(Ob
 
 void ASSOWrapper::Login()
 {
+	if (this->LoginInProgress == true)
+	{
+		PrintLogOnScreen(FString("One authentication request is already active, waiting..."));
+		return;
+	}
+
+	this->LoginInProgress = true;
+
 	ft3::Postchain postchain("http://localhost:7740");
 	std::shared_ptr<Blockchain> blockchain;
 	postchain.Blockchain(ChromaUtils::FStringToSTDString(BlockchainRID),
 		[&blockchain](std::shared_ptr<Blockchain> _blockchain) {
-		blockchain = _blockchain;
-	},
+			blockchain = _blockchain;
+		},
 		[this](std::string error) {
-		FString message = FString::Printf(TEXT("postchain.Blockchain error: %s"), *ChromaUtils::STDStringToFString(error));
-		PrintLogOnScreen(message);
-	});
+			FString message = FString::Printf(TEXT("postchain.Blockchain error: %s"), *ChromaUtils::STDStringToFString(error));
+			PrintLogOnScreen(message);
+		});
 
 	if (blockchain == nullptr)
 	{
 		PrintLogOnScreen("Failed to initialize blockchain connection");
+		this->LoginInProgress = false;
 		return;
 	}
-
 
 	SSO sso(blockchain);
 	sso.InitiateLogin("http://localhost:3000/success", "http://localhost:3000/error");
 
-	while (sso.store_->GetTmpTx().size() == 0)
+	// Perform authentication procedure async
+	AsyncTask(ENamedThreads::AnyHiPriThreadNormalTask, [&]()
 	{
-		PostchainUtil::SleepForMillis(3000);
-		sso.store_->Load();
-	}
+		// Wait for sso store to receive the updated value from authentication
+		while (sso.store_->GetTmpTx().size() == 0)
+		{
+			PostchainUtil::SleepForMillis(3000);
+			sso.store_->Load();
+		}
 
-	std::string payload = sso.store_->GetTmpTx();
+		std::string payload = sso.store_->GetTmpTx();
 
-	sso.FinalizeLogin(payload, 
-	[this](SSO::AccUserPair user_pair) {
-		UE_LOG(LogTemp, Warning, TEXT("Authentication success for account: [%s]"), *ChromaUtils::STDStringToFString(user_pair.account->id_));
-		PrintLogOnScreen(FString("Authentication success for user: ") + ChromaUtils::STDStringToFString(user_pair.account->id_));
-	},
-	[this](std::string error) {
-		FString message = FString::Printf(TEXT("Authentication failed with error: %s"), *ChromaUtils::STDStringToFString(error));
-		PrintLogOnScreen(message);
+		// Move back to the gamethread.
+		AsyncTask(ENamedThreads::GameThread, [&]()
+		{
+			sso.FinalizeLogin(payload,
+			[this](SSO::AccUserPair user_pair) {
+				UE_LOG(LogTemp, Warning, TEXT("Authentication success for account: [%s]"), *ChromaUtils::STDStringToFString(user_pair.account->id_));
+				PrintLogOnScreen(FString("Authentication success for user: ") + ChromaUtils::STDStringToFString(user_pair.account->id_));
+			},
+			[this](std::string error) {
+				FString message = FString::Printf(TEXT("Authentication failed with error: %s"), *ChromaUtils::STDStringToFString(error));
+				PrintLogOnScreen(message);
+			});
+			this->LoginInProgress = false;
+		});
+	
 	});
 }
 
@@ -75,6 +95,10 @@ void ASSOWrapper::Setup(FString blockchainRID, FString baseURL)
 	this->BaseURL = baseURL;
 }
 
+bool ASSOWrapper::IsLoginInProgress()
+{
+	return this->LoginInProgress;
+}
 
 void ASSOWrapper::PrintLogOnScreen(FString message)
 {
