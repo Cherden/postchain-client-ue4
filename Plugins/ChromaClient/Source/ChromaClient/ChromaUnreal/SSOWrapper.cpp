@@ -20,6 +20,11 @@ ASSOWrapper::ASSOWrapper(const FObjectInitializer& ObjectInitializer) : Super(Ob
 {
 }
 
+namespace
+{
+	bool authOk = true;
+	FString authMessage = "";
+}
 
 void ASSOWrapper::Login()
 {
@@ -30,54 +35,69 @@ void ASSOWrapper::Login()
 	}
 
 	this->LoginInProgress = true;
-
-	ft3::Postchain postchain("http://localhost:7740");
-	std::shared_ptr<Blockchain> blockchain;
-	postchain.Blockchain(ChromaUtils::FStringToSTDString(BlockchainRID),
-		[&blockchain](std::shared_ptr<Blockchain> _blockchain) {
-			blockchain = _blockchain;
-		},
-		[this](std::string error) {
-			FString message = FString::Printf(TEXT("postchain.Blockchain error: %s"), *ChromaUtils::STDStringToFString(error));
-			PrintLogOnScreen(message);
-		});
-
-	if (blockchain == nullptr)
-	{
-		PrintLogOnScreen("Failed to initialize blockchain connection");
-		this->LoginInProgress = false;
-		return;
-	}
-
-	SSO sso(blockchain);
-	sso.InitiateLogin("http://localhost:3000/success", "http://localhost:3000/error");
+	authOk = true;
+	authMessage = "";
 
 	// Perform authentication procedure async
 	AsyncTask(ENamedThreads::AnyHiPriThreadNormalTask, [&]()
 	{
-		// Wait for sso store to receive the updated value from authentication
-		while (sso.store_->GetTmpTx().size() == 0)
+
+		ft3::Postchain postchain("http://localhost:7740");
+		std::shared_ptr<Blockchain> blockchain;
+		postchain.Blockchain(ChromaUtils::FStringToSTDString(BlockchainRID),
+			[&blockchain](std::shared_ptr<Blockchain> _blockchain) {
+				blockchain = _blockchain;
+			},
+			[](std::string error) {
+				authOk = false;
+				authMessage = FString::Printf(TEXT("postchain.Blockchain error: %s"), *ChromaUtils::STDStringToFString(error));
+			});
+
+		if (authOk && blockchain == nullptr)
 		{
-			PostchainUtil::SleepForMillis(3000);
-			sso.store_->Load();
+			authOk = false;
+			authMessage = "Failed to initialize blockchain connection";
 		}
 
-		std::string payload = sso.store_->GetTmpTx();
-
-		// Move back to the gamethread.
-		AsyncTask(ENamedThreads::GameThread, [&]()
+		if (authOk)
 		{
-			sso.FinalizeLogin(payload,
-			[this](SSO::AccUserPair user_pair) {
-				UE_LOG(LogTemp, Warning, TEXT("Authentication success for account: [%s]"), *ChromaUtils::STDStringToFString(user_pair.account->id_));
-				PrintLogOnScreen(FString("Authentication success for user: ") + ChromaUtils::STDStringToFString(user_pair.account->id_));
-			},
-			[this](std::string error) {
-				FString message = FString::Printf(TEXT("Authentication failed with error: %s"), *ChromaUtils::STDStringToFString(error));
-				PrintLogOnScreen(message);
+			SSO sso(blockchain);
+			sso.InitiateLogin("http://localhost:3000/success", "http://localhost:3000/error");
+
+			// Wait for sso store to receive the updated value from authentication
+			while (sso.store_->GetTmpTx().size() == 0)
+			{
+				PostchainUtil::SleepForMillis(3000);
+				sso.store_->Load();
+			}
+
+			std::string payload = sso.store_->GetTmpTx();
+
+			// Move back to the gamethread.
+			AsyncTask(ENamedThreads::GameThread, [&]()
+			{
+				sso.FinalizeLogin(payload,
+				[this](SSO::AccUserPair user_pair) {
+					UE_LOG(LogTemp, Warning, TEXT("Authentication success for account: [%s]"), *ChromaUtils::STDStringToFString(user_pair.account->id_));
+					PrintLogOnScreen(FString("Authentication success for user: ") + ChromaUtils::STDStringToFString(user_pair.account->id_));
+				},
+				[this](std::string error) {
+					FString message = FString::Printf(TEXT("Authentication failed with error: %s"), *ChromaUtils::STDStringToFString(error));
+					PrintLogOnScreen(message);
+				});
+
+				this->LoginInProgress = false;
 			});
-			this->LoginInProgress = false;
-		});
+		}
+		else 
+		{
+			// Move back to the gamethread.
+			AsyncTask(ENamedThreads::GameThread, [&]()
+			{
+				PrintLogOnScreen(authMessage);
+				this->LoginInProgress = false;
+			});
+		}
 	
 	});
 }
