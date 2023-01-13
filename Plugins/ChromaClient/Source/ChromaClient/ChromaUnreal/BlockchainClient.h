@@ -41,6 +41,19 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 	void CheckUser(FString username);
+
+	/**
+	* Blocking query call 
+	*/
+	UFUNCTION(BlueprintCallable)
+	FString Query(FString queryName, FString queryObjectName, FString queryObjectContent);
+
+	/**
+	* Blocking operation call
+	*/
+	UFUNCTION(BlueprintCallable)
+	FString Opearation(FString operationName, TArray<FString> operationValues);
+
 	// End blueprint exposed functions
 
 	/**

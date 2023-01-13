@@ -59,8 +59,6 @@ void ABlockchainClient::RegisterUser(FString username)
 	transaction->PostAndWait([this, username] (std::string content) {
 		PrintLogOnScreen("User " + username + " registered successfully.");
 	});
-
-	return;
 }
 
 
@@ -82,6 +80,66 @@ void ABlockchainClient::CheckUser(FString username)
 	);
 }
 
+
+FString ABlockchainClient::Query(FString queryName, FString queryObjectName, FString queryObjectContent)
+{
+	std::vector<QueryObject> queryObjects;
+	queryObjects.push_back(QueryObject(
+		ChromaUtils::FStringToSTDString(queryObjectName),
+		AbstractValueFactory::Build(ChromaUtils::FStringToSTDString(queryObjectContent))));
+
+	FString result = "";
+
+	BlockchainClientPtr->Query(
+		ChromaUtils::FStringToSTDString(queryName),
+		queryObjects,
+		[this, &result](std::string content) {
+			result = ChromaUtils::STDStringToFString(content);
+			PrintLogOnScreen(FString("Query succeeded, content: ") + ChromaUtils::STDStringToFString(content));
+		},
+		[this, &result](std::string error) {
+			result = ChromaUtils::STDStringToFString(error);
+			PrintLogOnScreen(FString("Query failed, error: ") + ChromaUtils::STDStringToFString(error));
+		}
+	);
+
+	return result;
+}
+
+FString ABlockchainClient::Opearation(FString operationName, TArray<FString> operationValues)
+{
+	FString result = "";
+
+	std::shared_ptr<PostchainTransaction> transaction = BlockchainClientPtr->NewTransaction(std::vector<std::vector<byte>> { PublicKey }, [this](std::string error) {
+		PrintLogOnScreen(FString("Transaction failed: ") + ChromaUtils::STDStringToFString(error));
+	});
+
+	std::shared_ptr<gtv::ArrayValue> operation_values = AbstractValueFactory::EmptyArray();
+	for (int i = 0; i < operationValues.Num(); i++)
+	{
+		operation_values->Add(AbstractValueFactory::Build(ChromaUtils::FStringToSTDString(operationValues[i])));
+	}
+	transaction->AddOperation(ChromaUtils::FStringToSTDString(operationName), operation_values);
+
+	///*
+	//	The blockchain hashes the operations to generate a transaction id (txid) which has to be unique.
+	//	In order to prevent this colision, a "nop" operation can be attached which will be filtered by
+	//	the blockchain.
+	//*/
+	std::shared_ptr<gtv::ArrayValue> nop_operation_values = AbstractValueFactory::EmptyArray();
+	static int nonce = PostchainUtil::RandomIntInRange(0, 100000);
+	nop_operation_values->Add(AbstractValueFactory::Build(std::to_string(nonce)));
+	transaction->AddOperation(std::string("nop"), nop_operation_values);
+
+	transaction->Sign(PrivateKey, PublicKey);
+
+	transaction->PostAndWait([&](std::string content) {
+		result = ChromaUtils::STDStringToFString(content);
+		PrintLogOnScreen(FString("Transaction succeeded, content: ") + ChromaUtils::STDStringToFString(content));
+	});
+
+	return result;
+}
 
 void ABlockchainClient::PrintLogOnScreen(FString message)
 {

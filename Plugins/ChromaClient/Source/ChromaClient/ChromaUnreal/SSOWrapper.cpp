@@ -42,7 +42,8 @@ void ASSOWrapper::Login()
 	AsyncTask(ENamedThreads::AnyHiPriThreadNormalTask, [&]()
 	{
 
-		ft3::Postchain postchain("http://localhost:7740");
+		//ft3::Postchain postchain("http://localhost:7740");
+		ft3::Postchain postchain(ChromaUtils::FStringToSTDString(BaseURL));
 		std::shared_ptr<Blockchain> blockchain;
 		postchain.Blockchain(ChromaUtils::FStringToSTDString(BlockchainRID),
 			[&blockchain](std::shared_ptr<Blockchain> _blockchain) {
