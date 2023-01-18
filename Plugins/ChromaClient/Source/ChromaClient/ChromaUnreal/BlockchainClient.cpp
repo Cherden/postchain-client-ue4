@@ -106,7 +106,7 @@ FString ABlockchainClient::Query(FString queryName, FString queryObjectName, FSt
 	return result;
 }
 
-FString ABlockchainClient::Opearation(FString operationName, TArray<FString> operationValues)
+FString ABlockchainClient::Operation(FString operationName, TArray<FString> operationValues)
 {
 	FString result = "";
 

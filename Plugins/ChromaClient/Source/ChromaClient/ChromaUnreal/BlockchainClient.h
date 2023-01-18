@@ -52,7 +52,7 @@ public:
 	* Blocking operation call
 	*/
 	UFUNCTION(BlueprintCallable)
-	FString Opearation(FString operationName, TArray<FString> operationValues);
+	FString Operation(FString operationName, TArray<FString> operationValues);
 
 	// End blueprint exposed functions
 
