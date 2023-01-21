@@ -22,12 +22,13 @@ public class ChromaClient : ModuleRules
 		AddEngineThirdPartyPrivateStaticDependencies(Target, "libcurl");
 		AddEngineThirdPartyPrivateStaticDependencies(Target, "OpenSSL");
 
-		string ChromiaPureInclude = System.IO.Path.GetFullPath(System.IO.Path.Combine(ModuleDirectory)) + "/chroma-cpp-pure/src";
+		string ChromiaPureInclude = System.IO.Path.GetFullPath(System.IO.Path.Combine(ModuleDirectory)) + "/chroma-cpp-pure";
 		Log.TraceWarning("ChromiaPureInclude path: {0}", ChromiaPureInclude);
 
 		PublicIncludePaths.AddRange(
 			new string[] {
-				ChromiaPureInclude
+				ChromiaPureInclude + "/src",
+				ChromiaPureInclude + "/tests"
 			}
 	    );
 

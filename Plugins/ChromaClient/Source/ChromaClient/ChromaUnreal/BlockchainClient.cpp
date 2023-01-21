@@ -1,7 +1,7 @@
 #include "BlockchainClient.h"
 #include "Engine/GameEngine.h"
 #include "Misc/OutputDeviceDebug.h"
-#include "Utils.h"
+#include "ChromaUtils.h"
 
 #include "PostchainClient/postchain_util.h"
 #include "HTTP/httprequest.h"
@@ -140,6 +140,52 @@ FString ABlockchainClient::Operation(FString operationName, TArray<FString> oper
 	});
 
 	return result;
+}
+
+using namespace chromia::postchain::ft3;
+//#include <string>
+
+void ABlockchainClient::CreateEditorTestUser()
+{
+	PrintLogOnScreen(FString("CreateEditorTestUser()"));
+
+	//LoginUIState = LoginState.CreatingPlayer;
+
+	std::string mockUserPrivKey = "68484A224DC5A1C56B8B8C39A6FD5461BA4C3579506B3E85A6163350FD5E00CA";
+	KeyPair tmpKeyPairForLogi(mockUserPrivKey);
+
+	//var playerData = await _authService.CreateMockFt3User(tmpKeyPairForLogin);
+
+	/*try
+	{
+		var playerData = await _authService.CreateMockFt3User(tmpKeyPairForLogin);
+		if (playerData.username == null)
+		{
+			if (key != null)
+			{
+				(PlayerData playerData2, User user) = await _authService.RegisterNewPlayer(playerData.id, "Editor Test User");
+				UserAccountManager.AddNewUserAndSaveLocal(playerData2.id, playerData2.username, user.KeyPair);
+				LoginUIState = LoginState.AccountList;
+				RefreshLocalUserList();
+			}
+			else
+			{
+				(PlayerData playerData2, User user) = await _authService.RegisterNewPlayer(playerData.id, "Editor Test User");
+				UserAccountManager.AddNewUserAndSaveLocal(playerData2.id, playerData2.username, user.KeyPair);
+				LoginUIState = LoginState.AccountList;
+				RefreshLocalUserList();
+			}
+		}
+	}
+	catch (Exception e)
+	{
+		Debug.LogWarning(e);
+	}
+	finally
+	{
+		LoginUIState = LoginState.AccountList;
+	}*/
+
 }
 
 void ABlockchainClient::PrintLogOnScreen(FString message)
