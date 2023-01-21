@@ -6,11 +6,11 @@
 #include "Async/Async.h"
 #include "Utils.h"
 
-#include "../chroma-cpp-pure/src/PostchainClient/postchain_util.h"
-#include "../chroma-cpp-pure/src/SSO/sso.h"
-#include "../chroma-cpp-pure/src/SSO/file_manager.h"
-#include "../chroma-cpp-pure/src/FT3/Core/postchain.h"
-#include "../chroma-cpp-pure/src/FT3/Core/Blockchain/blockchain.h"
+#include "PostchainClient/postchain_util.h"
+#include "SSO/sso.h"
+#include "SSO/file_manager.h"
+#include "FT3/Core/postchain.h"
+#include "FT3/Core/Blockchain/blockchain.h"
 
 
 using namespace chromia::postchain::ft3;

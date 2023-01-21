@@ -9,23 +9,28 @@ public class ChromaClient : ModuleRules
 	{
 		//PCHUsage = ModuleRules.PCHUsageMode.UseExplicitOrSharedPCHs;
 
-        PCHUsage = ModuleRules.PCHUsageMode.NoSharedPCHs;
+		PCHUsage = ModuleRules.PCHUsageMode.NoSharedPCHs;
 
-        bUseRTTI = true;
+		bUseRTTI = true;
 
-        PublicDefinitions.Add("_CRT_HAS_CXX17=0");
-        PublicDefinitions.Add("ECMULT_WINDOW_SIZE=15");
-        PublicDefinitions.Add("ECMULT_GEN_PREC_BITS=4");
-        PublicDefinitions.Add("CURL_STATICLIB");
-        PublicDefinitions.Add("CHROMIA_INSIDE_UNREAL_ENGINE");
+		PublicDefinitions.Add("_CRT_HAS_CXX17=0");
+		PublicDefinitions.Add("ECMULT_WINDOW_SIZE=15");
+		PublicDefinitions.Add("ECMULT_GEN_PREC_BITS=4");
+		PublicDefinitions.Add("CURL_STATICLIB");
+		PublicDefinitions.Add("CHROMIA_INSIDE_UNREAL_ENGINE");
 
 		AddEngineThirdPartyPrivateStaticDependencies(Target, "libcurl");
 		AddEngineThirdPartyPrivateStaticDependencies(Target, "OpenSSL");
 
+		string ChromiaPureInclude = System.IO.Path.GetFullPath(System.IO.Path.Combine(ModuleDirectory)) + "/chroma-cpp-pure/src";
+		Log.TraceWarning("ChromiaPureInclude path: {0}", ChromiaPureInclude);
+
 		PublicIncludePaths.AddRange(
-            new string[] {
-            }
-        );
+			new string[] {
+				ChromiaPureInclude
+			}
+	    );
+
 
         PrivateIncludePaths.AddRange(
 			new string[] {

@@ -7,10 +7,10 @@
 #include "Kismet/BlueprintFunctionLibrary.h"
 #include "Blueprint/UserWidget.h"
 
-#include "../chroma-cpp-pure/src/PostchainClient/common.h"
-#include "../chroma-cpp-pure/src/PostchainClient/postchain_transaction.h"
-#include "../chroma-cpp-pure/src/PostchainClient/GTX/gtx.h"
-#include "../chroma-cpp-pure/src/PostchainClient/blockchain_client.h"
+#include "PostchainClient/common.h"
+#include "PostchainClient/postchain_transaction.h"
+#include "PostchainClient/GTX/gtx.h"
+#include "PostchainClient/blockchain_client.h"
 
 #include <memory>
 #include <vector>
