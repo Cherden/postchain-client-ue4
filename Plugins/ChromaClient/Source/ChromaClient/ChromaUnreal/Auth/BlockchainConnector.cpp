@@ -36,8 +36,6 @@ void ABlockchainConnector::LoadBlockchainConfig(FString path)
     }
 }
 
-
-
 void ABlockchainConnector::InitializeBlockchain()
 {
     std::function<void(std::shared_ptr<Blockchain>)> on_success = [&](std::shared_ptr<Blockchain> blockchain) {
@@ -88,4 +86,9 @@ std::shared_ptr<BlockchainSession> ABlockchainConnector::CreateSession(FString p
     std::shared_ptr<BlockchainSession> blockchainSession = std::make_shared<BlockchainSession>(user, m_Blockchain);
 
     return blockchainSession;
+}
+
+std::shared_ptr<Blockchain> ABlockchainConnector::GetBlockchain()
+{
+    return m_Blockchain;
 }

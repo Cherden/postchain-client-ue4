@@ -27,6 +27,15 @@ using namespace chromia::postchain;
 using namespace chromia::postchain::client;
 using namespace chromia::postchain::ft3;
 
+class PlayerData
+{
+public:
+	FString m_Id;
+	FString m_Username;
+	FString m_Tokens;
+	FString m_DateOfBirth;
+};
+
 UCLASS()
 class CHROMACLIENT_API ABlockchainConnector : public AActor {
 
@@ -40,6 +49,8 @@ public:
 	void InitializeBlockchain();
 
 	std::shared_ptr<BlockchainSession> CreateSession(FString privKey, TArray<FlagsType> flags = {});
+
+	std::shared_ptr<Blockchain> GetBlockchain();
 
 private:
 	FString m_BlockchainRID;
