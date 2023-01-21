@@ -1,7 +1,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "../chroma-cpp-pure/src/PostchainClient/common.h"
+#include "PostchainClient/common.h"
 #include <vector>
 
 using namespace chromia;
