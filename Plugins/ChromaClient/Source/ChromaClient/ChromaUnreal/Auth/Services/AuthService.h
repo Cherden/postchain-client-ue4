@@ -38,21 +38,23 @@ struct FQueryObjectPair
 public:
     FQueryObjectPair() {};
 
-    FQueryObjectPair(FString _name, FString _content) : m_Name(_name), m_Content(_content) {};
+    FQueryObjectPair(FString _name, FString _content) : m_Name(_name), m_StrContent(_content) {};
+    FQueryObjectPair(FString _name, int _content) : m_Name(_name), m_IntContent(_content) {};
 
     FString m_Name;
-    FString m_Content;
+    FString m_StrContent;
+    int m_IntContent;
 };
 
 UCLASS()
-class CHROMACLIENT_API AAuthService : public AActor {
+class CHROMACLIENT_API UAuthService : public UObject {
 
 	GENERATED_BODY()
 
 public:
-	AAuthService(const FObjectInitializer& ObjectInitializer);
+    UAuthService(const FObjectInitializer& ObjectInitializer);
 
-	void Init(std::shared_ptr<ABlockchainConnector> blockchainConnector);
+	void Init(std::shared_ptr<UBlockchainConnector> blockchainConnector);
 
 	std::shared_ptr<BlockchainSession> GetSession();
 
@@ -60,13 +62,19 @@ public:
     
     std::shared_ptr<PlayerData> GetPlayerDataByAccountID(FString accountId);
     
+    std::shared_ptr<PlayerData> CreateMockFt3User(std::shared_ptr<KeyPair> localKeypair);
+
+    bool RegisterNewPlayer(FString accountId, FString username, std::shared_ptr<PlayerData> outPlayerData, std::shared_ptr<User> outUser);
+
 	FString Query(FString queryName, TArray<FQueryObjectPair> rawQueryObjects);
 
 private:
    
-	void CreateDappPlayer(FString accountId, FString username);
+	bool CreateDappPlayer(FString accountId, FString username);
 
-    std::shared_ptr<ABlockchainConnector> m_BlockchainConnector = nullptr;
+    static UAuthService* instance;
+
+    std::shared_ptr<UBlockchainConnector> m_BlockchainConnector = nullptr;
 	std::shared_ptr<BlockchainSession> m_Session = nullptr;
 
     FString m_AccountId;

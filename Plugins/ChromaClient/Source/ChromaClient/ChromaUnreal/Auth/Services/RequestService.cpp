@@ -1,52 +1,71 @@
 #include "RequestService.h"
+#include "../../ChromaUtils.h"
+#include "../../LoginUserDemo.h"
+#include "FT3/Core/transaction_builder.h"
+#include "FT3/Core/transaction.h"
+#include "FT3/Core/Blockchain/blockchain.h"
+#include "FT3/User/user.h"
 
-ARequestService::ARequestService(const FObjectInitializer& ObjectInitializer)
+URequestService::URequestService(const FObjectInitializer& ObjectInitializer)
 {
 
 }
 
-void ARequestService::Init(std::shared_ptr<AAuthService> authService)
+void URequestService::Init(std::shared_ptr<UAuthService> authService)
 {
     m_AuthService = authService;
 }
 
-//void ARequestService::Call(TArray<Operation> operations)
-//{
-    // TODO implement this
+bool URequestService::Call(std::vector<std::shared_ptr<Operation>> operations)
+{
     /*for (int i = operations.Num() - 1; i >= 0; i--)
     {
         AssemblyCommunicationBridgeUtility.ExecuteFunction<string>("AnalyticsIndex.SendOperation", operations[i].Name);
     }*/
+    bool success = false;
+    CallOperationsSync(
+        operations,
+        [&success]() { success = true; }, // onSuccess callback
+        [] (std::string error) {  // onError callback
+            UE_LOG(LogTemp, Error, TEXT("CHROMA::URequestService::CallOperationsSync failed"));
+        }
+    );
 
-   /* try
+    if (!success)
     {
-        var callCompleted = new UniTaskCompletionSource();
-        StartCoroutine(CallCoroutine(
-            operations,
-            () = > callCompleted.TrySetResult(),
-            (err) = > callCompleted.TrySetException(new Exception(err))
-        ));
-
-        await callCompleted.Task;
+        // TODO  check error level
+       // var errorData = BlockchainErrorFromException(e);
+       // if (errorData.type == ErrorType.Ignorable) return;
+        UE_LOG(LogTemp, Error, TEXT("CHROMA::URequestService::Call failed"));
     }
-    catch (Exception e)
+
+    return success;
+}
+
+void URequestService::CallOperationsSync(std::vector<std::shared_ptr<Operation>> operations, std::function<void()> onSuccess, std::function<void(std::string)> onError)
+{
+    std::shared_ptr<User> user = ALoginUserDemo::GetAuthService()->GetSession()->user_;
+    std::shared_ptr<Blockchain> blockchain = ALoginUserDemo::GetAuthService()->GetSession()->blockchain_;
+
+    std::shared_ptr<TransactionBuilder> tx_builder = blockchain->NewTransactionBuilder();
+    for (size_t i = 0; i < operations.size(); i++)
     {
-        var errorData = BlockchainErrorFromException(e);
+        tx_builder->Add(operations[i]);
+    }
 
-        if (errorData.type == ErrorType.Ignorable) return;
+    try
+    {
+        std::shared_ptr<Transaction> tx = tx_builder->Build(user->auth_descriptor_->Signers(), onError);
+        tx->Sign(user->key_pair_);
 
-        throw new RequestErrorException(errorData);
-    }*/
-//}
-
-//void ARequestService::CallOperationsSync(TArray<Operation> operations, std::function<void(std::string)> on_error, std::function<void(std::string)> onError)
-//{
-   /* std::shared_ptr<User> user = m_AuthService->GetSession()->user_;
-
-    var transactionBuilder = _authService.session.Blockchain.TransactionBuilder();
-    foreach(var op in operations) transactionBuilder.Add(op);
-
-    yield return transactionBuilder.Build(user.AuthDescriptor.Signers.ToArray(), onError)
-        .Sign(user.KeyPair)
-        .PostAndWait(onSuccess);*/
-//}
+        tx->PostAndWait([&onSuccess](std::string content) {
+            UE_LOG(LogTemp, Display, TEXT("CHROMA::CreateMockFt3User CallOperationsSync succeeded : %s"), *ChromaUtils::STDStringToFString(content));
+            onSuccess();
+        });
+    }
+    catch (std::exception& e)
+    {
+        UE_LOG(LogTemp, Error, TEXT("CHROMA::URequestService::CallOperationsSync failed"));
+        onError(e.what());
+    }
+}

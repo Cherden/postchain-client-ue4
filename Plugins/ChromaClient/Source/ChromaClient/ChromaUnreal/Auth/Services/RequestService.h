@@ -1,11 +1,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "GameFramework/Actor.h"
-#include "HttpModule.h"
-#include "Interfaces/IHttpResponse.h"
 #include "Kismet/BlueprintFunctionLibrary.h"
-#include "Blueprint/UserWidget.h"
 #include "../BlockchainConnector.h"
 #include "AuthService.h"
 
@@ -27,19 +23,20 @@ using namespace chromia::postchain::client;
 using namespace chromia::postchain::ft3;
 
 UCLASS()
-class CHROMACLIENT_API ARequestService : public AActor {
+class CHROMACLIENT_API URequestService : public UObject {
 
 	GENERATED_BODY()
 
 public:
-	ARequestService(const FObjectInitializer& ObjectInitializer);
+	URequestService(const FObjectInitializer& ObjectInitializer);
 
-	void Init(std::shared_ptr<AAuthService> authService);
+	void Init(std::shared_ptr<UAuthService> authService);
 
-   // void Call(TArray<Operation> operations);
+    bool Call(std::vector<std::shared_ptr<Operation>> operations);
 
 private:
-	//void CallOperationsSync(TArray<Operation> operations, std::function<void(std::string)> on_error, std::function<void(std::string)> onError);
 
-    std::shared_ptr<AAuthService> m_AuthService;
+	void CallOperationsSync(std::vector<std::shared_ptr<Operation>> operations, std::function<void()> onSuccess, std::function<void(std::string)> onError);
+
+    std::shared_ptr<UAuthService> m_AuthService;
 };

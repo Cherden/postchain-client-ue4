@@ -37,16 +37,16 @@ public:
 };
 
 UCLASS()
-class CHROMACLIENT_API ABlockchainConnector : public AActor {
+class CHROMACLIENT_API UBlockchainConnector : public UObject {
 
 	GENERATED_BODY()
 
 public:
-	ABlockchainConnector(const FObjectInitializer& ObjectInitializer);
+	UBlockchainConnector(const FObjectInitializer& ObjectInitializer);
 
 	void LoadBlockchainConfig(FString path);
 
-	void InitializeBlockchain();
+	void InitializeBlockchain(FString blockchainRID, FString baseURL);
 
 	std::shared_ptr<BlockchainSession> CreateSession(FString privKey, TArray<FlagsType> flags = {});
 

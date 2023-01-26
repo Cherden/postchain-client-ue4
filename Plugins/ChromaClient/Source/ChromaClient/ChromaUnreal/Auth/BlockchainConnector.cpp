@@ -15,36 +15,28 @@
 
 #include "TestUtil/directory_service_util.h"
 
-ABlockchainConnector::ABlockchainConnector(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
+UBlockchainConnector::UBlockchainConnector(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
     m_BlockchainIsInitialized = false;
-	LoadBlockchainConfig("blockchain-config");
 }
 
-void ABlockchainConnector::LoadBlockchainConfig(FString path)
+void UBlockchainConnector::LoadBlockchainConfig(FString path)
 {
-    try
-    {
-        //TODO Read from json
-        m_BlockchainRID = "D48072CF435596AAFDE950365AFAEB8083A3083DFDFD5B96E80FACA62503B1FA";
-        m_BlockchainUrl = "http://localhost:7740/";
-    }
-    catch (std::exception &e)
-    {
-        UE_LOG(LogTemp, Error, TEXT("CHROMA::ABlockchainConnector::LoadBlockchainConfig failed : %s"),
-            *ChromaUtils::STDStringToFString(e.what()));
-    }
+    //TODO Read from config file
 }
 
-void ABlockchainConnector::InitializeBlockchain()
+void UBlockchainConnector::InitializeBlockchain(FString blockchainRID, FString baseURL)
 {
+    m_BlockchainRID = blockchainRID;
+    m_BlockchainUrl = baseURL;
+
     std::function<void(std::shared_ptr<Blockchain>)> on_success = [&](std::shared_ptr<Blockchain> blockchain) {
         m_Blockchain = blockchain;
         m_BlockchainIsInitialized = true;
     };
 
     std::function<void(std::string)> on_error = [&](std::string error) {
-        UE_LOG(LogTemp, Error, TEXT("CHROMA::ABlockchainConnector::InitializeBlockchain failed : %s"),
+        UE_LOG(LogTemp, Error, TEXT("CHROMA::UBlockchainConnector::InitializeBlockchain failed : %s"),
             *ChromaUtils::STDStringToFString(error));
     };
 
@@ -57,7 +49,7 @@ void ABlockchainConnector::InitializeBlockchain()
     );
 }
 
-std::shared_ptr<BlockchainSession> ABlockchainConnector::CreateSession(FString privKey, TArray<FlagsType> flags)
+std::shared_ptr<BlockchainSession> UBlockchainConnector::CreateSession(FString privKey, TArray<FlagsType> flags)
 {
     // Wait for blockchain to be initialized
     long delay = 0;
@@ -67,7 +59,7 @@ std::shared_ptr<BlockchainSession> ABlockchainConnector::CreateSession(FString p
         delay += LOOP_DELAY_MILLIS; 
         if (delay >= REQUEST_TIMEOUT_MILLIS)
         {
-            UE_LOG(LogTemp, Error, TEXT("CHROMA::ABlockchainConnector::CreateSession timeout"));
+            UE_LOG(LogTemp, Error, TEXT("CHROMA::UBlockchainConnector::CreateSession timeout"));
             return nullptr;
         }
     }
@@ -88,7 +80,7 @@ std::shared_ptr<BlockchainSession> ABlockchainConnector::CreateSession(FString p
     return blockchainSession;
 }
 
-std::shared_ptr<Blockchain> ABlockchainConnector::GetBlockchain()
+std::shared_ptr<Blockchain> UBlockchainConnector::GetBlockchain()
 {
     return m_Blockchain;
 }
