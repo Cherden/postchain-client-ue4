@@ -54,9 +54,6 @@ public:
 	UFUNCTION(BlueprintCallable)
 	FString Operation(FString operationName, TArray<FString> operationValues);
 
-	UFUNCTION(BlueprintCallable)
-	void CreateEditorTestUser();
-
 	// End blueprint exposed functions
 
 	/**

@@ -15,10 +15,8 @@ UAuthService::UAuthService(const FObjectInitializer& ObjectInitializer)
 
 }
 
-void UAuthService::Init(std::shared_ptr<UBlockchainConnector> blockchainConnector)
+void UAuthService::Init()
 {
-    m_BlockchainConnector = blockchainConnector;
-
     // TODO implement this function
     ProtocolHandler::HandleTempTx(SSO_PROTOCOL);
 
@@ -34,13 +32,13 @@ std::shared_ptr<PlayerData> UAuthService::AuthenticateUserWithKey(FString loginK
 {
     std::shared_ptr<KeyPair> keyPair = std::make_shared<KeyPair>(ChromaUtils::FStringToSTDString(loginKey));
 
-    if (m_BlockchainConnector == nullptr)
+    if (ALoginUserDemo::GetBlockchainConnector() == nullptr)
     {
         UE_LOG(LogTemp, Error, TEXT("CHROMA::UAuthService::AuthenticateUserWithKey failed, BlockchainConnector is nullptr"));
         return nullptr;
     }
 
-    m_Session = m_BlockchainConnector->CreateSession(loginKey);
+    m_Session = ALoginUserDemo::GetBlockchainConnector()->CreateSession(loginKey);
     std::shared_ptr<User> user = m_Session->user_;
     std::vector<std::shared_ptr<Account>> accounts;
 
@@ -173,7 +171,7 @@ FString UAuthService::Query(FString queryName, TArray<FQueryObjectPair> rawQuery
     std::vector<QueryObject> queryObjects;
     for (size_t i = 0; i < rawQueryObjects.Num(); i++)
     {
-        if (rawQueryObjects[i].m_StrContent.Len() == 0)
+        if (rawQueryObjects[i].m_isInt)
         {
             // This is an int type
             queryObjects.push_back(QueryObject(
@@ -190,7 +188,7 @@ FString UAuthService::Query(FString queryName, TArray<FQueryObjectPair> rawQuery
     }
 
     FString result = "";
-    auto blockchain = m_BlockchainConnector->GetBlockchain();
+    auto blockchain = ALoginUserDemo::GetBlockchainConnector()->GetBlockchain();
     blockchain->Query(
         ChromaUtils::FStringToSTDString(queryName),
         queryObjects,
@@ -214,7 +212,7 @@ FString UAuthService::Query(FString queryName, TArray<FQueryObjectPair> rawQuery
 
 bool UAuthService::CreateDappPlayer(FString accountId, FString username)
 {
-    std::shared_ptr<URequestService> requestService = ALoginUserDemo::GetRequestService();
+    URequestService* requestService = ALoginUserDemo::GetRequestService();
 
     std::shared_ptr<ArrayValue> op_args = AbstractValueFactory::EmptyArray();
     op_args->Add(AbstractValueFactory::Build(ChromaUtils::FStringToSTDString(username)));

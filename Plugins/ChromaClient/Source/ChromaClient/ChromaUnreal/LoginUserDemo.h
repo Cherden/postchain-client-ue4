@@ -41,28 +41,34 @@ class CHROMACLIENT_API ALoginUserDemo : public AActor {
 public:
 	ALoginUserDemo(const FObjectInitializer& ObjectInitializer);
 
-	virtual void BeginPlay();
+	/* Override from parent class AActor */
+	virtual void BeginPlay() override;
+
+	/* Override from parent class AActor */
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
 	UFUNCTION(BlueprintCallable)
 	void Setup(FString blockchainRID, FString baseURL, FString privateKey);
-	// End blueprint exposed functions
-
-	//UFUNCTION(BlueprintCallable)
-	//TArray<FSavedAccount*> GetLocalUserList();
 
 	UFUNCTION(BlueprintCallable)
-	TArray<USavedAccountClass*> GetLocalUserListClass();
+	TArray<USavedAccount*> GetLocalUserList();
 
     void RenewLocalUserListOnNewChain();
 
 	UFUNCTION(BlueprintCallable)
     void CreateEditorTestUser(FString key = "");
 
-	static std::shared_ptr<UAuthService> GetAuthService();
+	/*static std::shared_ptr<UAuthService> GetAuthService();
 
 	static std::shared_ptr<UBlockchainConnector> GetBlockchainConnector();
 
-	static std::shared_ptr<URequestService> GetRequestService();
+	static std::shared_ptr<URequestService> GetRequestService();*/
+
+	static UAuthService* GetAuthService();
+
+	static UBlockchainConnector* GetBlockchainConnector();
+
+	static URequestService* GetRequestService();
 
 private:
 
@@ -73,9 +79,13 @@ private:
 	FString m_BaseURL;
 	FString m_PrivateKey;
 
-	static std::shared_ptr<UBlockchainConnector> m_blockchainConnector;
+	static UBlockchainConnector* m_blockchainConnector;
+	static UAuthService* m_AuthService;
+	static URequestService* m_RequestService;
+
+	/*static std::shared_ptr<UBlockchainConnector> m_blockchainConnector;
 	static std::shared_ptr<UAuthService> m_AuthService;
-	static std::shared_ptr<URequestService> m_RequestService;
+	static std::shared_ptr<URequestService> m_RequestService;*/
 
 	ELoginState m_loginUIState;
 };

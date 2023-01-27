@@ -38,9 +38,18 @@ struct FQueryObjectPair
 public:
     FQueryObjectPair() {};
 
-    FQueryObjectPair(FString _name, FString _content) : m_Name(_name), m_StrContent(_content) {};
-    FQueryObjectPair(FString _name, int _content) : m_Name(_name), m_IntContent(_content) {};
+    FQueryObjectPair(FString _name, FString _content) : m_Name(_name), m_StrContent(_content) 
+    {
+        m_isInt = false;
+    };
 
+    FQueryObjectPair(FString _name, int _content) : m_Name(_name), m_IntContent(_content) 
+    {
+        m_isInt = true;
+    };
+
+    bool m_isInt = true;
+    
     FString m_Name;
     FString m_StrContent;
     int m_IntContent;
@@ -54,7 +63,7 @@ class CHROMACLIENT_API UAuthService : public UObject {
 public:
     UAuthService(const FObjectInitializer& ObjectInitializer);
 
-	void Init(std::shared_ptr<UBlockchainConnector> blockchainConnector);
+	void Init();
 
 	std::shared_ptr<BlockchainSession> GetSession();
 
@@ -74,7 +83,6 @@ private:
 
     static UAuthService* instance;
 
-    std::shared_ptr<UBlockchainConnector> m_BlockchainConnector = nullptr;
 	std::shared_ptr<BlockchainSession> m_Session = nullptr;
 
     FString m_AccountId;

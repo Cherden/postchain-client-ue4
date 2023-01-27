@@ -1,10 +1,9 @@
 #include "UserAccountManager.h"
-
 #include "../LoginUserDemo.h"
+#include "../ChromaUtils.h"
 
 #include "Engine/GameEngine.h"
 #include "Misc/OutputDeviceDebug.h"
-#include "../ChromaUtils.h"
 
 #include "PostchainClient/postchain_util.h"
 #include "HTTP/httprequest.h"
@@ -15,11 +14,12 @@
 #include "FT3/User/account.h"
 #include "FT3/User/user.h"
 #include "FT3/User/AuthDescriptor/single_signature_auth_descriptor.h"
+#include "SSO/file_manager.h"
 
 #include "TestUtil/directory_service_util.h"
 
 FString UUserAccountManager::m_AccountId;
-TArray<FSavedAccount> UUserAccountManager::m_LocalUsers;
+TArray<USavedAccount*> UUserAccountManager::m_LocalUsers;
 
 UUserAccountManager::UUserAccountManager(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
@@ -36,20 +36,20 @@ void UUserAccountManager::AddNewUserAndSaveLocal(FString accountId, FString user
 {
     string privKey = PostchainUtil::ByteVectorToHexString(keypair->priv_key_);
 
-    FSavedAccount newUser;
-    newUser.m_AccountId = accountId;
-    newUser.m_Username = username;
-    newUser.m_PrivKey = ChromaUtils::STDStringToFString(privKey);
+    USavedAccount *newUser = NewObject<USavedAccount>();
+    newUser->m_AccountId = accountId;
+    newUser->m_Username = username;
+    newUser->m_PrivKey = ChromaUtils::STDStringToFString(privKey);
 
-    FSavedAccount* foundEntry = m_LocalUsers.FindByPredicate([accountId](const FSavedAccount& InItem)
+    USavedAccount* foundEntry = *(m_LocalUsers.FindByPredicate([accountId](USavedAccount* InItem)
     {
-        return InItem.m_AccountId == accountId;
-    });
+        return InItem->m_AccountId == accountId;
+    }));
 
     bool entryWasUpdated = false;
     for (size_t i = 0u; i < m_LocalUsers.Num(); i++)
     {
-        if (m_LocalUsers[i].m_AccountId == accountId)
+        if (m_LocalUsers[i]->m_AccountId == accountId)
         {
             m_LocalUsers[i] = newUser;
             entryWasUpdated = true;
@@ -69,8 +69,9 @@ void UUserAccountManager::RemoveUserAndSaveLocal(FString accountId)
 {
     for (size_t i = 0u; i < m_LocalUsers.Num(); i++)
     {
-        if (m_LocalUsers[i].m_AccountId == accountId)
+        if (m_LocalUsers[i]->m_AccountId == accountId)
         {
+            // TODO check memory release
             m_LocalUsers.RemoveAt(i);
             SaveLocalUsers();
             break;
@@ -80,9 +81,7 @@ void UUserAccountManager::RemoveUserAndSaveLocal(FString accountId)
 
 bool UUserAccountManager::RemoveLocalUsersIfChainIsNew()
 {
-    std::shared_ptr<UAuthService> authService = ALoginUserDemo::GetAuthService();
-
-    // TODO adjust this
+    UAuthService* authService = ALoginUserDemo::GetAuthService();
 
     FString playersDataStr = authService->Query(
         "admin.list_players", 
@@ -94,50 +93,86 @@ bool UUserAccountManager::RemoveLocalUsersIfChainIsNew()
 
     if (playersDataStr.Len() == 0)
     {
-        UE_LOG(LogTemp, Error, TEXT("CHROMA::UUserAccountManager::RemoveLocalUsersIfChainIsNew Query(admin.list_players, ...) failed"));
+        UE_LOG(LogTemp, Error, TEXT("CHROMA::UUserAccountManager::Remove LocalUsersIfChainIsNew Query(admin.list_players, ...) failed"));
         return false;
     }
 
-    return true;
+    nlohmann::json json_obj = nlohmann::json::parse(ChromaUtils::FStringToSTDString(playersDataStr));
+    int totalPlayers = PostchainUtil::GetSafeJSONInt(json_obj, std::string("total"));
+    // A fresh chain will have only admin account (Alice)
+    if (totalPlayers <= 1)
+    {
+        m_LocalUsers.Empty();
+        SaveLocalUsers();
+        return true;
+    }
+
+    return false;
 }
 
 void UUserAccountManager::SaveLocalUsers()
 {
-    // TODO
+    // Serialize
+    nlohmann::json json_obj;
+    json_obj["users"] = nlohmann::json::array();
 
-   /* BinaryFormatter bf = new BinaryFormatter();
-    using (FileStream file = File.Open(Application.persistentDataPath + SAVE_FILENAME, FileMode.OpenOrCreate))
+    for (size_t i=0; i < m_LocalUsers.Num(); i++)
     {
-        bf.Serialize(file, LocalUsers);
+        USavedAccount* account = m_LocalUsers[i];
+        nlohmann::json user_json_obj;
+        user_json_obj["username"] = ChromaUtils::FStringToSTDString(account->m_Username);
+        user_json_obj["privkey"] = ChromaUtils::FStringToSTDString(account->m_PrivKey);
+        user_json_obj["accountid"] = ChromaUtils::FStringToSTDString(account->m_AccountId);
+        json_obj["users"].push_back(user_json_obj);
     }
+   
+    std::string dataStr = json_obj.dump();
+    UE_LOG(LogTemp, Error, TEXT("CHROMA::UUserAccountManager::SaveLocalUsers serialized data: %s"), *ChromaUtils::STDStringToFString(dataStr));
 
-    Debug.Log("Player accounts saved to " + Application.persistentDataPath + SAVE_FILENAME);*/
+    // Store in file
+    if (FileManager::WriteToFile(USER_ACCOUNT_MANAGER_FILENAME, dataStr))
+    {
+        UE_LOG(LogTemp, Error, TEXT("CHROMA::UUserAccountManager::SaveLocalUsers saved to: %s"), TEXT(USER_ACCOUNT_MANAGER_FILENAME));
+    }
+    else
+    {
+        UE_LOG(LogTemp, Error, TEXT("CHROMA::UUserAccountManager::SaveLocalUsers failed to save"));
+    }
 }
 
 void UUserAccountManager::LoadLocalUsers()
 {
-    // TODO
+    std::string dataStr = "";
+    FileManager::LoadFromFile(USER_ACCOUNT_MANAGER_FILENAME, dataStr);
 
-  /*  if (File.Exists(Application.persistentDataPath + SAVE_FILENAME))
+    if (!FileManager::LoadFromFile(USER_ACCOUNT_MANAGER_FILENAME, dataStr))
     {
-        try
-        {
-            BinaryFormatter bf = new BinaryFormatter();
-            using (FileStream file = File.Open(Application.persistentDataPath + SAVE_FILENAME, FileMode.Open))
-            {
-                LocalUsers = (List<SavedAccount>)bf.Deserialize(file);
-            }
-        }
-        catch (Exception e)
-        {
-            Debug.LogError(e);
-            LocalUsers = new List<SavedAccount>();
-        }
+        UE_LOG(LogTemp, Warning, TEXT("CHROMA::UUserAccountManager::LoadLocalUsers failed to read from %s"), TEXT(USER_ACCOUNT_MANAGER_FILENAME));
+        return;
     }
-    else
+
+    if (dataStr.size() == 0)
     {
-        LocalUsers = new List<SavedAccount>();
-    }*/
+        UE_LOG(LogTemp, Warning, TEXT("CHROMA::UUserAccountManager::LoadLocalUsers dataStr.size() == 0"));
+        return;
+    }   
+
+    nlohmann::json json_obj = nlohmann::json::parse(dataStr);
+    if (!json_obj.contains("users"))
+    {
+        UE_LOG(LogTemp, Warning, TEXT("CHROMA::UUserAccountManager::LoadLocalUsers !json_obj.contains[users]"));
+        return;
+    }
+
+    for (size_t i = 0; i < json_obj["users"].size(); i++)
+    {
+        nlohmann::json user_json_obj = json_obj["users"][i];
+        USavedAccount* user = NewObject<USavedAccount>();
+        user->m_Username = ChromaUtils::STDStringToFString(PostchainUtil::GetSafeJSONString(user_json_obj, "username"));
+        user->m_PrivKey = ChromaUtils::STDStringToFString(PostchainUtil::GetSafeJSONString(user_json_obj, "privkey"));
+        user->m_AccountId = ChromaUtils::STDStringToFString(PostchainUtil::GetSafeJSONString(user_json_obj, "accountid"));
+        m_LocalUsers.Add(user);
+    }
 }
 
 void UUserAccountManager::SetAccountId(FString id)
@@ -145,7 +180,7 @@ void UUserAccountManager::SetAccountId(FString id)
     m_AccountId = id;
 }
 
-TArray<FSavedAccount> UUserAccountManager::GetLocalUsers()
+TArray<USavedAccount*> UUserAccountManager::GetLocalUsers()
 {
     return m_LocalUsers;
 }

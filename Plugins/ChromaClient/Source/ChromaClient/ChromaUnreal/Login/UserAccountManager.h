@@ -17,44 +17,28 @@
 
 #include "UserAccountManager.generated.h"
 
-#define USER_ACCOUNT_MANAGER_FILENAME = "players.dat";
+#define USER_ACCOUNT_MANAGER_FILENAME "players.dat"
 
 using namespace chromia;
 using namespace chromia::postchain;
 using namespace chromia::postchain::client;
 using namespace chromia::postchain::ft3;
 
-USTRUCT()
-struct FSavedAccount
-{
-	GENERATED_BODY()
-public:
-
-	UPROPERTY()
-		FString m_Username;
-
-	UPROPERTY()
-		FString m_PrivKey;
-
-	UPROPERTY()
-		FString m_AccountId;
-};
-
 UCLASS()
-class USavedAccountClass : public UObject
+class USavedAccount : public UObject
 {
 	GENERATED_BODY()
 
 public:
-	USavedAccountClass(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer) {};
+	USavedAccount(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer) {};
 
-	UPROPERTY()
+	UPROPERTY(BlueprintReadOnly)
 		FString m_Username;
 
-	UPROPERTY()
+	UPROPERTY(BlueprintReadOnly)
 		FString m_PrivKey;
 
-	UPROPERTY()
+	UPROPERTY(BlueprintReadOnly)
 		FString m_AccountId;
 };
 
@@ -80,9 +64,9 @@ public:
 
     static void SetAccountId(FString id);
 
-	static TArray<FSavedAccount> GetLocalUsers();
+	static TArray<USavedAccount*> GetLocalUsers();
 
 private:
 	static FString m_AccountId;
-	static TArray<FSavedAccount> m_LocalUsers;
+	static TArray<USavedAccount*> m_LocalUsers;
 };

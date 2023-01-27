@@ -11,11 +11,6 @@ URequestService::URequestService(const FObjectInitializer& ObjectInitializer)
 
 }
 
-void URequestService::Init(std::shared_ptr<UAuthService> authService)
-{
-    m_AuthService = authService;
-}
-
 bool URequestService::Call(std::vector<std::shared_ptr<Operation>> operations)
 {
     /*for (int i = operations.Num() - 1; i >= 0; i--)

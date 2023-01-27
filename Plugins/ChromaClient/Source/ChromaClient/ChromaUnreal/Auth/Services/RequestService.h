@@ -30,13 +30,9 @@ class CHROMACLIENT_API URequestService : public UObject {
 public:
 	URequestService(const FObjectInitializer& ObjectInitializer);
 
-	void Init(std::shared_ptr<UAuthService> authService);
-
     bool Call(std::vector<std::shared_ptr<Operation>> operations);
 
 private:
 
 	void CallOperationsSync(std::vector<std::shared_ptr<Operation>> operations, std::function<void()> onSuccess, std::function<void(std::string)> onError);
-
-    std::shared_ptr<UAuthService> m_AuthService;
 };
