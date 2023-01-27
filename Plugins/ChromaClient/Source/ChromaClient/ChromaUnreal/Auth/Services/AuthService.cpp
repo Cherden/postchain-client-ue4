@@ -71,20 +71,23 @@ std::shared_ptr<PlayerData> UAuthService::GetPlayerDataByAccountID(FString accou
 {
     FString playerDataStr = Query("player.find_by_account_id", { FQueryObjectPair("account_id", accountId) });
 
-    if (playerDataStr.Len() == 0)
-    {
-        return nullptr;
-    }
-    
     std::shared_ptr<PlayerData> playerData = std::make_shared<PlayerData>();
 
-    // TODO check this json parsing
-    nlohmann::json json_content = nlohmann::json::parse(ChromaUtils::FStringToSTDString(playerDataStr));
-    playerData->m_Id = ChromaUtils::STDStringToFString(PostchainUtil::GetSafeJSONString(json_content, std::string("id")));
-    playerData->m_Username = ChromaUtils::STDStringToFString(PostchainUtil::GetSafeJSONString(json_content, std::string("username")));
-    playerData->m_Tokens = ChromaUtils::STDStringToFString(PostchainUtil::GetSafeJSONString(json_content, std::string("tokens")));
-    playerData->m_DateOfBirth = ChromaUtils::STDStringToFString(PostchainUtil::GetSafeJSONString(json_content, std::string("dateofbirth")));
-
+    if (playerDataStr.Len() == 0)
+    {
+        playerData->m_Id = accountId;
+        playerData->m_Username = "";
+    }
+    else
+    {
+        // TODO check this json parsing
+        nlohmann::json json_content = nlohmann::json::parse(ChromaUtils::FStringToSTDString(playerDataStr));
+        playerData->m_Id = ChromaUtils::STDStringToFString(PostchainUtil::GetSafeJSONString(json_content, std::string("id")));
+        playerData->m_Username = ChromaUtils::STDStringToFString(PostchainUtil::GetSafeJSONString(json_content, std::string("username")));
+        playerData->m_Tokens = FString::FromInt(PostchainUtil::GetSafeJSONInt(json_content, std::string("tokens")));
+        playerData->m_DateOfBirth = ChromaUtils::STDStringToFString(PostchainUtil::GetSafeJSONString(json_content, std::string("date_of_birth")));
+    }
+    
     return playerData;
 }
 
@@ -124,7 +127,7 @@ std::shared_ptr<PlayerData> UAuthService::CreateMockFt3User(std::shared_ptr<KeyP
     return playerData;
 }
 
-bool UAuthService::RegisterNewPlayer(FString accountId, FString username, std::shared_ptr<PlayerData> outPlayerData, std::shared_ptr<User> outUser)
+bool UAuthService::RegisterNewPlayer(FString accountId, FString username, std::shared_ptr<PlayerData> &outPlayerData, std::shared_ptr<User> &outUser)
 {
     bool dappWasCreated = CreateDappPlayer(accountId, username);
 
@@ -150,8 +153,8 @@ bool UAuthService::RegisterNewPlayer(FString accountId, FString username, std::s
     nlohmann::json json_content = nlohmann::json::parse(ChromaUtils::FStringToSTDString(playerDataStr));
     outPlayerData->m_Id = ChromaUtils::STDStringToFString(PostchainUtil::GetSafeJSONString(json_content, std::string("id")));
     outPlayerData->m_Username = ChromaUtils::STDStringToFString(PostchainUtil::GetSafeJSONString(json_content, std::string("username")));
-    outPlayerData->m_Tokens = ChromaUtils::STDStringToFString(PostchainUtil::GetSafeJSONString(json_content, std::string("tokens")));
-    outPlayerData->m_DateOfBirth = ChromaUtils::STDStringToFString(PostchainUtil::GetSafeJSONString(json_content, std::string("dateofbirth")));
+    outPlayerData->m_Tokens = FString::FromInt(PostchainUtil::GetSafeJSONInt(json_content, std::string("tokens")));
+    outPlayerData->m_DateOfBirth = FString::FromInt(PostchainUtil::GetSafeJSONLong(json_content, std::string("tokens")));
 
     // TODO check if this is a valid check
     if (outPlayerData->m_Id.Len() == 0)
@@ -192,8 +195,12 @@ FString UAuthService::Query(FString queryName, TArray<FQueryObjectPair> rawQuery
         ChromaUtils::FStringToSTDString(queryName),
         queryObjects,
         [&result](std::string content) {
+            UE_LOG(LogTemp, Display, TEXT("CHROMA::UAuthService::Query succeeded : %s"), *ChromaUtils::STDStringToFString(content));
             result = ChromaUtils::STDStringToFString(content);
-           
+            if (content.compare("null") == 0) 
+            {
+                result = "";
+            }
         },
         [&result](std::string error) {
             result = "";
@@ -209,7 +216,7 @@ bool UAuthService::CreateDappPlayer(FString accountId, FString username)
 {
     std::shared_ptr<URequestService> requestService = ALoginUserDemo::GetRequestService();
 
-    std::shared_ptr<ArrayValue> op_args;
+    std::shared_ptr<ArrayValue> op_args = AbstractValueFactory::EmptyArray();
     op_args->Add(AbstractValueFactory::Build(ChromaUtils::FStringToSTDString(username)));
     op_args->Add(AbstractValueFactory::Build(ChromaUtils::FStringToSTDString(accountId)));
     op_args->Add(AbstractValueFactory::Build(m_Session->user_->auth_descriptor_->ID()));

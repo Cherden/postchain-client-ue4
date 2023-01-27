@@ -27,7 +27,8 @@ bool URequestService::Call(std::vector<std::shared_ptr<Operation>> operations)
         operations,
         [&success]() { success = true; }, // onSuccess callback
         [] (std::string error) {  // onError callback
-            UE_LOG(LogTemp, Error, TEXT("CHROMA::URequestService::CallOperationsSync failed"));
+            UE_LOG(LogTemp, Error, TEXT("CHROMA::URequestService::CallOperationsSync failed: %s"),
+                *ChromaUtils::STDStringToFString(error));
         }
     );
 

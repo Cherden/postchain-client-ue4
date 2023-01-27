@@ -64,7 +64,7 @@ public:
     
     std::shared_ptr<PlayerData> CreateMockFt3User(std::shared_ptr<KeyPair> localKeypair);
 
-    bool RegisterNewPlayer(FString accountId, FString username, std::shared_ptr<PlayerData> outPlayerData, std::shared_ptr<User> outUser);
+    bool RegisterNewPlayer(FString accountId, FString username, std::shared_ptr<PlayerData> &outPlayerData, std::shared_ptr<User> &outUser);
 
 	FString Query(FString queryName, TArray<FQueryObjectPair> rawQueryObjects);
 

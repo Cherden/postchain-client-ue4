@@ -47,7 +47,10 @@ void ALoginUserDemo::Setup(FString blockchainRID, FString baseURL, FString priva
     m_RequestService->Init(m_AuthService);
 
     std::shared_ptr<PlayerData> playerData = m_AuthService->AuthenticateUserWithKey(m_PrivateKey);
-    EnterGame(playerData, std::make_shared<KeyPair>(ChromaUtils::FStringToSTDString(m_PrivateKey)));
+    if (playerData != nullptr)
+    {
+        EnterGame(playerData, std::make_shared<KeyPair>(ChromaUtils::FStringToSTDString(m_PrivateKey)));
+    }
 }
 //
 //TArray<FSavedAccount*> ALoginUserDemo::GetLocalUserList()
@@ -83,14 +86,20 @@ void ALoginUserDemo::CreateEditorTestUser(FString key)
     {
         std::shared_ptr<PlayerData> newPlayerData;
         std::shared_ptr<User> newUser;
-        m_AuthService->RegisterNewPlayer(newPlayerData->m_Id, "Editor Test User", newPlayerData, newUser);
-        UUserAccountManager::AddNewUserAndSaveLocal(newPlayerData->m_Id, newPlayerData->m_Username, newUser->key_pair_);
-        UE_LOG(LogTemp, Display, TEXT("CHROMA::ALoginUserDemo::CreateEditorTestUser success"));
+        if (m_AuthService->RegisterNewPlayer(playerData->m_Id, "qqq5", newPlayerData, newUser))
+        {
+            UUserAccountManager::AddNewUserAndSaveLocal(newPlayerData->m_Id, newPlayerData->m_Username, newUser->key_pair_);
+            UE_LOG(LogTemp, Display, TEXT("CHROMA::ALoginUserDemo::CreateEditorTestUser success"));
+        }
+        else
+        {
+            UE_LOG(LogTemp, Error, TEXT("CHROMA::ALoginUserDemo::CreateEditorTestUser RegisterNewPlayer failed"));
+        }
         // TODO refresh UI
     }
     else
     {
-        UE_LOG(LogTemp, Error, TEXT("CHROMA::ALoginUserDemo::CreateEditorTestUser fail"));
+        UE_LOG(LogTemp, Error, TEXT("CHROMA::ALoginUserDemo::CreateEditorTestUser failed"));
     }
 
     m_loginUIState = ELoginState::eAccountList;
