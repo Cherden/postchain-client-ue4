@@ -127,12 +127,12 @@ void UserAccountManager::SaveLocalUsers()
     }
    
     std::string dataStr = json_obj.dump();
-    UE_LOG(LogTemp, Error, TEXT("CHROMA::UserAccountManager::SaveLocalUsers serialized data: %s"), *ChromaUtils::STDStringToFString(dataStr));
+    UE_LOG(LogTemp, Display, TEXT("CHROMA::UserAccountManager::SaveLocalUsers serialized data: %s"), *ChromaUtils::STDStringToFString(dataStr));
 
     // Store in file
     if (FileManager::WriteToFile(USER_ACCOUNT_MANAGER_FILENAME, dataStr))
     {
-        UE_LOG(LogTemp, Error, TEXT("CHROMA::UserAccountManager::SaveLocalUsers saved to: %s"), TEXT(USER_ACCOUNT_MANAGER_FILENAME));
+        UE_LOG(LogTemp, Display, TEXT("CHROMA::UserAccountManager::SaveLocalUsers saved to: %s"), TEXT(USER_ACCOUNT_MANAGER_FILENAME));
     }
     else
     {

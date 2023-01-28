@@ -108,12 +108,18 @@ void ALoginUserDemo::RenewLocalUserListOnNewChain()
     bool chainWasReset = UserAccountManager::RemoveLocalUsersIfChainIsNew();
     if (chainWasReset)
     {
-        CreateEditorTestUser(MOCK_USER_PRIVKEY);
+        CreateEditorTestUser(DEFAULT_USER_NAME, MOCK_USER_PRIVKEY);
     }
 }
 
-void ALoginUserDemo::CreateEditorTestUser(FString key)
+bool ALoginUserDemo::CreateEditorTestUser(FString username, FString key)
 {
+    if (username.Len() == 0)
+    {
+        UE_LOG(LogTemp, Display, TEXT("CHROMA::ALoginUserDemo::CreateEditorTestUser failed because username is empty"));
+        return false;
+    }
+
     m_loginUIState = ELoginState::eCreatingPlayer;
 
     std::shared_ptr<KeyPair> tmpKeyPairForLogin = key.Len() == 0 ? std::make_shared<KeyPair>(ChromaUtils::FStringToSTDString(key)) : std::make_shared<KeyPair>();
@@ -124,20 +130,23 @@ void ALoginUserDemo::CreateEditorTestUser(FString key)
     {
         std::shared_ptr<PlayerData> newPlayerData;
         std::shared_ptr<User> newUser;
-        if (m_AuthService->RegisterNewPlayer(playerData->m_Id, "qqq6", newPlayerData, newUser))
+        if (m_AuthService->RegisterNewPlayer(playerData->m_Id, username, newPlayerData, newUser))
         {
             UserAccountManager::AddNewUserAndSaveLocal(newPlayerData->m_Id, newPlayerData->m_Username, newUser->key_pair_);
             UE_LOG(LogTemp, Display, TEXT("CHROMA::ALoginUserDemo::CreateEditorTestUser success"));
+            return true;
         }
         else
         {
             UE_LOG(LogTemp, Error, TEXT("CHROMA::ALoginUserDemo::CreateEditorTestUser RegisterNewPlayer failed"));
+            return false;
         }
         // TODO refresh UI
     }
     else
     {
         UE_LOG(LogTemp, Error, TEXT("CHROMA::ALoginUserDemo::CreateEditorTestUser failed"));
+        return false;
     }
 
     m_loginUIState = ELoginState::eAccountList;
