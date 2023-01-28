@@ -17,7 +17,7 @@
 #include "LoginUserDemo.generated.h"
 
 #define MOCK_USER_PRIVKEY "68484A224DC5A1C56B8B8C39A6FD5461BA4C3579506B3E85A6163350FD5E00CA"
-#define DEFAULT_USER_NAME "Editor Test User"
+#define DEFAULT_USER_NAME "Default User"
 
 using namespace chromia;
 using namespace chromia::postchain;
@@ -60,10 +60,16 @@ public:
     TArray<FString> GetLocalUsernamesList();
 
 	UFUNCTION(BlueprintCallable)
-    bool CreateEditorTestUser(FString username, FString key = "");
+    bool CreatePlayer(FString username, FString key = "");
 	
 	UFUNCTION(BlueprintCallable)
-	bool RemoveEditorTestUser(FString accountId);
+	bool RemovePlayer(FString accountId);
+
+	UFUNCTION(BlueprintCallable)
+	bool GivePlayerTrash(FString accountId, FString tokenName);
+
+	UFUNCTION(BlueprintCallable)
+	FString GetPlayerInventory(FString accountId);
 
 	void RenewLocalUserListOnNewChain();
 

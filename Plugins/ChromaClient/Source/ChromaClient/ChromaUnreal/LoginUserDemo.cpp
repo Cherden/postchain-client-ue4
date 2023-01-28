@@ -108,11 +108,11 @@ void ALoginUserDemo::RenewLocalUserListOnNewChain()
     bool chainWasReset = UserAccountManager::RemoveLocalUsersIfChainIsNew();
     if (chainWasReset)
     {
-        CreateEditorTestUser(DEFAULT_USER_NAME, MOCK_USER_PRIVKEY);
+        CreatePlayer(DEFAULT_USER_NAME, MOCK_USER_PRIVKEY);
     }
 }
 
-bool ALoginUserDemo::CreateEditorTestUser(FString username, FString key)
+bool ALoginUserDemo::CreatePlayer(FString username, FString key)
 {
     if (username.Len() == 0)
     {
@@ -159,9 +159,19 @@ bool ALoginUserDemo::CreateEditorTestUser(FString username, FString key)
     m_loginUIState = ELoginState::eAccountList;
 }
 
-bool ALoginUserDemo::RemoveEditorTestUser(FString accountId)
+bool ALoginUserDemo::RemovePlayer(FString accountId)
 {
     return UserAccountManager::RemoveUserAndSaveLocal(accountId);
+}
+
+bool ALoginUserDemo::GivePlayerTrash(FString accountId, FString tokenName)
+{
+    return m_AuthService->GivePlayerTrash(accountId, tokenName);
+}
+
+FString ALoginUserDemo::GetPlayerInventory(FString accountId)
+{
+    return m_AuthService->GetPlayerInventory(accountId);
 }
 
 AuthService* ALoginUserDemo::GetAuthService()

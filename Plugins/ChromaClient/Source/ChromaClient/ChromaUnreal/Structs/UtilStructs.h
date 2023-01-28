@@ -14,7 +14,7 @@ public:
 
     ~USavedAccount()
     {
-        UE_LOG(LogTemp, Error, TEXT("CHROMA::USavedAccount::~USavedAccount()"));
+        UE_LOG(LogTemp, Display, TEXT("CHROMA::USavedAccount::~USavedAccount()"));
     };
 
 	UPROPERTY(BlueprintReadOnly)

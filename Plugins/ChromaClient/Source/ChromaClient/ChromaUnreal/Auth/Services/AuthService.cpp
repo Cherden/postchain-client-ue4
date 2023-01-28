@@ -171,6 +171,26 @@ bool AuthService::RegisterNewPlayer(FString accountId, FString username, std::sh
     return true;
 }
 
+bool AuthService::GivePlayerTrash(FString accountId, FString tokenName)
+{
+    RequestService* requestService = ALoginUserDemo::GetRequestService();
+
+    std::shared_ptr<ArrayValue> op_args = AbstractValueFactory::EmptyArray();
+    op_args->Add(AbstractValueFactory::Build(ChromaUtils::FStringToSTDString(accountId)));
+    op_args->Add(AbstractValueFactory::Build(ChromaUtils::FStringToSTDString(tokenName)));
+    bool callResult = requestService->Call({ std::make_shared<Operation>("assets.give_player_trash", op_args) });
+
+    return callResult;
+}
+
+FString AuthService::GetPlayerInventory(FString accountId)
+{
+    TArray<FQueryObjectPair> rawQueryObjects;
+    rawQueryObjects.Add(FQueryObjectPair("account_id", accountId));
+    FString inventoryStr = Query("player.get_ft3_inventory", rawQueryObjects);
+    return inventoryStr;
+}
+
 FString AuthService::Query(FString queryName, TArray<FQueryObjectPair> rawQueryObjects)
 {
     std::vector<QueryObject> queryObjects;
@@ -213,7 +233,6 @@ FString AuthService::Query(FString queryName, TArray<FQueryObjectPair> rawQueryO
 
     return result;
 }
-
 
 bool AuthService::CreateDappPlayer(FString accountId, FString username)
 {

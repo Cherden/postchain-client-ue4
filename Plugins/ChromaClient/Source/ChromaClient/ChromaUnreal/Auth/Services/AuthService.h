@@ -48,6 +48,10 @@ public:
 
     bool RegisterNewPlayer(FString accountId, FString username, std::shared_ptr<PlayerData> &outPlayerData, std::shared_ptr<User> &outUser);
 
+	bool GivePlayerTrash(FString accountId, FString tokenName);
+
+	FString GetPlayerInventory(FString accountId);
+
 	FString Query(FString queryName, TArray<FQueryObjectPair> rawQueryObjects);
 
 private:
