@@ -4,9 +4,7 @@
 #include "Kismet/BlueprintFunctionLibrary.h"
 
 #include "../Auth/BlockchainConnector.h"
-
-#include <memory>
-#include <vector>
+#include "../Structs/UtilStructs.h"
 
 #include "PostchainClient/common.h"
 #include "PostchainClient/postchain_transaction.h"
@@ -15,7 +13,8 @@
 #include "FT3/Core/key_pair.h"
 #include "FT3/Core/Blockchain/blockchain_session.h"
 
-#include "UserAccountManager.generated.h"
+#include <memory>
+#include <vector>
 
 #define USER_ACCOUNT_MANAGER_FILENAME "players.dat"
 
@@ -24,31 +23,12 @@ using namespace chromia::postchain;
 using namespace chromia::postchain::client;
 using namespace chromia::postchain::ft3;
 
-UCLASS()
-class USavedAccount : public UObject
-{
-	GENERATED_BODY()
+class UserAccountManager{
 
 public:
-	USavedAccount(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer) {};
+	UserAccountManager();
 
-	UPROPERTY(BlueprintReadOnly)
-		FString m_Username;
-
-	UPROPERTY(BlueprintReadOnly)
-		FString m_PrivKey;
-
-	UPROPERTY(BlueprintReadOnly)
-		FString m_AccountId;
-};
-
-UCLASS()
-class CHROMACLIENT_API UUserAccountManager : public UObject {
-
-	GENERATED_BODY()
-
-public:
-	UUserAccountManager(const FObjectInitializer& ObjectInitializer);
+	~UserAccountManager();
 
     static void EnterGameWithUser(std::shared_ptr<PlayerData> playerData);
 

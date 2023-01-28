@@ -7,9 +7,7 @@
 #include "Kismet/BlueprintFunctionLibrary.h"
 #include "Blueprint/UserWidget.h"
 #include "../BlockchainConnector.h"
-
-#include <memory>
-#include <vector>
+#include "../../Structs/UtilStructs.h"
 
 #include "PostchainClient/common.h"
 #include "PostchainClient/postchain_transaction.h"
@@ -18,7 +16,8 @@
 #include "FT3/Core/key_pair.h"
 #include "FT3/Core/Blockchain/blockchain_session.h"
 
-#include "AuthService.generated.h"
+#include <memory>
+#include <vector>
 
 using namespace chromia;
 using namespace chromia::postchain;
@@ -30,38 +29,12 @@ using namespace chromia::postchain::ft3;
 #define SSO_SUCCESS_URL "alice://login"
 #define SSO_CANCEL_URL "alice://cancel-login"
 
-USTRUCT()
-struct FQueryObjectPair
-{
-    GENERATED_BODY()
+class AuthService {
 
 public:
-    FQueryObjectPair() {};
+    AuthService();
 
-    FQueryObjectPair(FString _name, FString _content) : m_Name(_name), m_StrContent(_content) 
-    {
-        m_isInt = false;
-    };
-
-    FQueryObjectPair(FString _name, int _content) : m_Name(_name), m_IntContent(_content) 
-    {
-        m_isInt = true;
-    };
-
-    bool m_isInt = true;
-    
-    FString m_Name;
-    FString m_StrContent;
-    int m_IntContent;
-};
-
-UCLASS()
-class CHROMACLIENT_API UAuthService : public UObject {
-
-	GENERATED_BODY()
-
-public:
-    UAuthService(const FObjectInitializer& ObjectInitializer);
+    ~AuthService();
 
 	void Init();
 
@@ -80,8 +53,6 @@ public:
 private:
    
 	bool CreateDappPlayer(FString accountId, FString username);
-
-    static UAuthService* instance;
 
 	std::shared_ptr<BlockchainSession> m_Session = nullptr;
 

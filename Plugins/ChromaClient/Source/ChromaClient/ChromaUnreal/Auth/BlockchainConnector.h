@@ -17,8 +17,6 @@
 #include "FT3/Core/key_pair.h"
 #include "FT3/Core/Blockchain/blockchain_session.h"
 
-#include "BlockchainConnector.generated.h"
-
 #define REQUEST_TIMEOUT_MILLIS  10000
 #define LOOP_DELAY_MILLIS	    500
 
@@ -36,13 +34,12 @@ public:
 	FString m_DateOfBirth;
 };
 
-UCLASS()
-class CHROMACLIENT_API UBlockchainConnector : public UObject {
-
-	GENERATED_BODY()
+class BlockchainConnector{
 
 public:
-	UBlockchainConnector(const FObjectInitializer& ObjectInitializer);
+	BlockchainConnector();
+
+	~BlockchainConnector();
 
 	void LoadBlockchainConfig(FString path);
 
@@ -56,7 +53,6 @@ private:
 	FString m_BlockchainRID;
 	FString m_BlockchainUrl;
 	std::shared_ptr<KeyPair> m_KeyPair;
-	
 	std::shared_ptr<Blockchain> m_Blockchain;
 	bool m_BlockchainIsInitialized = false;
 };

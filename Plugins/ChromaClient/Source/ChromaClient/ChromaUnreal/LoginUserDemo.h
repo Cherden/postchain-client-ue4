@@ -41,6 +41,8 @@ class CHROMACLIENT_API ALoginUserDemo : public AActor {
 public:
 	ALoginUserDemo(const FObjectInitializer& ObjectInitializer);
 
+	~ALoginUserDemo();
+
 	/* Override from parent class AActor */
 	virtual void BeginPlay() override;
 
@@ -53,39 +55,31 @@ public:
 	UFUNCTION(BlueprintCallable)
 	TArray<USavedAccount*> GetLocalUserList();
 
+	UFUNCTION(BlueprintCallable)
+    TArray<FString> GetLocalUsernamesList();
+
     void RenewLocalUserListOnNewChain();
 
 	UFUNCTION(BlueprintCallable)
     void CreateEditorTestUser(FString key = "");
 
-	/*static std::shared_ptr<UAuthService> GetAuthService();
+	static AuthService* GetAuthService();
 
-	static std::shared_ptr<UBlockchainConnector> GetBlockchainConnector();
+	static BlockchainConnector* GetBlockchainConnector();
 
-	static std::shared_ptr<URequestService> GetRequestService();*/
-
-	static UAuthService* GetAuthService();
-
-	static UBlockchainConnector* GetBlockchainConnector();
-
-	static URequestService* GetRequestService();
+	static RequestService* GetRequestService();
 
 private:
 
     void EnterGame(std::shared_ptr<PlayerData> playerData, std::shared_ptr<KeyPair> keyPair);
 
-	// TODO maybe delete rid and baseUrl
+	static BlockchainConnector* m_BlockchainConnector;
+	static AuthService* m_AuthService;
+	static RequestService* m_RequestService;
+
 	FString m_BlockchainRID;
 	FString m_BaseURL;
 	FString m_PrivateKey;
-
-	static UBlockchainConnector* m_blockchainConnector;
-	static UAuthService* m_AuthService;
-	static URequestService* m_RequestService;
-
-	/*static std::shared_ptr<UBlockchainConnector> m_blockchainConnector;
-	static std::shared_ptr<UAuthService> m_AuthService;
-	static std::shared_ptr<URequestService> m_RequestService;*/
 
 	ELoginState m_loginUIState;
 };

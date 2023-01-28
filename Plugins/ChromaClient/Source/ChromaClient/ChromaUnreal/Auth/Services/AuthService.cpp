@@ -10,12 +10,17 @@
 #include "FT3/Core/operation.h"
 #include "FT3/User/user.h"
 
-UAuthService::UAuthService(const FObjectInitializer& ObjectInitializer)
+AuthService::AuthService()
 {
 
 }
 
-void UAuthService::Init()
+AuthService::~AuthService()
+{
+    UE_LOG(LogTemp, Display, TEXT("CHROMA::AuthService::~AuthService()"));
+}
+
+void AuthService::Init()
 {
     // TODO implement this function
     ProtocolHandler::HandleTempTx(SSO_PROTOCOL);
@@ -23,18 +28,18 @@ void UAuthService::Init()
     SSO::SetVaultUrl(SSO_VAULT_URL);
 }
 
-std::shared_ptr<BlockchainSession> UAuthService::GetSession()
+std::shared_ptr<BlockchainSession> AuthService::GetSession()
 {
     return m_Session;
 }
 
-std::shared_ptr<PlayerData> UAuthService::AuthenticateUserWithKey(FString loginKey, bool shouldNotifySubscribers)
+std::shared_ptr<PlayerData> AuthService::AuthenticateUserWithKey(FString loginKey, bool shouldNotifySubscribers)
 {
     std::shared_ptr<KeyPair> keyPair = std::make_shared<KeyPair>(ChromaUtils::FStringToSTDString(loginKey));
 
     if (ALoginUserDemo::GetBlockchainConnector() == nullptr)
     {
-        UE_LOG(LogTemp, Error, TEXT("CHROMA::UAuthService::AuthenticateUserWithKey failed, BlockchainConnector is nullptr"));
+        UE_LOG(LogTemp, Error, TEXT("CHROMA::AuthService::AuthenticateUserWithKey failed, BlockchainConnector is nullptr"));
         return nullptr;
     }
 
@@ -47,14 +52,14 @@ std::shared_ptr<PlayerData> UAuthService::AuthenticateUserWithKey(FString loginK
             accounts = _accounts;
         },
         [&](std::string error) {
-            UE_LOG(LogTemp, Error, TEXT("CHROMA::UAuthService::InitializeBlockchain failed : %s"),
+            UE_LOG(LogTemp, Error, TEXT("CHROMA::AuthService::InitializeBlockchain failed : %s"),
                 *ChromaUtils::STDStringToFString(error));
         }
     );
 
     if (accounts.size() == 0)
     {
-        UE_LOG(LogTemp, Error, TEXT("CHROMA::UAuthService::AuthenticateUserWithKey failed, accounts.size() == 0"));
+        UE_LOG(LogTemp, Error, TEXT("CHROMA::AuthService::AuthenticateUserWithKey failed, accounts.size() == 0"));
         return nullptr;
     }
 
@@ -65,7 +70,7 @@ std::shared_ptr<PlayerData> UAuthService::AuthenticateUserWithKey(FString loginK
     return playerData;
 }
 
-std::shared_ptr<PlayerData> UAuthService::GetPlayerDataByAccountID(FString accountId)
+std::shared_ptr<PlayerData> AuthService::GetPlayerDataByAccountID(FString accountId)
 {
     FString playerDataStr = Query("player.find_by_account_id", { FQueryObjectPair("account_id", accountId) });
 
@@ -89,7 +94,7 @@ std::shared_ptr<PlayerData> UAuthService::GetPlayerDataByAccountID(FString accou
     return playerData;
 }
 
-std::shared_ptr<PlayerData> UAuthService::CreateMockFt3User(std::shared_ptr<KeyPair> localKeypair)
+std::shared_ptr<PlayerData> AuthService::CreateMockFt3User(std::shared_ptr<KeyPair> localKeypair)
 {
     std::vector<FlagsType> flags = { FlagsType::eTransfer };
     std::shared_ptr<SingleSignatureAuthDescriptor> primaryAuthDescriptor = std::make_shared<SingleSignatureAuthDescriptor>(
@@ -125,13 +130,13 @@ std::shared_ptr<PlayerData> UAuthService::CreateMockFt3User(std::shared_ptr<KeyP
     return playerData;
 }
 
-bool UAuthService::RegisterNewPlayer(FString accountId, FString username, std::shared_ptr<PlayerData> &outPlayerData, std::shared_ptr<User> &outUser)
+bool AuthService::RegisterNewPlayer(FString accountId, FString username, std::shared_ptr<PlayerData> &outPlayerData, std::shared_ptr<User> &outUser)
 {
     bool dappWasCreated = CreateDappPlayer(accountId, username);
 
     if (!dappWasCreated)
     {
-        UE_LOG(LogTemp, Error, TEXT("CHROMA::UAuthService::CreateDappPlayer failed"));
+        UE_LOG(LogTemp, Error, TEXT("CHROMA::AuthService::CreateDappPlayer failed"));
         return false;
     }
 
@@ -166,7 +171,7 @@ bool UAuthService::RegisterNewPlayer(FString accountId, FString username, std::s
     return true;
 }
 
-FString UAuthService::Query(FString queryName, TArray<FQueryObjectPair> rawQueryObjects)
+FString AuthService::Query(FString queryName, TArray<FQueryObjectPair> rawQueryObjects)
 {
     std::vector<QueryObject> queryObjects;
     for (size_t i = 0; i < rawQueryObjects.Num(); i++)
@@ -193,7 +198,7 @@ FString UAuthService::Query(FString queryName, TArray<FQueryObjectPair> rawQuery
         ChromaUtils::FStringToSTDString(queryName),
         queryObjects,
         [&result](std::string content) {
-            UE_LOG(LogTemp, Display, TEXT("CHROMA::UAuthService::Query succeeded : %s"), *ChromaUtils::STDStringToFString(content));
+            UE_LOG(LogTemp, Display, TEXT("CHROMA::AuthService::Query succeeded : %s"), *ChromaUtils::STDStringToFString(content));
             result = ChromaUtils::STDStringToFString(content);
             if (content.compare("null") == 0) 
             {
@@ -202,7 +207,7 @@ FString UAuthService::Query(FString queryName, TArray<FQueryObjectPair> rawQuery
         },
         [&result](std::string error) {
             result = "";
-            UE_LOG(LogTemp, Error, TEXT("CHROMA::UAuthService::Query failed : %s"), *ChromaUtils::STDStringToFString(error));
+            UE_LOG(LogTemp, Error, TEXT("CHROMA::AuthService::Query failed : %s"), *ChromaUtils::STDStringToFString(error));
         }
     );
 
@@ -210,9 +215,9 @@ FString UAuthService::Query(FString queryName, TArray<FQueryObjectPair> rawQuery
 }
 
 
-bool UAuthService::CreateDappPlayer(FString accountId, FString username)
+bool AuthService::CreateDappPlayer(FString accountId, FString username)
 {
-    URequestService* requestService = ALoginUserDemo::GetRequestService();
+    RequestService* requestService = ALoginUserDemo::GetRequestService();
 
     std::shared_ptr<ArrayValue> op_args = AbstractValueFactory::EmptyArray();
     op_args->Add(AbstractValueFactory::Build(ChromaUtils::FStringToSTDString(username)));

@@ -15,20 +15,17 @@
 #include "FT3/Core/key_pair.h"
 #include "FT3/Core/Blockchain/blockchain_session.h"
 
-#include "RequestService.generated.h"
-
 using namespace chromia;
 using namespace chromia::postchain;
 using namespace chromia::postchain::client;
 using namespace chromia::postchain::ft3;
 
-UCLASS()
-class CHROMACLIENT_API URequestService : public UObject {
-
-	GENERATED_BODY()
+class RequestService {
 
 public:
-	URequestService(const FObjectInitializer& ObjectInitializer);
+	RequestService();
+
+	~RequestService();
 
     bool Call(std::vector<std::shared_ptr<Operation>> operations);
 
