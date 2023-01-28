@@ -32,15 +32,15 @@ public:
 
     static void EnterGameWithUser(std::shared_ptr<PlayerData> playerData);
 
-    static void AddNewUserAndSaveLocal(FString accountId, FString username, std::shared_ptr<KeyPair> keypair);
+    static bool AddNewUserAndSaveLocal(FString accountId, FString username, std::shared_ptr<KeyPair> keypair);
 
-    static void RemoveUserAndSaveLocal(FString accountId);
+    static bool RemoveUserAndSaveLocal(FString accountId);
 
     static bool RemoveLocalUsersIfChainIsNew();
 
-    static void SaveLocalUsers();
+    static bool SaveLocalUsers();
 
-    static void LoadLocalUsers();
+    static bool LoadLocalUsers();
 
     static void SetAccountId(FString id);
 

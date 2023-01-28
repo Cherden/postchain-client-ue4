@@ -37,7 +37,7 @@ void UserAccountManager::EnterGameWithUser(std::shared_ptr<PlayerData> playerDat
     UE_LOG(LogTemp, Display, TEXT("UserAccountManager::EnterGameWithUser"));
 }
 
-void UserAccountManager::AddNewUserAndSaveLocal(FString accountId, FString username, std::shared_ptr<KeyPair> keypair)
+bool UserAccountManager::AddNewUserAndSaveLocal(FString accountId, FString username, std::shared_ptr<KeyPair> keypair)
 {
     string privKey = PostchainUtil::ByteVectorToHexString(keypair->priv_key_);
 
@@ -46,37 +46,26 @@ void UserAccountManager::AddNewUserAndSaveLocal(FString accountId, FString usern
     newUser->m_Username = username;
     newUser->m_PrivKey = ChromaUtils::STDStringToFString(privKey);
 
-    bool entryWasUpdated = false;
-    for (size_t i = 0u; i < m_LocalUsers.Num(); i++)
-    {
-        if (m_LocalUsers[i]->m_AccountId == accountId)
-        {
-            m_LocalUsers[i] = newUser;
-            entryWasUpdated = true;
-        }
-    }
+    // Create new entry
+    m_LocalUsers.Add(newUser);
 
-    if (!entryWasUpdated)
-    {
-        // Create new entry
-        m_LocalUsers.Add(newUser);
-    }
-   
-    SaveLocalUsers();
+    return SaveLocalUsers();
 }
 
-void UserAccountManager::RemoveUserAndSaveLocal(FString accountId)
+bool UserAccountManager::RemoveUserAndSaveLocal(FString accountId)
 {
     for (size_t i = 0u; i < m_LocalUsers.Num(); i++)
     {
         if (m_LocalUsers[i]->m_AccountId == accountId)
         {
-            // TODO check memory release
             m_LocalUsers.RemoveAt(i);
-            SaveLocalUsers();
+            return SaveLocalUsers();
             break;
         }
     }
+
+    // User was not found
+    return false;
 }
 
 bool UserAccountManager::RemoveLocalUsersIfChainIsNew()
@@ -110,7 +99,7 @@ bool UserAccountManager::RemoveLocalUsersIfChainIsNew()
     return false;
 }
 
-void UserAccountManager::SaveLocalUsers()
+bool UserAccountManager::SaveLocalUsers()
 {
     // Serialize
     nlohmann::json json_obj;
@@ -133,14 +122,16 @@ void UserAccountManager::SaveLocalUsers()
     if (FileManager::WriteToFile(USER_ACCOUNT_MANAGER_FILENAME, dataStr))
     {
         UE_LOG(LogTemp, Display, TEXT("CHROMA::UserAccountManager::SaveLocalUsers saved to: %s"), TEXT(USER_ACCOUNT_MANAGER_FILENAME));
+        return true;
     }
     else
     {
         UE_LOG(LogTemp, Error, TEXT("CHROMA::UserAccountManager::SaveLocalUsers failed to save"));
+        return false;
     }
 }
 
-void UserAccountManager::LoadLocalUsers()
+bool UserAccountManager::LoadLocalUsers()
 {
     m_LocalUsers.Empty();
 
@@ -150,20 +141,20 @@ void UserAccountManager::LoadLocalUsers()
     if (!FileManager::LoadFromFile(USER_ACCOUNT_MANAGER_FILENAME, dataStr))
     {
         UE_LOG(LogTemp, Warning, TEXT("CHROMA::UserAccountManager::LoadLocalUsers failed to read from %s"), TEXT(USER_ACCOUNT_MANAGER_FILENAME));
-        return;
+        return false;
     }
 
     if (dataStr.size() == 0)
     {
         UE_LOG(LogTemp, Warning, TEXT("CHROMA::UserAccountManager::LoadLocalUsers dataStr.size() == 0"));
-        return;
+        return false;
     }   
 
     nlohmann::json json_obj = nlohmann::json::parse(dataStr);
     if (!json_obj.contains("users"))
     {
         UE_LOG(LogTemp, Warning, TEXT("CHROMA::UserAccountManager::LoadLocalUsers !json_obj.contains[users]"));
-        return;
+        return false;
     }
 
     for (size_t i = 0; i < json_obj["users"].size(); i++)
@@ -175,6 +166,8 @@ void UserAccountManager::LoadLocalUsers()
         user->m_AccountId = ChromaUtils::STDStringToFString(PostchainUtil::GetSafeJSONString(user_json_obj, "accountid"));
         m_LocalUsers.Add(user);
     }
+
+    return true;
 }
 
 void UserAccountManager::SetAccountId(FString id)

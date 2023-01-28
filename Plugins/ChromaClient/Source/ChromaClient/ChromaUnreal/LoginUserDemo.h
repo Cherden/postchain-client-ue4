@@ -61,6 +61,9 @@ public:
 
 	UFUNCTION(BlueprintCallable)
     bool CreateEditorTestUser(FString username, FString key = "");
+	
+	UFUNCTION(BlueprintCallable)
+	bool RemoveEditorTestUser(FString accountId);
 
 	void RenewLocalUserListOnNewChain();
 

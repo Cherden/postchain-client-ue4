@@ -132,9 +132,16 @@ bool ALoginUserDemo::CreateEditorTestUser(FString username, FString key)
         std::shared_ptr<User> newUser;
         if (m_AuthService->RegisterNewPlayer(playerData->m_Id, username, newPlayerData, newUser))
         {
-            UserAccountManager::AddNewUserAndSaveLocal(newPlayerData->m_Id, newPlayerData->m_Username, newUser->key_pair_);
-            UE_LOG(LogTemp, Display, TEXT("CHROMA::ALoginUserDemo::CreateEditorTestUser success"));
-            return true;
+            if (UserAccountManager::AddNewUserAndSaveLocal(newPlayerData->m_Id, newPlayerData->m_Username, newUser->key_pair_))
+            {
+                UE_LOG(LogTemp, Display, TEXT("CHROMA::ALoginUserDemo::CreateEditorTestUser success"));
+                return true;
+            }
+            else
+            {
+                UE_LOG(LogTemp, Display, TEXT("CHROMA::ALoginUserDemo::CreateEditorTestUser failed"));
+                return false;
+            }
         }
         else
         {
@@ -150,6 +157,11 @@ bool ALoginUserDemo::CreateEditorTestUser(FString username, FString key)
     }
 
     m_loginUIState = ELoginState::eAccountList;
+}
+
+bool ALoginUserDemo::RemoveEditorTestUser(FString accountId)
+{
+    return UserAccountManager::RemoveUserAndSaveLocal(accountId);
 }
 
 AuthService* ALoginUserDemo::GetAuthService()

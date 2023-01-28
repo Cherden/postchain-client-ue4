@@ -12,6 +12,11 @@ class USavedAccount : public UObject
 public:
 	USavedAccount(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer) {};
 
+    ~USavedAccount()
+    {
+        UE_LOG(LogTemp, Error, TEXT("CHROMA::USavedAccount::~USavedAccount()"));
+    };
+
 	UPROPERTY(BlueprintReadOnly)
 		FString m_Username;
 
