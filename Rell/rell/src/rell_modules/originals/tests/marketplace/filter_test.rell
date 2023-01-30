@@ -1,0 +1,275 @@
+@test module;
+import ^^^.tests.*;
+import ^^^^.dip.tests.*;
+import ^^^.marketplace.*;
+
+namespace IFilter1 {
+    val interface = "IFilter1";
+    
+    function dependencies(): list<text> {
+        return [
+            chromia.INonFungibleOriginal.interface,
+            chromia.ITradable.interface
+        ];
+    }
+    
+    val bar = Attribute.I(interface, name = "bar");
+    
+    function register(auth_data) {
+        def_original_interface_op(
+            auth_data.auth_id,
+            interface,
+            [
+                bar: Type(Text.T(), meta_list = [ Marketplace.Meta.Filter("Bar") ])
+            ],
+            dependencies()
+        ).sign(auth_data.keypair).run();
+    }
+    
+    function get() = Interface.get(interface);
+}
+
+namespace IFilter2 {
+    val interface = "IFilter2";
+    
+    function dependencies(): list<text> {
+        return [
+            chromia.INonFungibleOriginal.interface,
+            chromia.ITradable.interface
+        ];
+    }
+    
+    val foo = Attribute.I(interface, name = "foo");
+    
+    function register(auth_data) {
+        def_original_interface_op(
+            auth_data.auth_id,
+            interface,
+            [
+                foo: Type(Integer.T(), meta_list = [ Marketplace.Meta.Filter("Foo") ])
+            ],
+            dependencies()
+        ).sign(auth_data.keypair).run();
+    }
+    
+    function get() = Interface.get(interface);
+}
+
+namespace IFilter3 {
+    val interface = "IFilter3";
+    
+    function dependencies(): list<text> {
+        return [
+            chromia.INonFungibleOriginal.interface,
+            chromia.ITradable.interface
+        ];
+    }
+    
+    val bar = Attribute.I(interface, name = "bar");
+    val foo = Attribute.I(interface, name = "foo");
+    
+    function register(auth_data) {
+        def_original_interface_op(
+            auth_data.auth_id,
+            interface,
+            [ 
+                bar: Type(Text.T(), meta_list = [ Marketplace.Meta.Filter("Bar") ]),
+                foo: Type(Integer.T(), meta_list = [ Marketplace.Meta.Filter("Foo") ])
+                
+            ],
+            dependencies()
+        ).sign(auth_data.keypair).run();
+    }
+    
+    function get() = Interface.get(interface);
+}
+
+function create_mock_instances_filter1(auth_data) {
+    IFilter1.register(auth_data);
+    
+    val bar_type1 = Minter.I(
+        interface_name = IFilter1.interface,
+        [
+            chromia.IOriginal.name: Text.T("Test Original"),
+            chromia.IOriginal.creator_id: ByteArray.T(auth_data.auth_id.account_id),
+            chromia.IOriginal.creator_name: Text.T("Tester"),
+            chromia.ITradable.image: File.T(dummy_file),
+            IFilter1.bar: Text.T("bar1")
+        ]
+    );  
+    mint_non_fungible_original_op(
+        auth_data.auth_id,
+        bar_type1
+    ).sign(auth_data.keypair).run();
+    
+    val bar_type2 = Minter.I(
+        interface_name = IFilter1.interface,
+        [
+            chromia.IOriginal.name: Text.T("Test Original"),
+            chromia.IOriginal.creator_id: ByteArray.T(auth_data.auth_id.account_id),
+            chromia.IOriginal.creator_name: Text.T("Tester"),
+            chromia.ITradable.image: File.T(dummy_file),
+            IFilter1.bar: Text.T("bar2")
+        ]
+    );  
+    mint_non_fungible_original_op(
+        auth_data.auth_id,
+        bar_type2
+    ).sign(auth_data.keypair).run();
+    
+    val bar_type3 = Minter.I(
+        interface_name = IFilter1.interface,
+        [
+            chromia.IOriginal.name: Text.T("Test Original"),
+            chromia.IOriginal.creator_id: ByteArray.T(auth_data.auth_id.account_id),
+            chromia.IOriginal.creator_name: Text.T("Tester"),
+            chromia.ITradable.image: File.T(dummy_file),
+            IFilter1.bar: Text.T("bar3")
+        ]
+    );  
+    mint_non_fungible_original_op(
+        auth_data.auth_id,
+        bar_type3
+    ).sign(auth_data.keypair).run();
+}
+
+function create_mock_instances_filter2(auth_data) {
+    IFilter2.register(auth_data);
+    
+    val foo_type1 = Minter.I(
+        interface_name = IFilter2.interface,
+        [
+            chromia.IOriginal.name: Text.T("Test Original"),
+            chromia.IOriginal.creator_id: ByteArray.T(auth_data.auth_id.account_id),
+            chromia.IOriginal.creator_name: Text.T("Tester"),
+            chromia.ITradable.image: File.T(dummy_file),
+            IFilter2.foo: Integer.T(10)
+        ]
+    );  
+    mint_non_fungible_original_op(
+        auth_data.auth_id,
+        foo_type1
+    ).sign(auth_data.keypair).run();
+    
+    val foo_type2 = Minter.I(
+        interface_name = IFilter2.interface,
+        [
+            chromia.IOriginal.name: Text.T("Test Original"),
+            chromia.IOriginal.creator_id: ByteArray.T(auth_data.auth_id.account_id),
+            chromia.IOriginal.creator_name: Text.T("Tester"),
+            chromia.ITradable.image: File.T(dummy_file),
+            IFilter2.foo: Integer.T(13)
+        ]
+    );  
+    mint_non_fungible_original_op(
+        auth_data.auth_id,
+        foo_type2
+    ).sign(auth_data.keypair).run();
+    
+    val foo_type3 = Minter.I(
+        interface_name = IFilter2.interface,
+        [
+            chromia.IOriginal.name: Text.T("Test Original"),
+            chromia.IOriginal.creator_id: ByteArray.T(auth_data.auth_id.account_id),
+            chromia.IOriginal.creator_name: Text.T("Tester"),
+            chromia.ITradable.image: File.T(dummy_file),
+            IFilter2.foo: Integer.T(35)
+        ]
+    );  
+    mint_non_fungible_original_op(
+        auth_data.auth_id,
+        foo_type3
+    ).sign(auth_data.keypair).run();
+}
+
+function create_mock_instances_filter3(auth_data) {
+    IFilter3.register(auth_data);
+    
+    val foobar_type1 = Minter.I(
+        interface_name = IFilter3.interface,
+        [
+            chromia.IOriginal.name: Text.T("Test Original"),
+            chromia.IOriginal.creator_id: ByteArray.T(auth_data.auth_id.account_id),
+            chromia.IOriginal.creator_name: Text.T("Tester"),
+            chromia.ITradable.image: File.T(dummy_file),
+            IFilter3.bar: Text.T("bar1"),
+            IFilter3.foo: Integer.T(5)
+        ]
+    );  
+    mint_non_fungible_original_op(
+        auth_data.auth_id,
+        foobar_type1
+    ).sign(auth_data.keypair).run();
+    
+    val foobar_type2 = Minter.I(
+        interface_name = IFilter3.interface,
+        [
+            chromia.IOriginal.name: Text.T("Test Original"),
+            chromia.IOriginal.creator_id: ByteArray.T(auth_data.auth_id.account_id),
+            chromia.IOriginal.creator_name: Text.T("Tester"),
+            chromia.ITradable.image: File.T(dummy_file),
+            IFilter3.bar: Text.T("bar2"),
+            IFilter3.foo: Integer.T(50)
+        ]
+    );  
+    mint_non_fungible_original_op(
+        auth_data.auth_id,
+        foobar_type2
+    ).sign(auth_data.keypair).run();
+    
+}
+
+function test_marketplace_returns_options_filter() {
+    val admin_account = create_ft3_test_acc(admin_keypair());
+    init_originals_interfaces_op(admin_account.auth_id).sign(admin_account.keypair).run();
+    create_mock_instances_filter1(admin_account);
+    
+    val filters = Marketplace.Filter.get_by_interface(IFilter1.interface);
+    val barFilter = map<text, gtv>.from_gtv(filters["Bar"]);
+    val type = text.from_gtv(barFilter["type"]);
+    val values = list<text>.from_gtv(barFilter["values"]);
+    
+    assert_true(filters.size() == 1);
+    assert_true(type == "options");
+    assert_true(values == ["bar1", "bar2", "bar3"]);
+}
+
+function test_marketplace_returns_range_filter() {
+    val admin_account = create_ft3_test_acc(admin_keypair());
+    init_originals_interfaces_op(admin_account.auth_id).sign(admin_account.keypair).run();
+    create_mock_instances_filter2(admin_account);
+    
+    val filters = Marketplace.Filter.get_by_interface(IFilter2.interface);
+    val fooFilter = map<text, gtv>.from_gtv(filters["Foo"]);
+    val type = text.from_gtv(fooFilter["type"]);
+    val values = map<text, gtv>.from_gtv(fooFilter["values"]);
+    
+    assert_true(filters.size() == 1);
+    assert_true(type == "range");
+    assert_true(values == ["min": (10).to_gtv(), "max": (35).to_gtv()]);
+}
+
+function test_marketplace_returns_multiple_filter() {
+    val admin_account = create_ft3_test_acc(admin_keypair());
+    init_originals_interfaces_op(admin_account.auth_id).sign(admin_account.keypair).run();
+    create_mock_instances_filter3(admin_account);
+    
+    val filters = Marketplace.Filter.get_by_interface(IFilter3.interface);
+    
+    assert_true(filters.size() == 2);
+    assert_true(filters == [
+        "Foo": [
+            "name": "foo".to_gtv(),
+            "type": "range".to_gtv(),
+            "values": [
+                "min": (5).to_gtv(),
+                "max": (50).to_gtv()
+            ].to_gtv()
+        ].to_gtv(),
+        "Bar": [
+            "name": "bar".to_gtv(),
+            "type": "options".to_gtv(),
+            "values": ["bar1", "bar2"].to_gtv()
+        ].to_gtv()
+    ]);
+}

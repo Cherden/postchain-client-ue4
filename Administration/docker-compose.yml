@@ -1,0 +1,12 @@
+version: '3.3'
+
+services:
+  blockchain:
+    container_name: blockchain
+    image: snieking/postchain:latest
+    ports:
+      - 7740:7740
+    volumes:
+      - ../Rell/rell:/usr/src/rell
+    environment:
+      RUN_XML: config/local/run.xml

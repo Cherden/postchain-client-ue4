@@ -1,0 +1,3 @@
+@extendable function init_player(player) {
+  assets.ensure_game_assets(player.account);
+}

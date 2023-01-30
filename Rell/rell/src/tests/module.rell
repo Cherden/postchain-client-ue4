@@ -1,0 +1,25 @@
+@test module;
+
+import .data;
+import .util;
+
+import admin;
+import assets;
+import assets.*;
+import dev;
+import math;
+
+import common.*;
+import player.*;
+
+import rell_modules.time;
+import rell_modules.evm;
+
+import evm_bridge;
+
+namespace ft3 {
+  import acc: rell_modules.ft3.account;
+  import ops: rell_modules.ft3.account.operations.*;
+  import core: rell_modules.ft3.core;
+  import rell_modules.ft3.core.operations.transfer;
+}

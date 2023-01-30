@@ -1,0 +1,29 @@
+function create_test_account(data.test_player) {
+  val auth_descriptor = create_auth_descriptor(test_player.keypair.pub);
+
+  rell.test
+    .tx()
+    .op(ft3.dev_op.dev_register_account(auth_descriptor))
+    .op(player.new(test_player.username, 0, auth_descriptor.hash(), auth_descriptor.hash()))
+    .sign(test_player.keypair)
+    .run();
+
+  return auth_data(
+    account_id = auth_descriptor.hash(), 
+    auth_descriptor = auth_descriptor.hash(),
+    test_player
+  );
+}
+
+function create_admin_user(): auth_data {
+  return auth_data(
+    account_id = assets.alice_account_id(),
+    auth_descriptor = admin.admin_auth_descriptor().hash(),
+    data.alice
+  );
+}
+
+function create_auth_descriptor(pubkey): ft3.acc.auth_descriptor {
+  val rules = [ "block_height".to_gtv(), "gt".to_gtv(), integer(0).to_gtv() ].to_gtv();
+  return ft3.acc.auth_descriptor("S", [ pubkey ], [ ["T"].to_gtv(), pubkey.to_hex().to_gtv() ], rules = rules.to_gtv());
+}

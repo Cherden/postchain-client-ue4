@@ -1,0 +1,22 @@
+object initialized {
+  mutable originals: boolean = false;
+}
+
+operation initialize() {
+  require_admin_signature();
+
+  // Originals
+  if(not initialized.originals) {
+    val admin = ft3.acc.account @ { admin_account_id() };
+    initialize_original_interfaces(admin);
+    init_asset_interface(admin);
+    
+    initialized.originals = true;
+  }
+}
+
+function init_asset_interface(ft3.acc.account) {
+  IAsset.register(account);
+  IStake.register(account);
+  IERC721.register(account);
+}

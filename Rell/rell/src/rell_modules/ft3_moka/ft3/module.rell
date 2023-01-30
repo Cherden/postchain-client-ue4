@@ -1,0 +1,7 @@
+@test module;
+
+import ft3_acc: rell_modules.ft3.account;
+import ft3_core: rell_modules.ft3.core;
+import ft3_alpha: rell_modules.ft3_alpha_extension;
+import ft3_op_account: rell_modules.ft3.operations.dev_op_account;
+import ft3_acc_op: rell_modules.ft3.account.operations; 

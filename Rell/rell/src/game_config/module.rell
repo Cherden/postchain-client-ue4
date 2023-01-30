@@ -1,0 +1,10 @@
+@mount("game_config")
+module;
+
+struct module_args {
+  maximum_users: integer;
+}
+
+query get_all(): module_args {
+  return chain_context.args;
+}

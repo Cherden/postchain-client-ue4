@@ -1,0 +1,38 @@
+@test 
+module;
+
+import ^^^.originals.core.*;
+import ^^^.originals.external;
+import ^^^.ft3_helper.tests.*;
+
+function define_empty_non_fungible_interface(name = "TestNonFungibleInterface", auth_data) {
+    external
+        .def_original_interface_op(
+            auth_data.auth_id,
+            name,
+            [:],
+            [chromia.INonFungibleOriginal.interface]
+        )
+        .sign(auth_data.keypair)
+        .run();
+        
+    return name;
+}
+
+function define_empty_fungible_interface(name = "TestFungibleInterface", auth_data) {
+    external
+        .def_original_interface_op(
+            auth_data.auth_id,
+            name,
+            [:],
+            [chromia.IFungibleOriginal.interface]
+        )
+        .sign(auth_data.keypair)
+        .run();
+        
+    return name;
+}
+
+
+
+

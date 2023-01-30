@@ -1,0 +1,31 @@
+/*
+ * Move the token from admin's account to user's account, ie. unlock it for user.
+ * This is done when TokenDepositedEvent is received from EVM.
+ */
+function unlock_token(_contract_address: text, chain_name: text, token_id: integer, account: ft3.acc.account) {
+  val contract_address = _contract_address.lower_case();
+  val token = IERC721.fetch_by_id(chain_name, contract_address, token_id);
+  val admin = ft3.acc.account @ { admin_account_id() };
+
+  IERC721.assert_owner_of(admin, token);
+  Ownership.transfer(admin, token, account.id);
+}
+
+/*
+ * Move the token from user's account to admin's account, ie. lock it for user.
+ * This is done when TokenWithdrawalEvent is received from EVM.
+ */
+function lock_token(_contract_address: text, chain_name: text, token_id: integer, account: ft3.acc.account) {
+  val contract_address = _contract_address.lower_case();
+  val token = IERC721.fetch_by_id(chain_name, contract_address, token_id);
+
+  IERC721.assert_owner_of(account, token);
+  Ownership.transfer(account, token, admin_account_id());
+}
+
+function verify_block_number_valid(new_block_number: integer, existing_block_number: integer) {
+  require(
+    new_block_number >= existing_block_number,
+    error.new(error.type.BadInput, error.issue.InvalidBlockHeight)
+  );
+}

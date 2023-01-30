@@ -1,0 +1,86 @@
+
+operation add_type_attribute_op(instance, attribute_name: Attribute.I, value: gtv) {
+	require_dev();
+	Attribute.Unsafe.add_value(instance, attribute_name, value);
+}
+
+operation update_type_attribute_op(instance, attribute_name: Attribute.I, value: gtv) {
+	require_dev();
+	Attribute.Unsafe.update_value(instance, attribute_name, value);
+}
+
+operation set_type_attribute_op(instance, attribute_name: Attribute.I, value: gtv) {
+	require_dev();
+	Attribute.Unsafe.set_value(instance, attribute_name, value);
+}
+
+operation remove_type_attribute_op(instance, attribute_name: Attribute.I) {
+	require_dev();
+	Attribute.Unsafe.remove_value(instance, attribute_name);
+}
+
+operation add_container_element_op(instance, attribute_name: Attribute.I, value: gtv) {
+	require_dev();
+	Attribute.Unsafe.add_container_element(instance, attribute_name, value);
+}
+
+operation remove_container_element_op(instance, attribute_name: Attribute.I, value: gtv) {
+	require_dev();
+	Attribute.Unsafe.remove_container_element(instance, attribute_name, value);
+}
+
+/** Map */	
+operation map_put_all_op(instance, attribute_name: Attribute.I, elements: map<gtv,gtv>) {
+	require_dev();
+	Map.Unsafe.put_all(instance, attribute_name, elements);
+}
+
+operation map_clear_op(instance, attribute_name: Attribute.I) {
+	require_dev();
+	Map.Unsafe.clear(instance, attribute_name);
+}
+/** Map end */
+
+/** Set */	
+operation set_add_all_op(instance, attribute_name: Attribute.I, values: gtv) {
+	require_dev();
+	Set.Unsafe.add_all(instance, attribute_name, values);
+}
+
+operation set_remove_all_op(instance, attribute_name: Attribute.I, values: gtv) {
+	require_dev();
+	Set.Unsafe.remove_all(instance, attribute_name, values);
+}
+
+operation set_clear_op(instance, attribute_name: Attribute.I) {
+	require_dev();
+	Set.Unsafe.clear(instance, attribute_name);
+}
+/** Set end */
+
+/** List */	
+operation list_add_op(instance, attribute_name: Attribute.I, values: gtv, pos: integer = -1) {
+	require_dev();
+	List.Unsafe.add(instance, attribute_name, values, pos);
+}
+
+operation list_add_all_op(instance, attribute_name: Attribute.I, values: gtv, pos: integer = -1) {
+	require_dev();
+	List.Unsafe.add_all(instance, attribute_name, values, pos);
+}
+
+operation list_clear_op(instance, attribute_name: Attribute.I) {
+	require_dev();
+	List.Unsafe.clear(instance, attribute_name);
+}
+
+operation list_remove_all_op(instance, attribute_name: Attribute.I, values: gtv) {
+	require_dev();
+	List.Unsafe.remove_all(instance, attribute_name, values);
+}
+
+operation list_remove_at_op(instance, attribute_name: Attribute.I, idx: integer) {
+	require_dev();
+	List.Unsafe.remove_at(instance, attribute_name, idx);
+}
+/** List end */

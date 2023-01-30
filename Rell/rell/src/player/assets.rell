@@ -1,0 +1,7 @@
+function player_asset_balance(player, name) : ft3.core.balance? {
+  return assets.get_balance(player.account, name);
+}
+
+function ensure_player_asset_balance(player, name) : ft3.core.balance {
+  return assets.ensure_balance(player.account, name);
+}

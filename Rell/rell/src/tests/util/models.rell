@@ -1,0 +1,5 @@
+struct auth_data {
+  account_id: byte_array;
+  auth_descriptor: byte_array;
+  player: data.test_player;
+}

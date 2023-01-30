@@ -1,0 +1,40 @@
+enum fish {
+  fish_minnow,
+  fish_coykap,
+  fish_hring,
+  fish_gubsy,
+  fish_flanch,
+  fish_saltwaterbrark,
+  fish_sweeb,
+  fish_sludfish,
+  fish_yeddeh,
+  fish_russlingprout,
+  fish_garving,
+  fish_urts,
+  fish_sprile,
+  fish_lummelionfish
+}
+
+enum fishing_bait {
+  worms_bait,
+  maggots_bait,
+  flakes_bait
+}
+
+enum trash {
+  trash_boot,
+  trash_tire
+}
+
+enum fishing_rod {
+  rod_crookedstick,
+  rod_plastic,
+  rod_aluminium,
+  rod_carbonfibre,
+  rod_bjornspringyspo
+}
+
+function fishing_rods() = fishing_rod.values() @* {}( $.name );
+function baits() = fishing_bait.values() @* {}( $.name );
+function fishes() = fish.values() @* {}( $.name );
+function trash_items() = trash.values() @* {}( $.name );

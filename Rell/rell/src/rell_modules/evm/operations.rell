@@ -1,0 +1,16 @@
+operation register_address(account_id: byte_array, auth_descriptor_id: byte_array, _address: text, signature) {
+  val ft3_account = ft3.acc.auth_and_log(account_id, auth_descriptor_id, []);
+
+  val address = _address.lower_case();
+  
+  val msg = account_id.to_hex() + _address;
+  valid_signature(msg, signature, address);
+  
+  val evm_account = account @? { ft3_account };
+  if (evm_account == null) {
+    create account(ft3_account, address);
+  } else {
+    require(evm_account.address != address, "[IGN02] Address is already correct");
+    evm_account.address = address;
+  }
+}

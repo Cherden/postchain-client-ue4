@@ -1,0 +1,33 @@
+function give_user_original(user: auth_data, name, interface: text, amount: integer ) {
+  rell.test
+    .tx()
+    .op(dev.give_user_original(user.account_id, name, interface, amount))
+    .sign(data.alice.keypair)
+    .run();
+}
+
+function give_user_plot_original(user: auth_data, plot_size_x: integer = 50, plot_size_y: integer = 50, plot_width: integer = 50, plot_height: integer = 50) {
+  rell.test
+    .tx()
+    .op(dev.give_user_plot(3001, 0, plot_size_x, plot_size_y, plot_width, plot_height, 0, 0, 0, 0.5, "301", user.account_id, user.account_id))
+    .sign(data.admin_keypair)
+    .run();
+}
+
+function create_user_and_give_IERC721Plot() {
+  init_chain();
+
+  val plot_id = 3001;
+  val user = create_test_account(data.player1);
+  give_user_IERC721Plot(user, plot_id);
+
+  return(user, plot_id);
+}
+
+function give_user_IERC721Plot(user: auth_data, plot_id: integer, chain_id: text = "Test Chain ID", contract_address: text = "Test Contract Address", token_id: integer = 1) {
+  rell.test
+    .tx()
+    .op(dev.give_user_erc721plot(plot_id, 0, 50, 50, 50, 50, 0, 0, 0, 0.5, "301", user.account_id, chain_id, contract_address, token_id))
+    .sign(data.admin_keypair)
+    .run();
+}

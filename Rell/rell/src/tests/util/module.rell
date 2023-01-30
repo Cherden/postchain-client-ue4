@@ -1,0 +1,16 @@
+@test module;
+
+import ^.data;
+
+namespace ft3 {
+  import acc: rell_modules.ft3.account;
+  import dev_op: rell_modules.ft3.operations.dev_op_account;
+  import core: rell_modules.ft3.core;
+  import rell_modules.ft3.core.operations.transfer;
+}
+
+import assets;
+import admin;
+import dev;
+import player;
+import plots;

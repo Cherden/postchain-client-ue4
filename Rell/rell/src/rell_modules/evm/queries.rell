@@ -1,0 +1,7 @@
+query get_address(account_id: byte_array) {
+  return account @? { .account.id == account_id } ( .address );
+}
+
+query get_account(address: text) {
+  return account @? { .address == address.lower_case() } ( .account.id );
+}

@@ -1,0 +1,57 @@
+function asset_id(name): byte_array {
+  return (name, chain_context.blockchain_rid).hash();
+}
+
+function ensure_balance(ft3.acc.account, name): ft3.core.balance {
+  return ft3.core.ensure_balance(account,  ft3.core.asset @ { .id == asset_id(name) } );
+}
+
+function get_balance(ft3.acc.account, name): ft3.core.balance? {
+  return ft3.core.balance @? { .asset.id == asset_id(name), account };
+}
+
+function get_token_balance(ft3.acc.account): ft3.core.balance? {
+  return get_balance(account, token_name());
+}
+
+function token_name() {
+  return chain_context.args.token_name;
+}
+
+function calculate_tokens(account: ft3.acc.account) : integer {
+  val token = ft3.core.asset @ { .id == asset_id(token_name()) };
+  var token_balance = ft3.core.balance @? { token, account } ( .amount );
+
+  return token_balance ?: 0;
+}
+
+function ensure_game_assets(ft3.acc.account) {
+  for(game_asset in game_asset @* {}) {
+    val balance = ensure_balance(account, game_asset.asset.name);
+  }
+}
+
+function get_all_inventory_assets() {
+  return game_asset @* { not .hidden_in_inventory };
+}
+
+function reward_asset(item_id: text, type: text, amount: integer, player){
+  if(type == "ft3") {
+    reward_ft3_asset(item_id, amount, player);
+  } else {
+    reward_original_asset(item_id, type, amount, player);
+  }
+}
+
+function reward_ft3_asset(item_id: text, amount: integer, player) {
+  ensure_player_asset_balance(player, item_id).amount += amount;
+}
+
+function reward_original_asset(item_id: text, interface_name: name, amount: integer, player) {
+//	reward_commontype_item(IAsset.interface, item_id, amount, player);
+}
+
+function delete_asset(ft3.acc.account, instance) {
+  val id = Id.get_id(instance);
+  Ft3Helper.lock_asset(account.id, id, "Deleted");
+}

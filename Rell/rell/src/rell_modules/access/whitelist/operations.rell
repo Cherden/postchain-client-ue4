@@ -1,0 +1,49 @@
+import ^.admin;
+
+operation whitelist_account(account_id: byte_array) {
+    admin.require_admin("Only admin can whitelist an account");
+    
+    val account = require(
+        account @? { account_id },
+        "Account does not exist: " + account_id
+    );
+    
+    require(
+        empty(whitelist @? { account }),
+        "Account already whitelisted"
+    );
+ 
+    create whitelist(account);
+}
+
+operation lock_account(account_id: byte_array) {
+    admin.require_admin("Only admin can lock an account");    
+    
+    val whitelist = require(
+        whitelist @? { .account.id == account_id },
+        "Account not whitelisted"
+    );
+    
+    require(
+        not whitelist.locked,
+        "Account is already locked"
+    );
+    
+    whitelist.locked = true;
+}
+
+operation unlock_account(account_id: byte_array) {
+    admin.require_admin("Only admin can unlock an account");    
+    
+    val whitelist = require(
+        whitelist @? { .account.id == account_id },
+        "Account not whitelisted"
+    );   
+    
+    require(
+        whitelist.locked,
+        "Account is not locked"
+    );
+    
+    whitelist.locked = false;
+}

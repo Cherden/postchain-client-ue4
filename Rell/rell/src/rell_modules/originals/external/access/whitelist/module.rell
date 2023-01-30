@@ -1,0 +1,33 @@
+
+import rell_modules.ft3.account.*;
+import rell_modules.dip.core.*;
+import ^^.access;
+import ^^^^.access.whitelist;
+
+
+@extend(access.has_interface_definition_permission)
+function (account, dependencies: list<Interface.dclass>): boolean {
+    whitelist.require_active(account);
+    
+    for (interface in dependencies) {
+        if (not Interface.is_open_or_owner(interface, account)) return false;
+    }
+    return true;
+}
+
+@extend(access.has_prototype_definition_permission)
+function (account, Interface.dclass, instance?): boolean {
+    whitelist.require_active(account);
+        
+    return 
+        Interface.is_open_or_owner(dclass, account)
+            and 
+        if (instance??) Prototype.is_open_or_owner(instance, account) else true;
+}
+
+@extend(access.has_minting_permission)
+function (account, Interface.dclass): boolean {
+    whitelist.require_active(account);
+    
+    return Interface.is_open_or_owner(dclass, account);
+}

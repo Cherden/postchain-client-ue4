@@ -1,0 +1,68 @@
+struct auth_data {
+	auth_id;
+	rell.test.keypair;
+}
+
+function admin_keypair() = rell.test.keypair(
+	priv = x"854D8402085EC5F737B1BE63FFD980981EED2A0DA5FAC6B4468CB1F176BA0321",
+	pub = x"02897FAC9964FBDF97E6B83ECCBDE4A8D28729E0FB27059487D1B6B29F70B48767"
+);
+
+function alice_keypair() = rell.test.keypair(
+	priv = x"a3a0b4cd66de47ad5fce84300cc31b0b6ae9713ab9cec6f2de56f6b77817948f",
+	pub = x"02ae9f061829533b2e15ee723e39fc3084d1ff31e8779a68c25444006a06c1832c"
+);
+
+function bob_keypair() = rell.test.keypair(
+	priv = x"8a3c2a0aec7337eba48eb3908a11a38d78d6a783adb597aa3293e31fe97ffb6d",
+	pub = x"027fddef8a4d416eddbdfc7cf882d0c2d563eccb5942002ea81acac14a8a94cb3c"
+);
+
+function eve_keypair() = rell.test.keypair(
+	priv = x"B2B76C9EA05C9DD09666D8222888CDC2BF38CF69EEE842E6F2B891E4376A7A3E",
+	pub = x"0399C5AA2EAC0F2087B3F3E40803FA36CC535963A3CA7053CED43FF769C774F350"
+);
+
+function create_ft3_test_acc(rell.test.keypair) {
+	val auth_descriptor = create_auth_descriptor(keypair.pub);
+	val tx1 = rell.test.tx()
+		.op(ft3.dev_op_account.dev_register_account(auth_descriptor))
+		.sign(keypair);
+		
+	rell.test.block().tx(tx1).run();
+		
+	val account = ft3.acc.account_auth_descriptor @ { 
+		.descriptor_id == auth_descriptor.hash()
+	} ( .account.id );
+	
+	return auth_data(
+        auth_id(account_id = account, auth_descriptor_id = auth_descriptor.hash()),
+        keypair = keypair
+    );
+}
+
+function register_admin() = create_ft3_test_acc(admin_keypair());
+
+function register_alice() = create_ft3_test_acc(alice_keypair()); 
+
+function register_bob() = create_ft3_test_acc(bob_keypair());
+
+function register_eve() = create_ft3_test_acc(eve_keypair());
+
+function get_ft3_test_acc(rell.test.keypair) {
+	val auth_descriptor = create_auth_descriptor(keypair.pub);
+			
+	val account = ft3.acc.account_auth_descriptor @ { 
+		.descriptor_id == auth_descriptor.hash()
+	} ( .account.id );
+	
+	return auth_data(
+        auth_id(account_id = account, auth_descriptor_id = auth_descriptor.hash()),
+        keypair = keypair
+    );
+}
+
+function create_auth_descriptor(pubkey): ft3.acc.auth_descriptor {
+	val rules = [ "block_height".to_gtv(), "gt".to_gtv(), integer(0).to_gtv() ].to_gtv();
+	return ft3.acc.auth_descriptor("S", [ pubkey ], [ ["T"].to_gtv(), pubkey.to_hex().to_gtv() ], rules = rules.to_gtv());
+}

@@ -1,0 +1,50 @@
+
+import ft3_core: rell_modules.ft3.core;
+import ft3_acc: rell_modules.ft3.account;
+
+
+// TODO ADD TO FT3 ???
+
+function unsafe_transfer(inputs: list<ft3_core.xfer_input>, outputs: list<ft3_core.xfer_output>) {
+	val sum_inputs = map<ft3_core.asset, integer>();
+	var idx = 0;
+	for (i in inputs) {
+		unsafe_consume_input(i, idx, sum_inputs);
+		idx +=1;
+	}
+	
+	idx = 0;
+	
+	for(o in outputs) {
+		ft3_core.process_transfer_output(o, idx, sum_inputs);
+		idx += 1;
+	}
+}
+
+function unsafe_consume_input(i: ft3_core.xfer_input, idx: integer, assets: map<ft3_core.asset, integer>): ft3_core.payment_history_entry {
+	val asset = ft3_core.asset @ {.id == i.asset_id};
+	val account_ = ft3_acc.account@{i.account_id};
+	
+	if(i.auth_descriptor_id == empty_auth_descriptor()) { // if an empty auth descriptor is passed, check the account actually has no auth descriptors
+		require((ft3_acc.account_auth_descriptor@*{account_}).size() ==0, "There should be no auth_descriptor");
+	} else { // run normal auth_check
+		acc.auth_and_log(account_.id, i.auth_descriptor_id, ["T"]);
+	}
+
+	require( i.amount > 0, "Amount should be non 0 positive." );
+	
+	ft3_core.deduct_balance(account_, asset, i.amount);
+	assets[asset] = i.amount + if (asset in assets) assets[asset] else 0;
+	return create ft3_core.payment_history_entry (
+	    account_,
+	    asset,
+	    .delta = i.amount,
+	    .op_index = 500, //op_context ???
+	    .is_input = true,
+    	.entry_index = idx
+	);
+}
+
+function empty_auth_descriptor(): byte_array {
+	return "NULL".hash();
+}

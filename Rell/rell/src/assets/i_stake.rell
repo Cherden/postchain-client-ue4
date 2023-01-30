@@ -1,0 +1,47 @@
+namespace IStake {
+  val interface = "com.unitychromia.IStake";
+
+  function dependencies() = [
+    chromia.INonFungibleOriginal.get()
+  ];
+
+  val stake_account_id = Attribute.I(interface, name="stake_account_id");
+
+  function register(ft3.acc.account) {
+    InterfaceFactory.new(interface,
+      [
+        stake_account_id: Type(ByteArray.T())
+      ],
+      dependencies(),
+      [
+      ],
+      account = account
+    );
+  }
+
+  function get() = Interface.get(interface);
+
+  function get_stake_account_id(instance): byte_array = AttributeHelper.get_required_byte_array_attribute(instance, IStake.stake_account_id, "stake account id");
+
+  function fetch_by_account(ft3.acc.account, take: integer, page: integer) {
+    return Ownership.find_all_originals_with_interface(account.id, get(), take, page);
+  }
+}
+
+namespace IStake.Prototype {
+  function register(
+    name,
+    creator_id: byte_array,
+    creator_name: name
+  ) {
+    PrototypeFactory.new(
+      IStake.get(),
+      [
+        chromia.IOriginal.name: Text.T(name),
+        chromia.IOriginal.creator_id: ByteArray.T(creator_id),
+        chromia.IOriginal.creator_name: Text.T(creator_name)
+      ],
+      name
+    );
+  }
+}

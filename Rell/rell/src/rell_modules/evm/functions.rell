@@ -1,0 +1,12 @@
+function valid_signature(msg: text, signature, eth_address: text) {
+  val msg_hash = keccak256(("\u0019Ethereum Signed Message:\n" + msg.size().to_text() + msg).to_bytes());
+  val pubkey_64bytes = eth_ecrecover(
+    byte_array.from_hex(signature.r), 
+    byte_array.from_hex(signature.s), 
+    signature.v - 27,
+    msg_hash 
+  );
+  val _address: byte_array = keccak256(pubkey_64bytes).sub(12);
+  val address = "0x" + _address.to_hex();
+  require(address == eth_address.lower_case(), "Eth signature doesn't match");
+}

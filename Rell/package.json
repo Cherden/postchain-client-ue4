@@ -1,0 +1,10 @@
+{
+  "name": "chromiaunity-blockchain",
+  "version": "1.0.0",
+  "description": "",
+  "scripts": {
+    "test": "node scripts/rell-tests.js"
+  },
+  "author": "",
+  "license": "ISC"
+}

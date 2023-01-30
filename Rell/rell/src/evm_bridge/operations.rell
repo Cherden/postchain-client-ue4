@@ -1,0 +1,65 @@
+operation register_chain(name: text) {
+  require_admin_signature();
+  create_chain(name);
+}
+
+operation register_contract(address: text, chain_name: text, block_number: integer) {
+  require_admin_signature();
+  verify_block_number_valid(block_number, 0);
+
+  val chain = require_chain_exists(chain_name);
+
+  create_contract(address, chain, block_number);
+}
+
+operation process_token_deposited_event(chain_name: text, deposit_address: text, tokens: list<token_data>, block_number: integer, eth_address: text) {
+  require_admin_signature();
+  require_chain_exists(chain_name);
+
+  val account_id = require_not_empty(
+    evm.get_account(eth_address),
+    error.new(error.type.BadInput, error.issue.EvmAccountUnknown, "Unknown evm account: " + eth_address)
+  );
+
+  val ft3_account = require_not_empty(
+    ft3.acc.account @? { .id == account_id },
+    error.new(error.type.BadInput, error.issue.AccountUnknown, "Unknown account: " + account_id)
+  );
+
+  val contract_instance = require_contract_exists(deposit_address, chain_name);
+
+  verify_block_number_valid(block_number, contract_instance.block_number);
+
+  for (token in tokens) {
+    require_contract_exists(token.contract_address, chain_name);
+    unlock_token(token.contract_address, chain_name, token.id, ft3_account);
+  }
+
+  update contract_instance(block_number);
+}
+
+operation process_request_token_withdrawal_event(chain_name: text, deposit_address: text, tokens: list<token_data>, block_number: integer, eth_address: text) {
+  require_admin_signature();
+  require_chain_exists(chain_name);
+
+  val account_id = require_not_empty(
+    evm.get_account(eth_address),
+    error.new(error.type.BadInput, error.issue.EvmAccountUnknown, "Unknown evm account: " + eth_address)
+  );
+
+  val ft3_account = require_not_empty(
+    ft3.acc.account @? { .id == account_id },
+    error.new(error.type.BadInput, error.issue.AccountUnknown, "Unknown account: " + account_id)
+  );
+
+  val contract_instance = require_contract_exists(deposit_address, chain_name);
+
+  verify_block_number_valid(block_number, contract_instance.block_number);
+
+  for(token in tokens) {
+    require_contract_exists(token.contract_address, chain_name);
+    lock_token(token.contract_address, chain_name, token.id, ft3_account);
+  }
+
+  update contract_instance(block_number);
+}

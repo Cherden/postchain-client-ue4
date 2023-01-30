@@ -1,0 +1,66 @@
+namespace IERC721 {
+  val interface = "com.myneighboralice.IERC721";
+
+  function dependencies() = list<Interface.dclass>();
+
+  val id               = Attribute.I(interface, name="id");
+  val chain_id         = Attribute.I(interface, name="chain_id");
+  val contract_address = Attribute.I(interface, name="contract_address");
+  val token_id         = Attribute.I(interface, name="token_id");
+
+  function register(ft3.acc.account) {
+    InterfaceFactory.new(interface,
+      [
+        id: Type(Text.T(), [Unique(), CompositeValue([contract_address, token_id, chain_id])]),
+        chain_id: Type(Text.T()),
+        contract_address: Type(Text.T()),
+        token_id: Type(Integer.T())
+      ],
+      dependencies(),
+      [
+      ],
+      account = account
+    );
+  }
+
+  function get() = Interface.get(interface);
+
+  function fetch_by_account(ft3.acc.account, take: integer, page: integer) {
+    return Ownership.find_all_originals_with_interface(account.id, get(), take, page);
+  }
+
+  function fetch_by_id(chain_id: text, token_contract_address: text, token_id: integer){
+    val r = Attribute.find_instances(
+        IERC721.id,
+        build_id(chain_id, token_contract_address, token_id).to_gtv(),
+        Filter.p_from(),
+        2
+    );
+
+    require(
+      r.results.size() != 0,
+      error.new(error.type.NotFound, error.issue.TokenNotFound)
+    );
+
+    require(
+      r.results.size() == 1,
+      error.new(error.type.InvalidState, error.issue.TokenNotUnique, "Multiple tokens found")
+    );
+
+    return r.results.get(0);
+  }
+
+  function assert_owner_of(ft3.acc.account, instance) {
+    require(
+      Ft3Helper.owns_original(account.id, Id.get_id(instance)),
+      error.new(error.type.Unauthorized, error.issue.OriginalsNonOwner)
+    );
+  }
+
+  function get_chain_id(instance): text = AttributeHelper.get_required_text_attribute(instance, chain_id, "chain_id");
+  function get_contract_address(instance): text = AttributeHelper.get_required_text_attribute(instance, contract_address, "contract_address");
+  function get_token_id(instance): integer = AttributeHelper.get_required_integer_attribute(instance, token_id, "token_id");
+
+  function build_id(chain_id: text, token_contract_address: text, token_id: integer) =
+    token_contract_address.lower_case() + ";" + token_id + ";" + chain_id;
+}

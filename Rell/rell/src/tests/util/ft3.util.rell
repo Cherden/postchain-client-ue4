@@ -1,0 +1,15 @@
+function give_user_alice_token(user: auth_data, amount: integer ) {
+  give_user_ft3(user, ALICE, amount);
+}
+
+function give_user_bjorn_token(user: auth_data, amount: integer ) {
+  give_user_ft3(user, BJORN, amount);
+}
+
+function give_user_ft3(user: auth_data, name, amount: integer ) {
+  rell.test
+    .tx()
+    .op(dev.give_user_ft3_token(user.account_id, name, amount))
+    .sign(data.alice.keypair)
+    .run();
+}

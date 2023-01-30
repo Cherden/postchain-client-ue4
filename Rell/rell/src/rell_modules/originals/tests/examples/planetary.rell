@@ -1,0 +1,219 @@
+@test module;
+
+import ^^^.tests.*;
+import ^^^^.dip.tests.*;
+
+namespace IFace {
+    val interface = "IFace";
+    
+    function dependencies(): list<text> {
+        return [
+            chromia.IFungibleOriginal.interface,
+            chromia.ITradable.interface
+        ];
+    }
+    
+    val skin = Attribute.I(interface, name = "skin");
+    
+    function register(auth_data) {
+        def_original_interface_op(
+            auth_data.auth_id,
+            interface,
+            [ 
+                skin: Type(ByteArray.T())
+            ],
+            dependencies(),
+            [
+                Marketplace.Meta.Category("Faces"),
+                Marketplace.Meta.Name("Face"),
+                Marketplace.Meta.Description("This is Face description")
+            ]
+        ).sign(auth_data.keypair).run();
+    }
+    
+    function get() = Interface.get(interface);
+}
+
+namespace ITShirt {
+    val interface = "ITShirt";
+    
+    function dependencies(): list<text> {
+        return [
+            chromia.IFungibleOriginal.interface,
+            chromia.ITradable.interface
+        ];
+    }
+    
+    val color = Attribute.I(interface, name = "color");
+    val skin = Attribute.I(interface, name = "skin");
+    
+    function register(auth_data) {
+        def_original_interface_op(
+            auth_data.auth_id,
+            interface,
+            [ 
+                color: Type(
+                    Text.T(),
+                    [
+                        Marketplace.Meta.Filter("Color"),
+                        Marketplace.Meta.Description("T-Shirt color"),
+                        Marketplace.Meta.Label("Color")
+                    ]
+                ),
+                skin: Type(ByteArray.T())
+            ],
+            dependencies(),
+            [
+                Marketplace.Meta.Category("T-Shirts"),
+                Marketplace.Meta.Name("T-Shirt"),
+                Marketplace.Meta.Description("This is T-Shirt description")
+            ]
+        ).sign(auth_data.keypair).run();
+    }
+    
+    function get() = Interface.get(interface);
+}
+
+namespace IHeadAccessory {
+    val interface = "IHeadAccessory";
+    
+    function dependencies(): list<text> {
+        return [
+            chromia.IFungibleOriginal.interface,
+            chromia.ITradable.interface
+        ];
+    }
+    
+    val skin = Attribute.I(interface, name = "skin");
+    
+    function register(auth_data) {
+        def_original_interface_op(
+            auth_data.auth_id,
+            interface,
+            [ 
+                skin: Type(ByteArray.T())
+            ],
+            dependencies(),
+            [
+                Marketplace.Meta.Category("Head Accessories"),
+                Marketplace.Meta.Name("Head Accessory"),
+                Marketplace.Meta.Description("This is Head Accessory description")
+            ]
+        ).sign(auth_data.keypair).run();
+    }
+    
+    function get() = Interface.get(interface);
+}
+
+namespace IBodyAccessory {
+    val interface = "IBodyAccessory";
+    
+    function dependencies(): list<text> {
+        return [
+            chromia.IFungibleOriginal.interface,
+            chromia.ITradable.interface
+        ];
+    }
+    
+    val color = Attribute.I(interface, name = "color");
+    val skin = Attribute.I(interface, name = "skin");
+    
+    function register(auth_data) {
+        def_original_interface_op(
+            auth_data.auth_id,
+            interface,
+            [ 
+                color: Type(
+                    Text.T(),
+                    [
+                        Marketplace.Meta.Filter("Color"),
+                        Marketplace.Meta.Description("Accessory color"),
+                        Marketplace.Meta.Label("Color")
+                    ]
+                ),
+                skin: Type(ByteArray.T())
+            ],
+            dependencies(),
+            [
+                Marketplace.Meta.Category("Body Accessories"),
+                Marketplace.Meta.Name("Body Accessory"),
+                Marketplace.Meta.Description("This is Body Accessory description")
+            ]
+        ).sign(auth_data.keypair).run();
+    }
+    
+    function get() = Interface.get(interface);
+}
+
+namespace IPlanet {
+    val interface = "IPlanet";
+    
+    function dependencies(): list<text> {
+        return [
+            chromia.INonFungibleOriginal.interface,
+            chromia.ITradable.interface
+        ];
+    }
+    
+    val skin = Attribute.I(interface, name = "skin");
+    val face = Attribute.I(interface, name = "face");
+    val tshirt = Attribute.I(interface, name = "tshirt");
+    val head_accessory = Attribute.I(interface, name = "head_accessory");
+    val body_accessory = Attribute.I(interface, name = "body_accessory");
+    val color = Attribute.I(interface, name = "color");
+    val type = Attribute.I(interface, name = "type");
+    
+    function register(auth_data) {
+        def_original_interface_op(
+            auth_data.auth_id,
+            interface,
+            [ 
+                skin: Type(ByteArray.T()),
+                face: Type(Instance.T(), [ 
+                    OwnerMutable(), ImplementsInterface(IFace.interface)
+                ]),
+                tshirt: Type(Instance.T(), [
+                    OwnerMutable(), ImplementsInterface(ITShirt.interface)
+                ]),
+                head_accessory: Type(Instance.T(), [
+                    OwnerMutable(), ImplementsInterface(IHeadAccessory.interface)
+                ]),
+                body_accessory: Type(Instance.T(), [
+                    OwnerMutable(), ImplementsInterface(IBodyAccessory.interface)
+                ]),              
+                color: Type(
+                    Text.T(),
+                    [
+                        Marketplace.Meta.Filter("Color"),
+                        Marketplace.Meta.Description("Celestial body color"),
+                        Marketplace.Meta.Label("Color")
+                    ]
+                ),
+                type: Type(
+                    Text.T(),
+                    [
+                        Marketplace.Meta.Filter("Type"),
+                        Marketplace.Meta.Description("Celestial body type"),
+                        Marketplace.Meta.Label("Type")
+                    ]
+                )
+            ],
+            dependencies(),
+            [
+                Marketplace.Meta.Category("Celestial Bodies"),
+                Marketplace.Meta.Name("Celestial Body"),
+                Marketplace.Meta.Description("This is Celestial Body description")
+            ]
+        ).sign(auth_data.keypair).run();
+    }
+    
+    function get() = Interface.get(interface);
+}
+
+function register_planetary_example(auth_data) {
+	IFace.register(auth_data);
+	ITShirt.register(auth_data);
+	IHeadAccessory.register(auth_data);
+	IBodyAccessory.register(auth_data);
+	IPlanet.register(auth_data);
+}

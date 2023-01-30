@@ -1,0 +1,4 @@
+struct keypair {
+    priv: byte_array;           // private key, must be 32 bytes
+    pub: byte_array;            // public key, must be 33 bytes
+}

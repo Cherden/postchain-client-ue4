@@ -1,0 +1,150 @@
+
+namespace Filter {
+	enum type {
+		exact,
+		min,
+		max,
+		range,
+		contains,
+		contains_all,
+		starts_with
+	}
+	
+	struct I {
+		attribute_name: Attribute.I;
+		parameter: gtv;
+		type = type.exact;
+	}
+	
+	struct I_by_attribute {
+		attribute;
+		parameter: gtv;
+		type = type.exact;
+	}
+	
+	// Pointing to a page with instance_prototype
+	struct p_from {
+		instance_rowid: rowid = util.r_zero();
+		prototype_rowid: rowid = util.r_zero();
+	}
+	
+	function resolve(
+		instances: list<instance>,
+		filter: I_by_attribute,
+		from: p_from
+	): (results: list<instance>, from: p_from?) {
+		when(filter.attribute.type) {
+			Attribute.type.boolean -> return Boolean.apply_filter(instances, filter, from);
+			Attribute.type.byte_array -> return ByteArray.apply_filter(instances, filter, from);
+			Attribute.type.decimal -> return Decimal.apply_filter(instances, filter, from);
+			Attribute.type.instance -> return Instance.apply_filter(instances, filter, from);
+			Attribute.type.integer -> return Integer.apply_filter(instances, filter, from);
+			Attribute.type.text -> return Text.apply_filter(instances, filter, from);
+			else -> {
+		    	return (results=list<instance>(), from=null);
+		    }
+		}
+	}
+	
+	function find_instances(
+		filters: list<I>,
+		from: p_from,
+		page_size: integer
+	): (results: list<instance>, from: p_from) {
+		var results = list<instance>();
+		var cur_from = from;
+		
+		val filter_mapped = list<I_by_attribute>();
+		for(filter in filters) {
+			val attr = Attribute.get(filter.attribute_name);
+			filter_mapped.add(
+				I_by_attribute(attr, filter.parameter, filter.type)
+			);
+		}
+	
+		while (true) {
+			var instances = list<instance>();
+	
+			for(filter in filter_mapped) {
+				val rf = resolve(instances, filter, cur_from);
+				instances = rf.results;
+				
+				if(rf.from??) cur_from = rf.from!!;
+				
+				if (instances.empty()) {
+					break;
+				}
+			}
+	
+			results.add_all(instances);
+			if(results.size() >= page_size or cur_from.instance_rowid == util.r_zero()) break;
+		}
+		
+		if(results.empty()) return (results = results, from = cur_from );	
+		
+		val min_size = min(page_size, results.size());
+		
+		if(results.size() > page_size) {
+			val last_instance = results[min_size-1];
+			val first_filter = filter_mapped[0];
+			cur_from = get_prototype_from_instance(first_filter.attribute, last_instance);
+		}
+		
+		return (results = results.sub(0, min_size), from = cur_from);
+	}
+	
+	function get_prototype_from_instance(attribute, instance): p_from {
+		var prototype: instance? = null;
+		
+		when(attribute.type) {
+			Attribute.type.boolean -> {
+				prototype = (ip: instance_prototype, a: Boolean.boolean_attribute) @? { 
+					a.attribute == attribute,
+					ip.prototype == a.instance,
+					ip.instance == instance
+				} (ip.prototype);
+			}
+			Attribute.type.byte_array -> {
+				prototype = (ip: instance_prototype, a: ByteArray.byte_array_attribute) @? { 
+					a.attribute == attribute,
+					ip.prototype == a.instance,
+					ip.instance == instance
+				} (ip.prototype);
+			}
+			Attribute.type.decimal -> {
+				prototype = (ip: instance_prototype, a: Decimal.decimal_attribute) @? { 
+					a.attribute == attribute,
+					ip.prototype == a.instance,
+					ip.instance == instance
+				} (ip.prototype);
+			}
+			Attribute.type.instance -> {
+				prototype = (ip: instance_prototype, a: Instance.instance_attribute) @? { 
+					a.attribute == attribute,
+					ip.prototype == a.instance,
+					ip.instance == instance
+				} (ip.prototype);
+			}
+			Attribute.type.integer -> {
+				prototype = (ip: instance_prototype, a: Integer.integer_attribute) @? { 
+					a.attribute == attribute,
+					ip.prototype == a.instance,
+					ip.instance == instance
+				} (ip.prototype);
+			}
+			Attribute.type.text -> {
+				prototype = (ip: instance_prototype, a: Text.text_attribute) @? { 
+					a.attribute == attribute,
+					ip.prototype == a.instance,
+					ip.instance == instance
+				} (ip.prototype);
+			}
+		}
+	
+		if(prototype??) {
+			return p_from(instance_rowid = prototype.rowid, prototype_rowid = instance.rowid);
+		} 
+		
+		return p_from(instance_rowid = instance.rowid, prototype_rowid = util.r_zero());
+	}	
+}

@@ -1,0 +1,11 @@
+@mount("game_info")
+module;
+
+struct module_args {
+  version: text;
+  commit: text;
+}
+
+query get_all(): module_args {
+  return chain_context.args;
+}

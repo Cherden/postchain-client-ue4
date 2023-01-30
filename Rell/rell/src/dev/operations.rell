@@ -1,0 +1,16 @@
+operation give_user_ft3_token(account_id: byte_array, token_name: name, amount: integer) {
+  require_admin_signature();
+
+  val player = player @ { .account.id == account_id };
+
+  assets.reward_ft3_asset(token_name, amount, player);
+}
+
+operation give_user_original(account_id: byte_array, name, interface: text, amount: integer) {
+  require_admin_signature();
+
+  val account = ft3.acc.account @ { account_id };
+  val player = player @ { account };
+
+  assets.reward_original_asset(name, interface, amount, player);
+}

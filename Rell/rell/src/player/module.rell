@@ -1,0 +1,11 @@
+@mount("player")
+module;
+
+import common.*;
+
+import assets;
+
+namespace ft3 {
+  import acc: rell_modules.ft3.account;
+  import core: rell_modules.ft3.core;
+}

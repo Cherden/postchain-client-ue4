@@ -1,0 +1,9 @@
+val admin_keypair = rell.test.keypair(
+  priv = byte_array.from_hex("3B8A4A224DC5A1C56B8B8C39A6FD5461BA4C3579506B3E85A6163350FD5E00CA"), 
+  pub = byte_array.from_hex("03B519082C905096E4B658E7ACA7B971DF3A9D3A1D04BBEBE342B59CCCDC6DC3BA")
+);
+
+val alice = test_player("Alice", admin_keypair);
+val player1 = test_player("User1", rell.test.keypairs.alice);
+val player2 = test_player("User2", rell.test.keypairs.bob);
+val player3 = test_player("User3", rell.test.keypairs.trudy);

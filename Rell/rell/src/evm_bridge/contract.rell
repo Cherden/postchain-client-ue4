@@ -1,0 +1,19 @@
+function create_contract(_address: text, chain: chain, block_number: integer) {
+  val address = _address.lower_case();
+
+  require(
+    contract @? { address, chain.name } == null,
+    error.new(error.type.BadInput, error.issue.ContractAlreadyExists)
+  );
+
+  create contract(chain, address, block_number);
+}
+
+function require_contract_exists(_address: text, chain_name: text) {
+  val address = _address.lower_case();
+
+  return require(
+    contract @? { address, .chain.name == chain_name },
+    error.new(error.type.BadInput, error.issue.ContractUnknown, "Contract doesnt exist: " + address + " on " + chain_name)
+  );
+}

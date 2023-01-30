@@ -1,0 +1,12 @@
+query find_all(interface: name, properties: list<name>) {
+  val originals = (a: Id.asset_instance, i: Dip.instance_dclass) @* {
+      a.instance == i.instance,
+      i.dclass == Dip.Interface.get(interface)
+    } (a.instance);
+
+  val attribute_list = properties @* {} (get_attribute_name($));
+
+  return originals @* {} (Dip.Mapper.map_instance($, [
+    Dip.Mapper.map_attributes(attribute_list)
+  ]));
+}

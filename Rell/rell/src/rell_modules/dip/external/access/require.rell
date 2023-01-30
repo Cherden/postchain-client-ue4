@@ -1,0 +1,27 @@
+function require_interface_definition_permission(account, dependencies: list<Interface.dclass>) {
+    require(
+        has_interface_definition_permission(account, dependencies),
+        "Account '%s' does not have access to some interface dependencies %s".format(account.id, dependencies @* {} (.name))
+    );
+}
+
+function require_prototype_definition_permission(
+    account, 
+    interface: Interface.dclass,
+    parent_prototype: instance?
+) {
+    require(
+        has_prototype_definition_permission(account, interface, parent_prototype),
+        "Account '%s' does not have access to interface or parent prototype".format(account.id) 
+    );
+}
+
+function require_instance_creation_permission(
+    account,
+    interface: Interface.dclass
+) {
+    require(
+        has_instance_creation_permission(account, interface),
+        "Account '%s' does not have access to interface '%s'".format(account.id, interface.name)
+    );
+}

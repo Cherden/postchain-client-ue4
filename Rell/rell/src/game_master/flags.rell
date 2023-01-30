@@ -1,0 +1,120 @@
+entity flag {
+  name;
+  account_id: byte_array;
+  valid_to: timestamp;
+  issued: timestamp;
+  issuer: player;
+  
+  index account_id, valid_to;
+  index name, account_id, valid_to;
+}
+
+operation assign_flag(
+  name, 
+  username: name, 
+  valid_to: timestamp, 
+  account_id: byte_array,
+  auth_descriptor_id: byte_array
+) {
+  is_authorized(account_id, auth_descriptor_id);
+  valid_flag_issuer(name, account_id);
+
+  val target_account_id = player @ { username } ( .account.id );
+
+  create flag(
+    name, 
+    target_account_id, 
+    valid_to, 
+    issued = op_context.last_block_time, 
+    issuer = player @ { .account.id == account_id }
+  );
+}
+
+operation assign_flag_by_account_id(
+  name, 
+  target_account_id: byte_array,
+  valid_to: timestamp, 
+  account_id: byte_array,
+  auth_descriptor_id: byte_array
+) {
+  is_authorized(account_id, auth_descriptor_id);
+  valid_flag_issuer(name, account_id);
+
+  create flag(
+    name, 
+    target_account_id, 
+    valid_to, 
+    issued = op_context.last_block_time, 
+    issuer = player @ { .account.id == account_id }
+  );
+}
+
+operation revoke_flag(name, username: name, account_id: byte_array, auth_descriptor_id: byte_array) {
+  is_authorized(account_id, auth_descriptor_id);
+  valid_flag_issuer(name, account_id);
+
+  val target_account_id = player @ { username } ( .account.id );
+
+  delete flag @* { name, target_account_id };
+}
+
+operation revoke_flag_by_account_id(name, target_account_id: byte_array, account_id: byte_array, auth_descriptor_id: byte_array) {
+  is_authorized(account_id, auth_descriptor_id);
+  valid_flag_issuer(name, account_id);
+
+  delete flag @* { name, target_account_id };
+}
+
+query get_active_player_flags(username: name) {
+  return (flag, player) @* {
+    flag.account_id == player.account.id, 
+    player.username == username, 
+    .valid_to > time.now()
+  } (
+    name = flag.name,
+    valid_to = flag.valid_to,
+    issued = flag.issued
+  );
+}
+
+query get_active_flags_of_type(name, skip: integer, take: integer) {
+  return (flag, player) @* {
+    flag.name == name,
+    .valid_to > time.now()
+  } (
+    username = player.username,
+    name = flag.name,
+    @sort_desc valid_to = flag.valid_to,
+    issued = flag.issued
+  ) offset skip limit take;
+}
+
+query get_all_active_flags(skip: integer, take: integer) {
+  return (flag, player) @* {
+    .valid_to > time.now()
+  } (
+    username = player.username,
+    name = flag.name,
+    @sort_desc valid_to = flag.valid_to,
+    issued = flag.issued
+  ) offset skip limit take;
+}
+
+function has_active_flag(name, account_id: byte_array): boolean {
+  return flag @? {
+    flag.account_id == account_id, 
+    flag.name == name, 
+    .valid_to > time.now()
+  } != null;
+}
+
+function valid_flag_issuer(name, account_id: byte_array) {
+  require(
+    name != "Banned" or account_id != admin_account_id(), 
+    error.new(error.type.BadInput, error.issue.FlagsTargetInvalid, "admin is unable to ban herself")
+  );
+  when (name) {
+    "Game Master" -> require(account_id == admin_account_id(), error.new(error.type.Unauthorized, error.issue.PermissionAdminOnly));
+    else -> require(has_active_flag("Game Master", account_id) or account_id == admin_account_id(), error.new(error.type.Unauthorized, error.issue.PermissionGameMasterOnly));
+  }
+}

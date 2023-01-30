@@ -1,0 +1,9 @@
+
+@extendable
+function has_interface_definition_permission(account, dependencies: list<Interface.dclass>): boolean;
+
+@extendable
+function has_prototype_definition_permission(account, Interface.dclass, instance?): boolean;
+
+@extendable
+function has_instance_creation_permission(account, Interface.dclass): boolean;

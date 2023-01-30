@@ -1,0 +1,10 @@
+# Editors
+.idea
+.project
+.settings
+
+# Postchain specific
+postchain.pid
+logs/
+target/
+out/

@@ -1,0 +1,77 @@
+<run wipe-db="true">
+  <nodes>
+    <config src="node-config.properties" add-signers="true" />
+    <test-config src="node-config.properties" />
+  </nodes>
+  <chains>
+    <chain name="chromia_unity" iid="0">
+      <config height="0">
+        <gtv path="blockstrategy/blockdelay">
+          <int>5000</int>
+        </gtv>
+        <gtv path="blockstrategy/maxblocktime">
+          <int>5000</int>
+        </gtv>
+        <gtv path="blockstrategy/maxblocktransactions">
+          <int>500</int>
+        </gtv>
+        <app module="development">
+          <args module="assets">
+            <arg key="token_name">
+              <string>GOLD</string>
+          </args>
+          <args module="common">
+            <arg key="admin_pubkey">
+              <bytea>03B519082C905096E4B658E7ACA7B971DF3A9D3A1D04BBEBE342B59CCCDC6DC3BA</bytea>
+            </arg>
+          </args>
+          <args module="dev">
+            <arg key="starting_ft3_tokens">
+              <int>@@StartingToken@@</int>
+            </arg>
+            <arg key="starting_original_tokens">
+              <int>1</int>
+            </arg>
+          </args>
+          <args module="rell_modules.ft3.core">
+            <arg key="my_blockchain_name">
+              <string>Chromia Unity</string>
+            </arg>
+            <arg key="my_blockchain_website">
+              <string>test_website</string>
+            </arg>
+            <arg key="my_blockchain_description">
+              <string>Creative Game</string>
+            </arg>
+            <arg key="rate_limit_active">
+              <int>1</int>
+            </arg>
+            <arg key="rate_limit_max_points">
+              <int>20</int>
+            </arg> <!-- maximum amount of request credit that is possible to keep -->
+            <arg key="rate_limit_recovery_time">
+              <int>5000</int>
+            </arg>
+            <arg key="rate_limit_points_at_account_creation">
+              <int>20</int>
+            </arg>
+          </args>
+          <args module="game_config">
+            <arg key="maximum_users">
+              <int>50</int>
+            </arg>
+          </args>
+          <args module="game_info">
+            <arg key="version">
+              <string>@@GameVersion@@</string>
+            </arg>
+            <arg key="commit">
+              <string>@@CommitHash@@</string>
+            </arg>
+          </args>
+        </app>
+      </config>
+      <test module="tests" />
+    </chain>
+  </chains>
+</run>

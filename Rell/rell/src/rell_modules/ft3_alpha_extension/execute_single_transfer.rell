@@ -1,0 +1,38 @@
+import ft3: rell_modules.ft3.core;
+import acc: rell_modules.ft3.account;
+
+
+function execute_single_transfer(from_account: acc.account, auth_descriptor_id: byte_array, to_account: acc.account, asset: ft3.asset, amount: integer) {
+	val (inputs, outputs) = prepare_single_transfer(from_account, auth_descriptor_id, to_account, asset, amount);	
+	ft3._transfer(inputs, outputs);
+}
+
+function unsafe_execute_single_transfer(from_account: acc.account, to_account: acc.account, asset: ft3.asset, amount: integer) {
+	val (inputs, outputs) = prepare_single_transfer(from_account, empty_auth_descriptor(), to_account, asset, amount);
+	unsafe_transfer(inputs, outputs);
+}
+
+
+
+function prepare_single_transfer(from_account: acc.account, auth_descriptor_id: byte_array, to_account: acc.account, asset: ft3.asset, amount: integer): (list<ft3.xfer_input>,  list<ft3.xfer_output>) {
+	val inputs = list<ft3.xfer_input>();
+	val outputs = list<ft3.xfer_output>();
+	
+	inputs.add(ft3.xfer_input(
+		account_id = from_account.id,
+		asset_id = asset.id,
+		auth_descriptor_id,
+		amount,
+		extra = map<text, gtv>()
+	));
+	
+	
+	outputs.add(ft3.xfer_output(
+		account_id = to_account.id,
+		asset_id = asset.id,
+		amount,
+		extra = map<text, gtv>()
+	));
+
+	return (inputs, outputs);
+}

@@ -1,0 +1,429 @@
+@test module;
+import ^^^.tests.*;
+
+// should fail if attribute is immutable
+function test_meta_1() {
+    val admin_account = create_ft3_test_acc(admin_keypair());
+    
+	val id = Attribute.def_I("ITest", "id");
+	
+	def_interface_op(admin_account.auth_id, "ITest", [id: Type(ByteArray.T())] ).sign(admin_account.keypair).run();
+	
+	def_instance_op(admin_account.auth_id, 
+		"ITest",
+		[id: ByteArray.T(x'affe')]
+	).sign(admin_account.keypair).run();
+	
+	val instance = get_last_instance();
+	
+	set_type_attribute_meta_op(admin_account.auth_id, instance, id, x'dead'.to_gtv()).sign(admin_account.keypair).run_must_fail();
+	assert_equals(ByteArray.get_value(instance, id), x'affe');
+}
+
+// should update attribute if attribute is mutable
+function test_meta_2() {
+    val admin_account = create_ft3_test_acc(admin_keypair());
+    
+	val id = Attribute.def_I("ITest", "id");
+	
+	def_interface_op(admin_account.auth_id,  "ITest", [id: Type(ByteArray.T(), [Mutable()])] ).sign(admin_account.keypair).run();
+	
+	def_instance_op(admin_account.auth_id, 
+		"ITest",
+		[id: ByteArray.T(x'affe')]
+	).sign(admin_account.keypair).run();
+	
+	val instance = get_last_instance();
+	
+	set_type_attribute_meta_op(admin_account.auth_id, instance, id, x'dead'.to_gtv()).sign(admin_account.keypair).run();
+	assert_equals(ByteArray.get_value(instance, id), x'dead');
+}
+
+// should create instance if attribute is optional
+function test_meta_3() {
+    val admin_account = create_ft3_test_acc(admin_keypair());
+    
+	val name = Attribute.def_I("ITest", "name");
+	
+	def_interface_op(admin_account.auth_id,  "ITest", [name: Type(Text.T(), [Optional()]) ]).sign(admin_account.keypair).run();
+	
+	def_instance_op(admin_account.auth_id, 
+		"ITest",
+		[:]
+	).sign(admin_account.keypair).run();
+	
+	def_instance_op(admin_account.auth_id, 
+		"ITest",
+		[name: Text.T("Bono")]
+	).sign(admin_account.keypair).run();
+}
+
+// should add optional attribute later
+function test_meta_4() {
+    val admin_account = create_ft3_test_acc(admin_keypair());
+    
+	val name = Attribute.def_I("ITest", "name");
+	
+	def_interface_op(admin_account.auth_id,  "ITest", [ name: Type(Text.T(), [Mutable(), Optional()]) ]).sign(admin_account.keypair).run();
+	
+	def_instance_op(admin_account.auth_id, 
+		"ITest",
+		[:]
+	).sign(admin_account.keypair).run();
+	
+	val instance = get_last_instance();
+	
+	add_type_attribute_meta_op(admin_account.auth_id, instance, name, "Hello".to_gtv()).sign(admin_account.keypair).run();
+	assert_equals(Text.get_value(instance, name), "Hello");
+}
+
+// should fail if optional attribute is immutable
+function test_meta_5() {
+    val admin_account = create_ft3_test_acc(admin_keypair());
+    
+	val name = Attribute.def_I("ITest", "name");
+	
+	def_interface_op(admin_account.auth_id,  "ITest", [ name: Type(Text.T(), [Optional()]) ]).sign(admin_account.keypair).run();
+	
+	def_instance_op(admin_account.auth_id, 
+		"ITest",
+		[:]
+	).sign(admin_account.keypair).run();
+	
+	val instance = get_last_instance();
+	
+	add_type_attribute_meta_op(admin_account.auth_id, instance, name, "Hello".to_gtv()).sign(admin_account.keypair).run_must_fail();
+	assert_null(Text.get_value(instance, name));
+}
+
+
+// should remove optional attribute later
+function test_meta_6() {
+    val admin_account = create_ft3_test_acc(admin_keypair());
+    
+	val name = Attribute.def_I("ITest", "name");
+	
+	def_interface_op(admin_account.auth_id,  "ITest", [ name: Type(Text.T(), [Mutable(), Optional()]) ]).sign(admin_account.keypair).run();
+	
+	def_instance_op(admin_account.auth_id, 
+		"ITest",
+		[name: Text.T("Hello")]
+	).sign(admin_account.keypair).run();
+	
+	val instance = get_last_instance();
+	
+	remove_type_attribute_meta_op(admin_account.auth_id, instance, name).sign(admin_account.keypair).run();
+	assert_null(Text.get_value(instance, name));
+}
+
+// should fail removing optional attribute if it is immutable
+function test_meta_7() {
+    val admin_account = create_ft3_test_acc(admin_keypair());
+    
+	val name = Attribute.def_I("ITest", "name");
+	
+	def_interface_op(admin_account.auth_id, "ITest", [ name: Type(Text.T(), [Optional()]) ]).sign(admin_account.keypair).run();
+	
+	def_instance_op(admin_account.auth_id, 
+		"ITest",
+		[name: Text.T("Hello")]
+	).sign(admin_account.keypair).run();
+	
+	val instance = get_last_instance();
+	
+	remove_type_attribute_meta_op(admin_account.auth_id, instance, name).sign(admin_account.keypair).run_must_fail();
+	assert_equals(Text.get_value(instance, name), "Hello");
+}
+
+
+// should allow integer attribute changes between 10 - 20
+function test_meta_8() {
+    val admin_account = create_ft3_test_acc(admin_keypair());
+    
+	val id = Attribute.def_I("ITest", "id");
+	
+	def_interface_op(admin_account.auth_id,  "ITest", [id: Type(Integer.T(), [Mutable(), Min(10), Max(20)])] ).sign(admin_account.keypair).run();
+	
+	def_instance_op(admin_account.auth_id, 
+		"ITest",
+		[id: Integer.T(1)]
+	).sign(admin_account.keypair).run_must_fail();
+	
+	def_instance_op(admin_account.auth_id, 
+		"ITest",
+		[id: Integer.T(9)]
+	).sign(admin_account.keypair).run_must_fail();
+	
+	def_instance_op(admin_account.auth_id, 
+		"ITest",
+		[id: Integer.T(10)]
+	).sign(admin_account.keypair).run();
+	
+	def_instance_op(admin_account.auth_id, 
+		"ITest",
+		[id: Integer.T(25)]
+	).sign(admin_account.keypair).run_must_fail();
+	
+	def_instance_op(admin_account.auth_id, 
+		"ITest",
+		[id: Integer.T(21)]
+	).sign(admin_account.keypair).run_must_fail();
+	
+	def_instance_op(admin_account.auth_id, 
+		"ITest",
+		[id: Integer.T(20)]
+	).sign(admin_account.keypair).run();
+	
+	val instance = get_last_instance();
+	
+	set_type_attribute_meta_op(admin_account.auth_id, instance, id, integer(15).to_gtv()).sign(admin_account.keypair).run();
+	assert_equals(Integer.get_value(instance, id), 15);
+	
+	set_type_attribute_meta_op(admin_account.auth_id, instance, id, integer(1000).to_gtv()).sign(admin_account.keypair).run_must_fail();
+}
+
+// should allow text attribute > 5 character
+// should fail text attribute < 5 character
+function test_meta_9() {
+    val admin_account = create_ft3_test_acc(admin_keypair());
+    
+	val name = Attribute.def_I("ITest", "name");
+	
+	def_interface_op(admin_account.auth_id,  "ITest", [name: Type(Text.T(), [Min(5)])] ).sign(admin_account.keypair).run();
+	
+	def_instance_op(admin_account.auth_id, 
+		"ITest",
+		[name: Text.T("Bertha")]
+	).sign(admin_account.keypair).run();
+	
+	def_instance_op(admin_account.auth_id, 
+		"ITest",
+		[name: Text.T("Otto")]
+	).sign(admin_account.keypair).run_must_fail();
+}
+
+// should allow byte array attribute max 4 bytes
+function test_meta_10() {
+    val admin_account = create_ft3_test_acc(admin_keypair());
+    
+	val id = Attribute.def_I("ITest", "id");
+	
+	def_interface_op(admin_account.auth_id,  "ITest", [id: Type(ByteArray.T(), [Max(4)])] ).sign(admin_account.keypair).run();
+	
+	def_instance_op(admin_account.auth_id, 
+		"ITest",
+		[id: ByteArray.T(x'affe')]
+	).sign(admin_account.keypair).run();
+	
+	def_instance_op(admin_account.auth_id, 
+		"ITest",
+		[id: ByteArray.T(x'affedeadaffedead')]
+	).sign(admin_account.keypair).run_must_fail();
+}
+
+// should create instance if allowed interface is provided
+// should fail if allowed interface is not provided
+function test_meta_11() {
+    val admin_account = create_ft3_test_acc(admin_keypair());
+    
+	val shield_hand = Attribute.def_I("Character", "shield_hand");
+	val sword_hand = Attribute.def_I("Character", "sword_hand");
+	
+	def_interface_op(admin_account.auth_id,  "Sword", [:] ).sign(admin_account.keypair).run();
+	def_interface_op(admin_account.auth_id,  "Shield", [:] ).sign(admin_account.keypair).run();
+	
+	def_interface_op(admin_account.auth_id,  "Character",[
+		shield_hand: Type(Instance.T(), [ImplementsInterface("Shield")]),
+		sword_hand: Type(Instance.T(), [ImplementsInterface("Sword")])
+	] ).sign(admin_account.keypair).run();
+	
+	def_instance_op(admin_account.auth_id, "Sword", [:]).sign(admin_account.keypair).run();
+	val sword_instance = get_last_instance();
+	
+	def_instance_op(admin_account.auth_id, "Shield", [:]).sign(admin_account.keypair).run();
+	val shield_instance = get_last_instance();
+	
+	def_instance_op(admin_account.auth_id, "Character", [
+		shield_hand: Instance.T(shield_instance),
+		sword_hand: Instance.T(sword_instance)
+	]).sign(admin_account.keypair).run();
+	val character_instance = get_last_instance();
+	
+	def_instance_op(admin_account.auth_id, "Character", [
+		shield_hand: Instance.T(sword_instance),
+		sword_hand: Instance.T(shield_instance)
+	]).sign(admin_account.keypair).run_must_fail();
+}
+
+// should update instance if allowed interface is provided later
+// should fail if allowed interface is not provided later
+function test_meta_12() {
+    val admin_account = create_ft3_test_acc(admin_keypair());
+    
+	val shield_hand = Attribute.def_I("Character", "shield_hand");
+	
+	def_interface_op(admin_account.auth_id,  "Sword", [:] ).sign(admin_account.keypair).run();
+	def_interface_op(admin_account.auth_id,  "Shield", [:] ).sign(admin_account.keypair).run();
+	
+	def_interface_op(admin_account.auth_id,  "Character",[
+		shield_hand: Type(Instance.T(), [ImplementsInterface("Shield"), Optional(), Mutable()])
+	] ).sign(admin_account.keypair).run();
+	
+	def_instance_op(admin_account.auth_id, "Shield", [:]).sign(admin_account.keypair).run();
+	val shield_instance = get_last_instance();
+	
+	def_instance_op(admin_account.auth_id, "Sword", [:]).sign(admin_account.keypair).run();
+	val sword_instance = get_last_instance();
+	
+	def_instance_op(admin_account.auth_id, "Character", [:]).sign(admin_account.keypair).run();
+	val character_instance = get_last_instance();
+	
+	add_type_attribute_meta_op(admin_account.auth_id, character_instance, shield_hand, sword_instance.to_gtv()).sign(admin_account.keypair).run_must_fail();	
+	add_type_attribute_meta_op(admin_account.auth_id, character_instance, shield_hand, shield_instance.to_gtv()).sign(admin_account.keypair).run();
+	
+	assert_equals(Instance.get_value(character_instance, shield_hand), shield_instance);
+}
+
+// should create instance if default value is defined
+function test_meta_13() {
+    val admin_account = create_ft3_test_acc(admin_keypair());
+    
+	val id = Attribute.def_I("ITest", "id");
+	
+	def_interface_op(admin_account.auth_id,  "ITest", [id: Type(Integer.T(42))]).sign(admin_account.keypair).run();
+	
+	def_instance_op(admin_account.auth_id, 
+		"ITest",
+		[:]
+	).sign(admin_account.keypair).run();
+	
+	var instance = get_last_instance();	
+	assert_equals(Integer.get_value(instance, id), 42);
+	
+	def_instance_op(admin_account.auth_id, 
+		"ITest",
+		[id: Integer.T(84)]
+	).sign(admin_account.keypair).run();
+	instance = get_last_instance();
+	assert_equals(Integer.get_value(instance, id), 84);
+}
+
+// should update instance if one allowed interface is provided
+// should fail if allowed interface is not provided
+function test_meta_14() {
+    val admin_account = create_ft3_test_acc(admin_keypair());
+    
+	val hand = Attribute.def_I("Character", "hand");
+	
+	def_interface_op(admin_account.auth_id,  "Sword", [:] ).sign(admin_account.keypair).run();
+	def_interface_op(admin_account.auth_id,  "Shield", [:] ).sign(admin_account.keypair).run();
+	def_interface_op(admin_account.auth_id,  "Bow", [:] ).sign(admin_account.keypair).run();
+	
+	def_interface_op(admin_account.auth_id,  "Character",[
+		hand: Type(Instance.T(), [Mutable(), ImplementsOneInterface(set(["Sword", "Bow"]))])
+	] ).sign(admin_account.keypair).run();
+	
+	def_instance_op(admin_account.auth_id, "Sword", [:]).sign(admin_account.keypair).run();
+	val sword_instance = get_last_instance();
+	
+	def_instance_op(admin_account.auth_id, "Shield", [:]).sign(admin_account.keypair).run();
+	val shield_instance = get_last_instance();
+	
+	def_instance_op(admin_account.auth_id, "Bow", [:]).sign(admin_account.keypair).run();
+	val bow_instance = get_last_instance();
+	
+	def_instance_op(admin_account.auth_id, "Character", [
+		hand: Instance.T(sword_instance)
+	]).sign(admin_account.keypair).run();
+	val character_instance = get_last_instance();
+	
+	set_type_attribute_meta_op(admin_account.auth_id, character_instance, hand, bow_instance.to_gtv()).sign(admin_account.keypair).run();
+	assert_equals(Instance.get_value(character_instance, hand), bow_instance);
+	
+	set_type_attribute_meta_op(admin_account.auth_id, character_instance, hand, sword_instance.to_gtv()).sign(admin_account.keypair).run();
+	assert_equals(Instance.get_value(character_instance, hand), sword_instance);
+	
+	set_type_attribute_meta_op(admin_account.auth_id, character_instance, hand, shield_instance.to_gtv()).sign(admin_account.keypair).run_must_fail();
+}
+
+// should update instance if all allowed interfaces are provided
+// should fail if not all allowed interfaces are provided
+function test_meta_15() {
+    val admin_account = create_ft3_test_acc(admin_keypair());
+    
+	val hand = Attribute.def_I("Character", "hand");
+	
+	def_interface_op(admin_account.auth_id,  "Sword", [:] ).sign(admin_account.keypair).run();
+	def_interface_op(admin_account.auth_id,  "Wearable", [:] ).sign(admin_account.keypair).run();
+	def_interface_op(admin_account.auth_id,  "Bow", [:] ).sign(admin_account.keypair).run();
+	def_interface_op(admin_account.auth_id,  "WearableSword", [:], ["Wearable", "Sword"]).sign(admin_account.keypair).run();
+	
+	def_interface_op(admin_account.auth_id,  "Character",[
+		hand: Type(Set.T(Attribute.type.instance, set<instance>().to_gtv()), [ImplementsAllInterfaces(set(["Sword", "Wearable"]))])
+	] ).sign(admin_account.keypair).run();
+	
+	def_instance_op(admin_account.auth_id, "WearableSword", [:]).sign(admin_account.keypair).run();
+	val sword_instance = get_last_instance();
+	
+	def_instance_op(admin_account.auth_id, "Sword", [:]).sign(admin_account.keypair).run();
+	val sword_instance2 = get_last_instance();
+	
+	def_instance_op(admin_account.auth_id, "Wearable", [:]).sign(admin_account.keypair).run();
+	val wearable_instance = get_last_instance();
+	
+	def_instance_op(admin_account.auth_id, "Character", [
+		hand: Set.T(Attribute.type.instance, set([sword_instance]).to_gtv())
+	]).sign(admin_account.keypair).run();
+	val character_instance = get_last_instance();
+	
+	add_container_element_meta_op(admin_account.auth_id, character_instance, hand, sword_instance2.to_gtv()).sign(admin_account.keypair).run_must_fail();
+	add_container_element_meta_op(admin_account.auth_id, character_instance, hand, wearable_instance.to_gtv()).sign(admin_account.keypair).run_must_fail();
+}
+
+// should add value to container if attribute is mutable
+// should remove value to container if attribute is mutable
+function test_meta_16() {
+    val admin_account = create_ft3_test_acc(admin_keypair());
+    
+	val set_def = Attribute.def_I("ITest", "set");
+	
+	def_interface_op(admin_account.auth_id, "ITest", [set_def: Type(Set.T(Attribute.type.integer), [Mutable()])]).sign(admin_account.keypair).run();
+	def_instance_op(admin_account.auth_id, "ITest",
+		[set_def: Set.T(Attribute.type.integer, set([
+			integer(1).to_gtv(),
+			integer(2).to_gtv()
+		]).to_gtv())]).sign(admin_account.keypair).run();
+	
+	val instance = get_last_instance();
+	
+	add_container_element_meta_op(admin_account.auth_id, instance, set_def, integer(3).to_gtv()).sign(admin_account.keypair).run();
+	
+	var values = Set.unpack(instance, set_def)!!.values;
+	assert_true( set<integer>.from_gtv(values).contains_all([1,2,3]) );
+	
+	remove_container_element_meta_op(admin_account.auth_id, instance, set_def, integer(2).to_gtv()).sign(admin_account.keypair).run();
+	values = Set.unpack(instance, set_def)!!.values;
+	assert_true( set<integer>.from_gtv(values).contains_all([1,3]) );
+}
+
+// should fail adding value to container if attribute is immutable
+// should fail removing value to container if attribute is immutable
+function test_meta_17() {
+    val admin_account = create_ft3_test_acc(admin_keypair());
+    
+	val set_def = Attribute.def_I("ITest", "set");
+	
+	def_interface_op(admin_account.auth_id, "ITest", [set_def: Type(Set.T(Attribute.type.integer))]).sign(admin_account.keypair).run();
+	def_instance_op(admin_account.auth_id, "ITest",
+		[set_def: Set.T(Attribute.type.integer, set([
+			integer(1).to_gtv(),
+			integer(2).to_gtv()
+		]).to_gtv())]).sign(admin_account.keypair).run();
+	
+	val instance = get_last_instance();
+	
+	add_container_element_meta_op(admin_account.auth_id, instance, set_def, integer(3).to_gtv()).sign(admin_account.keypair).run_must_fail();
+	remove_container_element_meta_op(admin_account.auth_id, instance, set_def, integer(2).to_gtv()).sign(admin_account.keypair).run_must_fail();
+}
+
+

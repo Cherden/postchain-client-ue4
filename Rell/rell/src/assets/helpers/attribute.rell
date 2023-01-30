@@ -1,0 +1,27 @@
+namespace AttributeHelper {
+  val missing_attribute_template = "Instance does not have attribute '%s'";
+  
+  function get_required_integer_attribute(instance, Attribute.I, name) {
+    return require(Integer.get_value(instance, I), missing_attribute_error(name));
+  }
+  
+   function get_required_decimal_attribute(instance, Attribute.I, name) {
+    return require(Decimal.get_value(instance, I), missing_attribute_error(name));
+  }
+  
+  function get_required_text_attribute(instance, Attribute.I, name) {
+    return require(Text.get_value(instance, I), missing_attribute_error(name));
+  }
+  
+  function get_required_byte_array_attribute(instance, Attribute.I, name) {
+    return require(ByteArray.get_value(instance, I), missing_attribute_error(name));
+  }
+  
+  function missing_attribute_error(name) {
+    return error.new(
+      error.type.BadInput, 
+      error.issue.OriginalsMissingAttribute, 
+      missing_attribute_template.format(name)
+    );
+  }
+}

@@ -1,0 +1,8 @@
+
+function require_active(account) {
+    require(
+        whitelist @? { account, .locked == false },
+        "Account not active: %s".format(account.id)
+    );
+}
+

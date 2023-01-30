@@ -1,0 +1,18 @@
+module;
+
+import rell_modules.dip.dip_basic.*;
+import rell_modules.originals.originals_basic.*;
+
+import rell_modules.ft3.operations.dev_op_account;
+import rell_modules.originals.marketplace;
+
+import rell_modules.evm;
+
+import admin;
+import assets;
+import common;
+import evm_bridge;
+import game_config;
+import game_info;
+import game_master;
+import player;

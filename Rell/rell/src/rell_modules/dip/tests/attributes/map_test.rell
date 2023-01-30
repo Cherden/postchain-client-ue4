@@ -1,0 +1,522 @@
+@test module;
+import ^^^.tests.*;
+
+// should create map attribute with key type integer
+// should create map attribute with key type text
+function test_map_1() {
+    val admin_account = create_ft3_test_acc(admin_keypair());
+    
+	val map_def = Attribute.def_I("ITest", "map");
+	
+	var types = Map.types(K = Attribute.type.text, V= Attribute.type.integer);
+	def_interface_op(admin_account.auth_id, "ITest", [map_def: Type(Map.T(types))]).sign(admin_account.keypair).run();
+	
+	types = Map.types(K = Attribute.type.integer, V= Attribute.type.byte_array);
+	def_interface_op(admin_account.auth_id, "ITest2", [map_def: Type(Map.T(types))]).sign(admin_account.keypair).run();
+}
+
+// should fail if key type is not supported
+function test_map_2() {
+    val admin_account = create_ft3_test_acc(admin_keypair());
+    
+	val map_def = Attribute.def_I("ITest", "map");
+	
+	var types = Map.types(K = Attribute.type.decimal, V= Attribute.type.integer);
+	def_interface_op(admin_account.auth_id, "ITest", [map_def: Type(Map.T(types))]).sign(admin_account.keypair).run_must_fail();
+	
+	types = Map.types(K = Attribute.type.ordered_container, V= Attribute.type.integer);
+	def_interface_op(admin_account.auth_id, "ITest", [map_def: Type(Map.T(types))]).sign(admin_account.keypair).run_must_fail();
+	
+	types = Map.types(K = Attribute.type.id, V= Attribute.type.integer);
+	def_interface_op(admin_account.auth_id, "ITest", [map_def: Type(Map.T(types))]).sign(admin_account.keypair).run_must_fail();
+}
+
+// should create instance implementing map type
+function test_map_3() {
+    val admin_account = create_ft3_test_acc(admin_keypair());
+    
+	val map_def = Attribute.def_I("ITest", "map");
+	
+	val types = Map.types(K = Attribute.type.text, V= Attribute.type.integer);
+	def_interface_op(admin_account.auth_id, "ITest", [map_def: Type(Map.T(types))]).sign(admin_account.keypair).run();
+	
+	val m = ["test".to_gtv(): integer(42).to_gtv()];
+	def_instance_op(admin_account.auth_id, "ITest", [map_def: Map.T(types, m)]).sign(admin_account.keypair).run();
+}
+
+// should fail if instance implementing wrong key type
+function test_map_4() {
+    val admin_account = create_ft3_test_acc(admin_keypair());
+    
+	val map_def = Attribute.def_I("ITest", "map");
+	
+	val types = Map.types(K = Attribute.type.text, V= Attribute.type.integer);
+	def_interface_op(admin_account.auth_id, "ITest", [map_def: Type(Map.T(types))]).sign(admin_account.keypair).run();
+	
+	var m = ["test".to_gtv(): "test".to_gtv()];
+	def_instance_op(admin_account.auth_id, "ITest", [map_def: Map.T(types, m)]).sign(admin_account.keypair).run_must_fail();
+	
+	m = [integer(42).to_gtv(): "test".to_gtv()];
+	def_instance_op(admin_account.auth_id, "ITest", [map_def: Map.T(types, m)]).sign(admin_account.keypair).run_must_fail();
+}
+
+// should put item into map
+function test_map_5() {
+    val admin_account = create_ft3_test_acc(admin_keypair());
+    
+	val map_def = Attribute.def_I("ITest", "map");
+	
+	val types = Map.types(K = Attribute.type.text, V= Attribute.type.integer);
+	def_interface_op(admin_account.auth_id, "ITest", [map_def: Type(Map.T(types))]).sign(admin_account.keypair).run();
+	
+	var m = ["test".to_gtv(): integer(21).to_gtv()];
+	def_instance_op(admin_account.auth_id, "ITest", [map_def: Map.T(types, m)]).sign(admin_account.keypair).run();
+	
+	val i = get_last_instance();
+	
+	assert_equals(Map.sizeof(i, map_def), 1);
+	
+	assert_false(Map.contains_key(i, map_def, "test2".to_gtv()));
+	add_container_element_op(i, map_def, ("test2".to_gtv(), integer(42).to_gtv()).to_gtv()).sign(admin_account.keypair).run();
+	assert_true(Map.contains_key(i, map_def, "test2".to_gtv()));
+	
+	assert_equals(Map.sizeof(i, map_def), 2);
+}
+
+// should put item into empty initialised map
+function test_map_6() {
+    val admin_account = create_ft3_test_acc(admin_keypair());
+    
+	val map_def = Attribute.def_I("ITest", "map");
+	val types = Map.types(K = Attribute.type.text, V= Attribute.type.integer);
+	def_interface_op(admin_account.auth_id, "ITest", [map_def: Type(Map.T(types))]).sign(admin_account.keypair).run();
+	
+	def_instance_op(admin_account.auth_id, "ITest", [map_def: Map.T(types, map<gtv,gtv>())]).sign(admin_account.keypair).run();
+	
+	val i = get_last_instance();
+	
+	assert_true(Map.is_empty(i, map_def));
+	
+	assert_false(Map.contains_key(i, map_def, "test".to_gtv()));
+	add_container_element_op(i, map_def, ("test".to_gtv(), integer(42).to_gtv()).to_gtv()).sign(admin_account.keypair).run();
+	assert_true(Map.contains_key(i, map_def, "test".to_gtv()));
+	
+	assert_equals(Map.sizeof(i, map_def), 1);
+}
+
+// should put all item into map
+function test_map_7() {
+    val admin_account = create_ft3_test_acc(admin_keypair());
+    
+	val map_def = Attribute.def_I("ITest", "map");
+	val types = Map.types(K = Attribute.type.text, V= Attribute.type.integer);
+	def_interface_op(admin_account.auth_id, "ITest", [map_def: Type(Map.T(types))]).sign(admin_account.keypair).run();
+	
+	var m = ["test".to_gtv(): integer(21).to_gtv()];
+	def_instance_op(admin_account.auth_id, "ITest", [map_def: Map.T(types, m)]).sign(admin_account.keypair).run();
+	
+	val i = get_last_instance();
+	
+	assert_equals(Map.sizeof(i, map_def), 1);
+	
+	assert_false(Map.contains_key(i, map_def, "test3".to_gtv()));
+	m = [
+		"test2".to_gtv(): integer(2).to_gtv(),
+		"test3".to_gtv(): integer(3).to_gtv(),
+		"test4".to_gtv(): integer(4).to_gtv(),
+		"test5".to_gtv(): integer(5).to_gtv()
+	];
+	map_put_all_op(i, map_def, m).sign(admin_account.keypair).run();
+	assert_true(Map.contains_key(i, map_def, "test3".to_gtv()));
+	
+	assert_equals(Map.sizeof(i, map_def), 5);
+}
+
+// should put all item into empty map
+function test_map_8() {
+    val admin_account = create_ft3_test_acc(admin_keypair());
+    
+	val map_def = Attribute.def_I("ITest", "map");
+	val types = Map.types(K = Attribute.type.text, V= Attribute.type.integer);
+	def_interface_op(admin_account.auth_id, "ITest", [map_def: Type(Map.T(types))]).sign(admin_account.keypair).run();
+	
+	def_instance_op(admin_account.auth_id, "ITest", [map_def: Map.T(types, map<gtv,gtv>())]).sign(admin_account.keypair).run();
+	
+	val i = get_last_instance();
+	
+	assert_true(Map.is_empty(i, map_def));
+	
+	assert_false(Map.contains_key(i, map_def, "test3".to_gtv()));
+	val m = [
+		"test1".to_gtv(): integer(1).to_gtv(),
+		"test2".to_gtv(): integer(2).to_gtv(),
+		"test3".to_gtv(): integer(3).to_gtv(),
+		"test4".to_gtv(): integer(4).to_gtv()
+	];
+	map_put_all_op(i, map_def, m).sign(admin_account.keypair).run();
+	assert_true(Map.contains_key(i, map_def, "test3".to_gtv()));
+	
+	assert_equals(Map.sizeof(i, map_def), 4);
+}
+
+// should put item with the same key into map
+function test_map_9() {
+    val admin_account = create_ft3_test_acc(admin_keypair());
+    
+	val map_def = Attribute.def_I("ITest", "map");
+	val types = Map.types(K = Attribute.type.text, V= Attribute.type.integer);
+	def_interface_op(admin_account.auth_id, "ITest", [map_def: Type(Map.T(types))]).sign(admin_account.keypair).run();
+	
+	
+	
+	var m = ["test".to_gtv(): integer(21).to_gtv()];
+	def_instance_op(admin_account.auth_id, "ITest", [map_def: Map.T(types, m)]).sign(admin_account.keypair).run();
+	
+	val i = get_last_instance();
+	
+	assert_equals(Map.sizeof(i, map_def), 1);
+	add_container_element_op(i, map_def, ("test".to_gtv(), integer(42).to_gtv()).to_gtv()).sign(admin_account.keypair).run();
+	assert_equals(Map.sizeof(i, map_def), 1);
+}
+
+// should put all items with the same key into map
+function test_map_10() {
+    val admin_account = create_ft3_test_acc(admin_keypair());
+    
+	val map_def = Attribute.def_I("ITest", "map");
+	val types = Map.types(K = Attribute.type.text, V= Attribute.type.integer);
+	def_interface_op(admin_account.auth_id, "ITest", [map_def: Type(Map.T(types))]).sign(admin_account.keypair).run();
+	
+	var m = ["test".to_gtv(): integer(21).to_gtv()];
+	def_instance_op(admin_account.auth_id, "ITest", [map_def: Map.T(types, m)]).sign(admin_account.keypair).run();
+	
+	val i = get_last_instance();
+	
+	m = [
+		"test".to_gtv(): integer(2).to_gtv(),
+		"test3".to_gtv(): integer(3).to_gtv(),
+		"test4".to_gtv(): integer(4).to_gtv(),
+		"test5".to_gtv(): integer(5).to_gtv()
+	];
+	map_put_all_op(i, map_def, m).sign(admin_account.keypair).run();
+	
+	assert_equals(Map.sizeof(i, map_def), 4);
+}
+
+// should put multiple instances into map
+function test_map_11() {
+    val admin_account = create_ft3_test_acc(admin_keypair());
+    
+	val map_def = Attribute.def_I("ITest", "map");
+	val types = Map.types(K = Attribute.type.text, V= Attribute.type.integer);
+	def_interface_op(admin_account.auth_id, "ITest", [map_def: Type(Map.T(types))]).sign(admin_account.keypair).run();
+	
+	var m = ["test".to_gtv(): integer(21).to_gtv()];
+	def_instance_op(admin_account.auth_id, "ITest", [map_def: Map.T(types, m)]).sign(admin_account.keypair).run();
+	val i1 = get_last_instance();
+	
+	m = ["test".to_gtv(): integer(42).to_gtv()];
+	def_instance_op(admin_account.auth_id, "ITest", [map_def: Map.T(types, m)]).sign(admin_account.keypair).run();
+	val i2 = get_last_instance();
+	
+	m = ["test".to_gtv(): integer(137).to_gtv()];
+	def_instance_op(admin_account.auth_id, "ITest", [map_def: Map.T(types, m)]).sign(admin_account.keypair).run();
+	val i3 = get_last_instance();
+	
+	assert_equals(Map.sizeof(i1, map_def), 1);
+	assert_equals(Map.sizeof(i2, map_def), 1);
+	assert_equals(Map.sizeof(i3, map_def), 1);
+	
+	add_container_element_op(i2, map_def, ("test2".to_gtv(), integer(42).to_gtv()).to_gtv()).sign(admin_account.keypair).run();
+	m = [
+		"test2".to_gtv(): integer(2).to_gtv(),
+		"test3".to_gtv(): integer(3).to_gtv(),
+		"test4".to_gtv(): integer(4).to_gtv(),
+		"test5".to_gtv(): integer(5).to_gtv()
+	];
+	map_put_all_op(i3, map_def, m).sign(admin_account.keypair).run();
+	
+	assert_equals(Map.sizeof(i1, map_def), 1);
+	assert_equals(Map.sizeof(i2, map_def), 2);
+	assert_equals(Map.sizeof(i3, map_def), 5);
+	
+	assert_false(Map.contains_key(i1, map_def, "test2".to_gtv()));
+	assert_false(Map.contains_key(i2, map_def, "test3".to_gtv()));
+	assert_true(Map.contains_key(i3, map_def, "test3".to_gtv()));
+}
+
+// should remove item from map
+function test_map_12() {
+    val admin_account = create_ft3_test_acc(admin_keypair());
+    
+	val map_def = Attribute.def_I("ITest", "map");
+	
+	val types = Map.types(K = Attribute.type.text, V= Attribute.type.integer);
+	def_interface_op(admin_account.auth_id, "ITest", [map_def: Type(Map.T(types))]).sign(admin_account.keypair).run();
+	
+	val m = [
+		"test".to_gtv(): integer(42).to_gtv(),
+		"test2".to_gtv(): integer(21).to_gtv()
+	];
+	def_instance_op(admin_account.auth_id, "ITest", [map_def: Map.T(types, m)]).sign(admin_account.keypair).run();
+	
+	val i = get_last_instance();
+	
+	
+	assert_equals(Map.sizeof(i, map_def), 2);
+	
+	assert_true(Map.contains_key(i, map_def, "test2".to_gtv()));
+	remove_container_element_op(i, map_def, "test2".to_gtv()).sign(admin_account.keypair).run();
+	assert_equals(Map.sizeof(i, map_def), 1);	
+	assert_false(Map.contains_key(i, map_def, "test2".to_gtv()));
+	
+	remove_container_element_op(i, map_def, "test3".to_gtv()).sign(admin_account.keypair).run_must_fail();	
+	remove_container_element_op(i, map_def, integer(1).to_gtv()).sign(admin_account.keypair).run_must_fail();
+	
+	remove_container_element_op(i, map_def, "test".to_gtv()).sign(admin_account.keypair).run();
+	assert_true(Map.is_empty(i, map_def));
+}
+
+// should clear the map
+function test_map_13() {
+    val admin_account = create_ft3_test_acc(admin_keypair());
+    
+	val map_def = Attribute.def_I("ITest", "map");
+	val types = Map.types(K = Attribute.type.integer, V= Attribute.type.text);
+	def_interface_op(admin_account.auth_id, "ITest", [map_def: Type(Map.T(types))]).sign(admin_account.keypair).run();
+	
+	val m = [
+		integer(42).to_gtv(): "test".to_gtv(),
+		integer(21).to_gtv(): "test2".to_gtv(),
+		integer(123).to_gtv(): "test3".to_gtv(),
+		integer(321).to_gtv(): "test4".to_gtv(),
+		integer(98).to_gtv(): "test5".to_gtv()
+	];
+	def_instance_op(admin_account.auth_id, "ITest", [map_def: Map.T(types, m)]).sign(admin_account.keypair).run();
+	
+	val i = get_last_instance();
+	
+	
+	assert_true(Map.contains_key(i, map_def, integer(123).to_gtv()));
+	assert_equals(Map.sizeof(i, map_def), 5);
+	
+	map_clear_op(i, map_def).sign(admin_account.keypair).run();
+	assert_true(Map.is_empty(i, map_def));
+	
+	NOP().op(map_clear_op(i, map_def)).sign(admin_account.keypair).run();
+	assert_true(Map.is_empty(i, map_def));
+	
+	assert_false(Map.contains_key(i, map_def, integer(123).to_gtv()));
+}
+
+// should provide all keys
+function test_map_14() {
+    val admin_account = create_ft3_test_acc(admin_keypair());
+    
+	val map_def = Attribute.def_I("ITest", "map");
+	val types = Map.types(K = Attribute.type.integer, V= Attribute.type.text);
+	def_interface_op(admin_account.auth_id, "ITest", [map_def: Type(Map.T(types))]).sign(admin_account.keypair).run();
+	
+	val m = [
+		integer(42).to_gtv(): "test".to_gtv(),
+		integer(21).to_gtv(): "test2".to_gtv(),
+		integer(123).to_gtv(): "test3".to_gtv(),
+		integer(321).to_gtv(): "test4".to_gtv(),
+		integer(98).to_gtv(): "test5".to_gtv()
+	];
+	def_instance_op(admin_account.auth_id, "ITest", [map_def: Map.T(types, m)]).sign(admin_account.keypair).run();
+	
+	val i = get_last_instance();
+	
+	
+	val (t, r) = Map.keys(i, map_def);
+	assert_equals(t, Attribute.type.integer);
+	assert_equals(set([42,21,123,321,98]), set<integer>.from_gtv(r));
+}
+
+// should provide all values
+function test_map_15() {
+    val admin_account = create_ft3_test_acc(admin_keypair());
+    
+	val map_def = Attribute.def_I("ITest", "map");
+	val types = Map.types(K = Attribute.type.integer, V= Attribute.type.text);
+	def_interface_op(admin_account.auth_id, "ITest", [map_def: Type(Map.T(types))]).sign(admin_account.keypair).run();
+	
+	val m = [
+		integer(42).to_gtv(): "test".to_gtv(),
+		integer(21).to_gtv(): "test2".to_gtv(),
+		integer(123).to_gtv(): "test3".to_gtv(),
+		integer(321).to_gtv(): "test4".to_gtv(),
+		integer(98).to_gtv(): "test5".to_gtv()
+	];
+	def_instance_op(admin_account.auth_id, "ITest", [map_def: Map.T(types, m)]).sign(admin_account.keypair).run();
+	
+	val i = get_last_instance();
+	
+	
+	val (t, r) = Map.values(i, map_def);
+	assert_equals(t, Attribute.type.text);
+	assert_equals(["test", "test2", "test3", "test4", "test5"], list<text>.from_gtv(r));
+}
+
+// should provide empty values and key from empty map
+function test_map_16() {
+    val admin_account = create_ft3_test_acc(admin_keypair());
+    
+	val map_def = Attribute.def_I("ITest", "map");
+	val types = Map.types(K = Attribute.type.integer, V= Attribute.type.text);
+	def_interface_op(admin_account.auth_id, "ITest", [map_def: Type(Map.T(types))]).sign(admin_account.keypair).run();
+	
+	def_instance_op(admin_account.auth_id, "ITest", [map_def: Map.T(types, map<gtv,gtv>())]).sign(admin_account.keypair).run();
+	
+	val i = get_last_instance();
+	
+	
+	val (t1, r1) = Map.values(i, map_def);
+	assert_equals(t1, Attribute.type.text);
+	assert_equals(list<text>(), list<text>.from_gtv(r1));
+	
+	val (t2, r2) = Map.keys(i, map_def);
+	assert_equals(t2, Attribute.type.integer);
+	assert_equals(set<integer>(), set<integer>.from_gtv(r2));
+}
+
+// should get item from map
+function test_map_17() {
+    val admin_account = create_ft3_test_acc(admin_keypair());
+    
+	val map_def = Attribute.def_I("ITest", "map");
+	var types = Map.types(K = Attribute.type.integer, V= Attribute.type.text);
+	def_interface_op(admin_account.auth_id, "ITest", [map_def: Type(Map.T(types))]).sign(admin_account.keypair).run();
+	
+	var m = [
+		integer(42).to_gtv(): "test".to_gtv(),
+		integer(21).to_gtv(): "test2".to_gtv()
+	];
+	def_instance_op(admin_account.auth_id, "ITest", [map_def: Map.T(types, m)]).sign(admin_account.keypair).run();
+	
+	var i = get_last_instance();
+	
+	assert_equals(text.from_gtv(Map.get(i,map_def,integer(42).to_gtv())), "test");
+	assert_equals(text.from_gtv(Map.get(i,map_def,integer(21).to_gtv())), "test2");
+	
+	
+	types = Map.types(K = Attribute.type.text, V= Attribute.type.byte_array);
+	
+	val map_def2 = Attribute.def_I("ITest2", "map");
+	def_interface_op(admin_account.auth_id, "ITest2", [map_def2: Type(Map.T(types))]).sign(admin_account.keypair).run();
+	
+	m = [
+		"test".to_gtv(): x"affe".to_gtv(),
+		"test2".to_gtv(): x"caffee".to_gtv()
+	];
+	def_instance_op(admin_account.auth_id, "ITest2", [map_def2: Map.T(types, m)]).sign(admin_account.keypair).run();
+	
+	i = get_last_instance();
+	
+	assert_equals(byte_array.from_gtv(Map.get(i,map_def2,"test".to_gtv())), x"affe");
+	assert_equals(byte_array.from_gtv(Map.get(i,map_def2,"test2".to_gtv())), x"caffee");
+}
+
+// should unpack whole map
+function test_map_18() {
+    val admin_account = create_ft3_test_acc(admin_keypair());
+    
+	val map_def = Attribute.def_I("ITest", "map");
+	val types = Map.types(K = Attribute.type.integer, V= Attribute.type.text);
+	def_interface_op(admin_account.auth_id, "ITest", [map_def: Type(Map.T(types))]).sign(admin_account.keypair).run();
+	
+	val m = [
+		integer(42).to_gtv(): "test".to_gtv(),
+		integer(21).to_gtv(): "test2".to_gtv(),
+		integer(123).to_gtv(): "test3".to_gtv(),
+		integer(321).to_gtv(): "test4".to_gtv(),
+		integer(98).to_gtv(): "test5".to_gtv()
+	];
+	def_instance_op(admin_account.auth_id, "ITest", [map_def: Map.T(types, m)]).sign(admin_account.keypair).run();
+	
+	val i = get_last_instance();
+	
+	
+	val (t, r) = Map.unpack(i, map_def)!!;
+	
+	assert_equals(t.K, Attribute.type.integer);
+	assert_equals(t.V, Attribute.type.text);
+	assert_equals(r, m);
+}
+
+// should find instances by map item
+function test_map_19() {
+    val admin_account = create_ft3_test_acc(admin_keypair());
+    
+	val map_def = Attribute.def_I("ITest", "map");
+	val types = Map.types(K = Attribute.type.text, V= Attribute.type.integer);
+	def_interface_op(admin_account.auth_id, "ITest", [map_def: Type(Map.T(types))]).sign(admin_account.keypair).run();
+	
+	var m = [
+		"test".to_gtv(): integer(21).to_gtv()
+	];
+	def_instance_op(admin_account.auth_id, "ITest", [map_def: Map.T(types, m)]).sign(admin_account.keypair).run();
+	val i1 = get_last_instance();
+	
+	m = [
+		"test".to_gtv(): integer(42).to_gtv(),
+		"test2".to_gtv(): integer(21).to_gtv()
+	];
+	def_instance_op(admin_account.auth_id, "ITest", [map_def: Map.T(types, m)]).sign(admin_account.keypair).run();
+	val i2 = get_last_instance();
+	
+	m = [
+		"test".to_gtv(): integer(137).to_gtv(),
+		"test2".to_gtv(): integer(21).to_gtv(),
+		"test3".to_gtv(): integer(21).to_gtv()
+	];
+	def_instance_op(admin_account.auth_id, "ITest", [map_def: Map.T(types, m)]).sign(admin_account.keypair).run();
+	val i3 = get_last_instance();
+	
+	val (r1, _) = Attribute.find_instances(map_def, "test".to_gtv(), Filter.p_from(), integer.MAX_VALUE);
+	assert_equals(set(r1), set([i1,i2,i3]));
+	
+	val (r2, _) = Attribute.find_instances(map_def, "test2".to_gtv(), Filter.p_from(), integer.MAX_VALUE);
+	assert_equals(set(r2), set([i2,i3]));
+	
+	val (r3, _) = Attribute.find_instances(map_def, "test3".to_gtv(), Filter.p_from(), integer.MAX_VALUE);
+	assert_equals(set(r3), set([i3]));
+}
+
+// should set map
+// should remove map
+function test_map_20() {
+    val admin_account = create_ft3_test_acc(admin_keypair());
+    
+	val map_def = Attribute.def_I("ITest", "map");
+	val types = Map.types(K = Attribute.type.integer, V= Attribute.type.text);
+	def_interface_op(admin_account.auth_id, "ITest", [map_def: Type(Map.T(types))]).sign(admin_account.keypair).run();
+	
+	val m = [
+		integer(42).to_gtv(): "test".to_gtv(),
+		integer(21).to_gtv(): "test2".to_gtv(),
+		integer(123).to_gtv(): "test3".to_gtv(),
+		integer(321).to_gtv(): "test4".to_gtv(),
+		integer(98).to_gtv(): "test5".to_gtv()
+	];
+	def_instance_op(admin_account.auth_id, "ITest", [map_def: Map.T(types, m)]).sign(admin_account.keypair).run();
+	
+	val i = get_last_instance();
+	
+	
+	val m2 = [
+		integer(42).to_gtv(): "test6".to_gtv(),
+		integer(777).to_gtv(): "test7".to_gtv(),
+		integer(789).to_gtv(): "test8".to_gtv()
+	];
+	
+	set_type_attribute_op(i, map_def, m2.to_gtv()).sign(admin_account.keypair).run();
+	
+	assert_equals(Map.sizeof(i, map_def), 3 );
+	assert_equals(Map.get(i, map_def, (42).to_gtv()), "test6".to_gtv());
+	assert_equals(Map.keys(i, map_def).keys, set([42,777,789]).to_gtv());
+	
+	remove_type_attribute_op(i, map_def).sign(admin_account.keypair).run();
+	assert_false(util.is_implemented(i, Attribute.get(map_def)));
+}

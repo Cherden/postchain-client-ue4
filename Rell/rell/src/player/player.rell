@@ -1,0 +1,72 @@
+@log
+entity player {
+  key username: text;
+  key account: ft3.acc.account;
+}
+
+struct player_info {
+  id: byte_array;
+  username: text;
+  tokens: integer;
+  date_of_birth: integer;
+}
+
+operation new (
+  username: text,
+  account_id: byte_array,
+  auth_descriptor_id: byte_array
+) {
+  assert_username(username);
+
+  val account = ft3.acc.account @ { account_id };
+  ft3.acc.auth_and_log(account.id, auth_descriptor_id, []);
+
+  // add player to table
+  val player = create player(username, account);
+
+  // create the token wallet for player, see game_assets.rell
+  assets.ensure_game_assets(account);
+  init_player(player);
+}
+
+query find_by_account_id(account_id: byte_array) {
+  val player = player @? { .account.id == account_id };
+
+  if(empty(player)) return null;
+
+  return get_player_info(player);
+}
+
+query find_by_username(username: text) {
+  val player = player @? { .username == username };
+
+  if(empty(player)) return null;
+
+  return get_player_info(player);
+}
+
+function get_player_info(player) : player_info {
+  val tokens = assets.get_token_balance(player.account)?.amount ?: 0;
+
+  return player_info(
+    id = player.account.id,
+    username = player.username,
+    date_of_birth = player.transaction.block.timestamp,
+    tokens
+  );
+}
+
+function assert_username(username: text) {
+  require(
+    username.size() >= 3, 
+    error.new(error.type.BadInput, error.issue.PlayerUsernameInvalid, "Username must be longer than 2 characters")
+  );
+  require(
+    username.size() <= 16, 
+    error.new(error.type.BadInput, error.issue.PlayerUsernameInvalid, "Username must be shorter than 17 characters")
+  );
+  require(
+    empty(player @? { username }),
+    error.new(error.type.BadInput, error.issue.PlayerUsernameBusy)
+  );
+}

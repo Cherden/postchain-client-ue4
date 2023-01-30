@@ -1,0 +1,6 @@
+
+struct module_args {
+    admin_pubkey: pubkey;
+}
+
+function admin_pubkey() = chain_context.args.admin_pubkey;

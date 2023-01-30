@@ -1,0 +1,12 @@
+//Main module
+@mount('evm_bridge')
+module;
+
+namespace ft3 {
+  import acc: rell_modules.ft3.account;
+}
+
+// Only dependency on i_erc721 is allowed.
+import assets.*;
+import rell_modules.originals.core.*;
+import rell_modules.evm;

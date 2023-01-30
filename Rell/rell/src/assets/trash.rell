@@ -1,0 +1,20 @@
+entity trash_asset {
+  key name;
+  ft3.core.asset;
+}
+
+operation add_trash(name: text) {
+  //A signature would be required here normally, but for example purposees we dont require it here
+  var trash = trash_asset @? { name };
+
+  if(trash == null) {
+    create trash_asset(name, ft3.core.asset @ { name});
+  }
+}
+
+operation give_player_trash(account_id: byte_array, item: name) {
+  val player = player @ { .account.id == account_id };
+  //Get a random trash item from the list of all trash
+    // Increment the FT3 asset for the item caught (add to inventory)
+  ft3.core.ensure_balance(player.account, ft3.core.asset @ { .name == item }).amount += 1;
+}

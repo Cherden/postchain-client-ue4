@@ -1,0 +1,27 @@
+function test_give_user_ft3() {
+  setup_give_ft3_test();
+  val user = util.create_test_account(data.player1);
+
+  give_ft3_tx(user)
+    .sign(data.admin_keypair)
+    .run();
+
+  val player = player @ { .account.id == user.account_id };
+  val asset_amount = ensure_player_asset_balance(player, "test_asset").amount;
+  assert_equals(asset_amount, 69);
+}
+
+function test_give_user_ft3_require_admin_priviledge() {
+  setup_give_ft3_test();
+  val user = util.create_test_account(data.player1);
+
+  give_ft3_tx(user)
+    .sign(user.player.keypair)
+    .run_must_fail();
+}
+
+function give_ft3_tx(user: util.auth_data) : rell.test.tx {
+  return rell.test
+    .tx()
+    .op(dev.give_user_ft3_token(user.account_id, "test_asset", 69));
+}

@@ -1,0 +1,5 @@
+
+operation create_instance_op() {
+	require_dev();
+	create instance();
+}

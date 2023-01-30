@@ -1,0 +1,27 @@
+function pay_to_alice(
+  amount: integer, 
+  ft3.acc.account, 
+  auth_descriptor_id: byte_array,
+  token_name: text
+) {
+  val asset_id = ft3.core.asset @ { .name == token_name } ( .id );
+
+  val input = ft3.core.xfer_input(
+    account_id = account.id,
+    amount,
+    asset_id,
+    auth_descriptor_id,
+    extra = map<text, gtv>()
+  );
+
+  val admin_account_id = admin_account_id();
+
+  val output = ft3.core.xfer_output(
+    account_id = admin_account_id,
+    amount,
+    asset_id,
+    extra = map<text, gtv>()
+  );
+
+  ft3.core._transfer([input], [output]);
+}

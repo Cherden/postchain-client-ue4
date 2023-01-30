@@ -1,0 +1,15 @@
+// This operation is called once on a fresh chain to initialize stuffs
+operation initialize() {
+  require_admin_signature();
+  create_admin_account_if_needed();
+}
+
+function create_admin_account_if_needed() {
+  val auth_descriptor = admin_auth_descriptor();
+  val account = ft3.acc.account @? { .id == auth_descriptor.hash() };
+
+  if(empty(account)) {
+    val account_id = ft3.acc.create_account_with_auth(auth_descriptor);
+    create player(INITIAL_OWNER, ft3.acc.account @ { .id == account_id} );
+  }
+}

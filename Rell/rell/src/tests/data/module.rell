@@ -1,0 +1,3 @@
+@test module;
+
+import rell_modules.ft3_test;

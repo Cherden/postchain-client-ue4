@@ -1,0 +1,8 @@
+@mount('originals')
+module;
+
+namespace Originals {
+	import ^.external;
+	import ^.core.*;
+	import ^.marketplace.*;
+}

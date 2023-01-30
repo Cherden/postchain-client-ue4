@@ -1,0 +1,421 @@
+@test module;
+import ^^^.tests.*;
+
+// should create list attribute
+function test_list_1() {
+    val admin_account = create_ft3_test_acc(admin_keypair());
+    
+	val list_def = Attribute.def_I("ITest", "list");
+	def_interface_op(admin_account.auth_id, "ITest", [list_def: Type(List.T(Attribute.type.integer))]).sign(admin_account.keypair).run();
+	def_interface_op(admin_account.auth_id, "ITest2", [list_def: Type(List.T(Attribute.type.text))]).sign(admin_account.keypair).run();
+}
+
+// should fail with not allowed inner types
+function test_list_2() {
+    val admin_account = create_ft3_test_acc(admin_keypair());
+    
+	val list_def = Attribute.def_I("ITest", "list");
+	def_interface_op(admin_account.auth_id, "ITest", [list_def: Type(List.T(Attribute.type.ordered_container))]).sign(admin_account.keypair).run_must_fail();
+}
+
+// should create instance implementing list type
+function test_list_3() {
+    val admin_account = create_ft3_test_acc(admin_keypair());
+    
+	val list_def = Attribute.def_I("ITest", "list");
+	def_interface_op(admin_account.auth_id, "ITest", [list_def: Type(List.T(Attribute.type.integer))]).sign(admin_account.keypair).run();
+	def_instance_op(admin_account.auth_id, "ITest", [list_def: List.T(Attribute.type.integer, [42].to_gtv())]).sign(admin_account.keypair).run();
+}
+
+// should fail when instance implementing wrong inner type
+function test_list_4() {
+    val admin_account = create_ft3_test_acc(admin_keypair());
+    
+	val list_def = Attribute.def_I("ITest", "list");
+	def_interface_op(admin_account.auth_id, "ITest", [list_def: Type(List.T(Attribute.type.text))]).sign(admin_account.keypair).run();
+	def_instance_op(admin_account.auth_id, "ITest", [list_def: List.T(Attribute.type.integer, [42].to_gtv())]).sign(admin_account.keypair).run_must_fail();
+}
+
+// should add item to list
+function test_list_5() {
+    val admin_account = create_ft3_test_acc(admin_keypair());
+    
+	val list_def = Attribute.def_I("ITest", "list");
+	def_interface_op(admin_account.auth_id, "ITest", [list_def: Type(List.T(Attribute.type.text))]).sign(admin_account.keypair).run();
+	def_instance_op(admin_account.auth_id, "ITest", [list_def: List.T(Attribute.type.text, ["test"].to_gtv())]).sign(admin_account.keypair).run();
+	
+	val i = get_last_instance();
+	
+	assert_equals(List.sizeof(i, list_def), 1);
+	
+	assert_false(List.contains(i, list_def, "test2".to_gtv()));
+	add_container_element_op(i, list_def, "test2".to_gtv()).sign(admin_account.keypair).run();
+	assert_true(List.contains(i, list_def, "test2".to_gtv()));
+	
+	assert_equals(List.sizeof(i, list_def), 2);
+}
+
+// should add item to empty initialised list
+function test_list_6() {
+    val admin_account = create_ft3_test_acc(admin_keypair());
+    
+	val list_def = Attribute.def_I("ITest", "list");
+	def_interface_op(admin_account.auth_id, "ITest", [list_def: Type(List.T(Attribute.type.text))]).sign(admin_account.keypair).run();
+	def_instance_op(admin_account.auth_id, "ITest", [list_def: List.T(Attribute.type.text, list<text>().to_gtv())]).sign(admin_account.keypair).run();
+	
+	val i = get_last_instance();
+	
+	assert_equals(List.sizeof(i, list_def), 0);
+	
+	assert_false(List.contains(i, list_def, "test".to_gtv()));
+	add_container_element_op(i, list_def, "test".to_gtv()).sign(admin_account.keypair).run();
+	assert_true(List.contains(i, list_def, "test".to_gtv()));
+	
+	assert_equals(List.sizeof(i, list_def), 1);
+}
+
+// should add item at position
+function test_list_7() {
+    val admin_account = create_ft3_test_acc(admin_keypair());
+    
+	val list_def = Attribute.def_I("ITest", "list");
+	def_interface_op(admin_account.auth_id, "ITest", [list_def: Type(List.T(Attribute.type.text))]).sign(admin_account.keypair).run();
+	def_instance_op(admin_account.auth_id, "ITest", [list_def: List.T(Attribute.type.text, ["test1", "test3"].to_gtv())]).sign(admin_account.keypair).run();
+	
+	val i = get_last_instance();
+	
+	assert_equals(List.sizeof(i, list_def), 2);
+	
+	assert_false(List.contains(i, list_def, "test2".to_gtv()));
+	list_add_op(i, list_def, "test2".to_gtv(), 1).sign(admin_account.keypair).run();
+	assert_true(List.contains(i, list_def, "test2".to_gtv()));
+	
+	assert_equals(List.get(i, list_def, 0), "test1".to_gtv());
+	assert_equals(List.get(i, list_def, 1), "test2".to_gtv());
+	assert_equals(List.get(i, list_def, 2), "test3".to_gtv());
+	
+	assert_equals(List.sizeof(i, list_def), 3);
+}
+
+// should add item range
+function test_list_8() {
+    val admin_account = create_ft3_test_acc(admin_keypair());
+    
+	val list_def = Attribute.def_I("ITest", "list");
+	def_interface_op(admin_account.auth_id, "ITest", [list_def: Type(List.T(Attribute.type.text))]).sign(admin_account.keypair).run();
+	def_instance_op(admin_account.auth_id, "ITest", [list_def: List.T(Attribute.type.text, ["test"].to_gtv())]).sign(admin_account.keypair).run();
+	
+	val i = get_last_instance();
+	
+	assert_equals(List.sizeof(i, list_def), 1);
+	
+	assert_false(List.contains(i, list_def, "test3".to_gtv()));
+	val l = ["test2", "test3", "test4", "test5"];
+	list_add_all_op(i, list_def, l.to_gtv()).sign(admin_account.keypair).run();
+	assert_true(List.contains(i, list_def, "test3".to_gtv()));
+	
+	assert_equals(List.sizeof(i, list_def), 5);
+}
+
+// should add item range on empty initialised list
+function test_list_9() {
+    val admin_account = create_ft3_test_acc(admin_keypair());
+    
+	val list_def = Attribute.def_I("ITest", "list");
+	def_interface_op(admin_account.auth_id, "ITest", [list_def: Type(List.T(Attribute.type.text))]).sign(admin_account.keypair).run();
+	def_instance_op(admin_account.auth_id, "ITest", [list_def: List.T(Attribute.type.text, list<text>().to_gtv())]).sign(admin_account.keypair).run();
+	
+	val i = get_last_instance();
+	
+	assert_equals(List.sizeof(i, list_def), 0);
+	
+	assert_false(List.contains(i, list_def, "test3".to_gtv()));
+	val l = ["test2", "test3", "test4", "test5"];
+	list_add_all_op(i, list_def, l.to_gtv()).sign(admin_account.keypair).run();
+	assert_true(List.contains(i, list_def, "test3".to_gtv()));
+	
+	assert_equals(List.sizeof(i, list_def), 4);
+}
+
+// should add item range at position
+function test_list_10() {
+    val admin_account = create_ft3_test_acc(admin_keypair());
+   
+	val list_def = Attribute.def_I("ITest", "list");
+	def_interface_op(admin_account.auth_id, "ITest", [list_def: Type(List.T(Attribute.type.text))]).sign(admin_account.keypair).run();
+	def_instance_op(admin_account.auth_id, "ITest", [list_def: List.T(Attribute.type.text, ["test1", "test6"].to_gtv())]).sign(admin_account.keypair).run();
+	
+	val i = get_last_instance();
+	
+	assert_equals(List.sizeof(i, list_def), 2);
+	
+	assert_false(List.contains(i, list_def, "test3".to_gtv()));
+	val l = ["test2", "test3", "test4", "test5"];
+	list_add_all_op(i, list_def, l.to_gtv(), 1).sign(admin_account.keypair).run();
+	assert_true(List.contains(i, list_def, "test3".to_gtv()));
+		
+	assert_equals(List.get(i, list_def, 0), "test1".to_gtv());
+	assert_equals(List.get(i, list_def, 1), "test2".to_gtv());
+	assert_equals(List.get(i, list_def, 4), "test5".to_gtv());
+	assert_equals(List.get(i, list_def, 5), "test6".to_gtv());
+	
+	assert_equals(List.sizeof(i, list_def), 6);
+}
+
+// should add multiple instances
+function test_list_11() {
+    val admin_account = create_ft3_test_acc(admin_keypair());
+   
+	val list_def = Attribute.def_I("ITest", "list");
+	def_interface_op(admin_account.auth_id, "ITest", [list_def: Type(List.T(Attribute.type.text))]).sign(admin_account.keypair).run();
+		
+	def_instance_op(admin_account.auth_id, "ITest", [list_def: List.T(Attribute.type.text, ["test"].to_gtv())]).sign(admin_account.keypair).run();
+	val i1 = get_last_instance();
+	
+	NOP().op(def_instance_op(admin_account.auth_id, "ITest", [list_def: List.T(Attribute.type.text, ["test"].to_gtv())])).sign(admin_account.keypair).run();
+	val i2 = get_last_instance();
+	
+	NOP().op(def_instance_op(admin_account.auth_id, "ITest", [list_def: List.T(Attribute.type.text, ["test"].to_gtv())])).sign(admin_account.keypair).run();
+	val i3 = get_last_instance();
+	
+	assert_equals(List.sizeof(i1, list_def), 1);
+	assert_equals(List.sizeof(i2, list_def), 1);
+	assert_equals(List.sizeof(i3, list_def), 1);
+	
+	add_container_element_op(i2, list_def, "test2".to_gtv()).sign(admin_account.keypair).run();
+	
+	val l = ["test2", "test3", "test4", "test5"];
+	list_add_all_op(i3, list_def, l.to_gtv()).sign(admin_account.keypair).run();
+	
+	assert_equals(List.sizeof(i1, list_def), 1);
+	assert_equals(List.sizeof(i2, list_def), 2);
+	assert_equals(List.sizeof(i3, list_def), 5);
+	
+	assert_false(List.contains(i1, list_def, "test2".to_gtv()));
+	assert_false(List.contains(i2, list_def, "test3".to_gtv()));
+	assert_true(List.contains(i3, list_def, "test3".to_gtv()));
+}
+
+// should remove item 
+function test_list_12() {
+    val admin_account = create_ft3_test_acc(admin_keypair());
+    
+	val list_def = Attribute.def_I("ITest", "list");
+	def_interface_op(admin_account.auth_id, "ITest", [list_def: Type(List.T(Attribute.type.text))]).sign(admin_account.keypair).run();
+	
+	val l = ["affe", "caffee"];
+	def_instance_op(admin_account.auth_id, "ITest", [list_def: List.T(Attribute.type.text, l.to_gtv())]).sign(admin_account.keypair).run();
+	
+	val i = get_last_instance();
+	
+	
+	assert_equals(List.sizeof(i, list_def), 2);
+	
+	assert_true(List.contains(i, list_def, "caffee".to_gtv()));
+	remove_container_element_op(i, list_def, "caffee".to_gtv()).sign(admin_account.keypair).run();
+	assert_equals(List.sizeof(i, list_def), 1);	
+	assert_false(List.contains(i, list_def, "caffee".to_gtv()));
+	
+	remove_container_element_op(i, list_def, "abcd".to_gtv()).sign(admin_account.keypair).run_must_fail();	
+	remove_container_element_op(i, list_def, integer(1).to_gtv()).sign(admin_account.keypair).run_must_fail();
+	
+	remove_container_element_op(i, list_def, "affe".to_gtv()).sign(admin_account.keypair).run();
+	assert_true(List.is_empty(i, list_def));
+}
+
+// should remove item at position
+function test_list_13() {
+    val admin_account = create_ft3_test_acc(admin_keypair());
+    
+	val list_def = Attribute.def_I("ITest", "list");
+	def_interface_op(admin_account.auth_id, "ITest", [list_def: Type(List.T(Attribute.type.text))]).sign(admin_account.keypair).run();
+	def_instance_op(admin_account.auth_id, "ITest", [list_def: List.T(Attribute.type.text, ["test1", "test2", "test3"].to_gtv())]).sign(admin_account.keypair).run();
+	
+	val i = get_last_instance();
+	
+	assert_equals(List.sizeof(i, list_def), 3);
+	
+	assert_true(List.contains(i, list_def, "test2".to_gtv()));
+	list_remove_at_op(i, list_def, 1).sign(admin_account.keypair).run();
+	assert_false(List.contains(i, list_def, "test2".to_gtv()));
+	
+	assert_equals(List.get(i, list_def, 0), "test1".to_gtv());
+	assert_equals(List.get(i, list_def, 1), "test3".to_gtv());
+	
+	assert_equals(List.sizeof(i, list_def), 2);
+}
+
+// should remove range of items
+function test_list_14() {
+    val admin_account = create_ft3_test_acc(admin_keypair());
+    
+	val list_def = Attribute.def_I("ITest", "list");
+	def_interface_op(admin_account.auth_id, "ITest", [list_def: Type(List.T(Attribute.type.integer))]).sign(admin_account.keypair).run();
+	
+	val l = [42, 21, 123, 321, 98];
+	def_instance_op(admin_account.auth_id, "ITest", [list_def: List.T(Attribute.type.integer, l.to_gtv())]).sign(admin_account.keypair).run();
+	
+	val i = get_last_instance();
+	
+	
+	assert_true(List.contains(i, list_def, integer(123).to_gtv()));
+	assert_equals(List.sizeof(i, list_def), 5);
+	
+	list_remove_all_op(i, list_def, [21, 321].to_gtv()).sign(admin_account.keypair).run();
+	
+	assert_true(List.contains_all(i,list_def, [42,123,98].to_gtv()));	
+	assert_false(List.contains(i, list_def, integer(21).to_gtv()));
+	assert_false(List.contains(i, list_def, integer(321).to_gtv()));
+	
+	val (t, r) = List.unpack(i, list_def)!!;	
+	assert_equals(list<integer>.from_gtv(r), [42,123,98]);
+}
+
+// should clear the list
+function test_list_15() {
+    val admin_account = create_ft3_test_acc(admin_keypair());
+   
+	val list_def = Attribute.def_I("ITest", "list");
+	def_interface_op(admin_account.auth_id, "ITest", [list_def: Type(List.T(Attribute.type.integer))]).sign(admin_account.keypair).run();
+	
+	val l = [42, 21, 123, 321, 98];
+	def_instance_op(admin_account.auth_id, "ITest", [list_def: List.T(Attribute.type.integer, l.to_gtv())]).sign(admin_account.keypair).run();
+	
+	val i = get_last_instance();
+	
+	
+	assert_true(List.contains(i, list_def, integer(123).to_gtv()));
+	assert_equals(List.sizeof(i, list_def), 5);
+	
+	list_clear_op(i, list_def).sign(admin_account.keypair).run();
+	assert_true(List.is_empty(i, list_def));
+	
+	NOP().op(list_clear_op(i, list_def)).sign(admin_account.keypair).run();
+	assert_true(List.is_empty(i, list_def));
+	
+	assert_false(List.contains(i, list_def, integer(123).to_gtv()));
+}
+
+// should get item from list
+function test_list_16() {
+    val admin_account = create_ft3_test_acc(admin_keypair());
+    
+	val list_def = Attribute.def_I("ITest", "list");
+	def_interface_op(admin_account.auth_id, "ITest", [list_def: Type(List.T(Attribute.type.text))]).sign(admin_account.keypair).run();
+	
+	var l = ["abc", "def"];
+	def_instance_op(admin_account.auth_id, "ITest", [list_def: List.T(Attribute.type.text, l.to_gtv())]).sign(admin_account.keypair).run();
+	
+	var i = get_last_instance();
+	
+	assert_equals(text.from_gtv(List.get(i, list_def, 0)), "abc");
+	assert_equals(text.from_gtv(List.get(i, list_def, 1)), "def");
+	
+	def_interface_op(admin_account.auth_id, "ITest2", [list_def: Type(List.T(Attribute.type.integer))]).sign(admin_account.keypair).run();
+	
+	val t = [21, 42];
+	val list_def2 = Attribute.def_I("ITest2", "list");
+	def_instance_op(admin_account.auth_id, "ITest2", [list_def2: List.T(Attribute.type.integer, t.to_gtv())]).sign(admin_account.keypair).run();
+	
+	i = get_last_instance();
+	
+	assert_equals(integer.from_gtv(List.get(i, list_def2, 0)), 21);
+	assert_equals(integer.from_gtv(List.get(i, list_def2, 1)), 42);
+}
+
+// should unpack whole list
+function test_list_17() {
+    val admin_account = create_ft3_test_acc(admin_keypair());
+    
+	val list_def = Attribute.def_I("ITest", "list");
+	def_interface_op(admin_account.auth_id, "ITest", [list_def: Type(List.T(Attribute.type.integer))]).sign(admin_account.keypair).run();
+	
+	val l = [42, 21, 123, 321, 98];
+	def_instance_op(admin_account.auth_id, "ITest", [list_def: List.T(Attribute.type.integer, l.to_gtv())]).sign(admin_account.keypair).run();
+	
+	val i = get_last_instance();
+	
+	
+	val (t, r) = List.unpack(i, list_def)!!;	
+	assert_equals(t, Attribute.type.integer);
+	assert_equals(list<integer>.from_gtv(r), l);
+}
+
+// should find instances via item in list
+function test_list_18() {
+    val admin_account = create_ft3_test_acc(admin_keypair());
+    
+	val list_def = Attribute.def_I("ITest", "list");
+	def_interface_op(admin_account.auth_id, "ITest", [list_def: Type(List.T(Attribute.type.text))]).sign(admin_account.keypair).run();
+	
+		
+	
+	def_instance_op(admin_account.auth_id, "ITest", [list_def: List.T(Attribute.type.text, ["test"].to_gtv())]).sign(admin_account.keypair).run();
+	val i1 = get_last_instance();
+	
+	def_instance_op(admin_account.auth_id, "ITest", [list_def: List.T(Attribute.type.text, ["test", "test2"].to_gtv())]).sign(admin_account.keypair).run();
+	val i2 = get_last_instance();
+	
+	def_instance_op(admin_account.auth_id, "ITest", [list_def: List.T(Attribute.type.text, ["test", "test2", "test3"].to_gtv())]).sign(admin_account.keypair).run();
+	val i3 = get_last_instance();
+	
+	val (r1, _) = Attribute.find_instances(list_def, "test".to_gtv(), Filter.p_from(), integer.MAX_VALUE);
+	assert_equals(set(r1), set([i1,i2,i3]));
+	
+	val (r2, _) = Attribute.find_instances(list_def, "test2".to_gtv(), Filter.p_from(), integer.MAX_VALUE);
+	assert_equals(set(r2), set([i2,i3]));
+	
+	val (r3, _) = Attribute.find_instances(list_def, "test3".to_gtv(), Filter.p_from(), integer.MAX_VALUE);
+	assert_equals(set(r3), set([i3]));
+}
+
+// should set list
+// should remove list
+function test_list_19() {
+    val admin_account = create_ft3_test_acc(admin_keypair());
+    
+	val list_def = Attribute.def_I("ITest", "list");
+	def_interface_op(admin_account.auth_id, "ITest", [list_def: Type(List.T(Attribute.type.integer))]).sign(admin_account.keypair).run();
+	
+	val l = [42, 21, 123, 321, 98];
+	def_instance_op(admin_account.auth_id, "ITest", [list_def: List.T(Attribute.type.integer, l.to_gtv())]).sign(admin_account.keypair).run();
+	
+	val i = get_last_instance();
+	
+	
+	val l2 = [42, 777, 789];
+	
+	set_type_attribute_op(i, list_def, l2.to_gtv()).sign(admin_account.keypair).run();
+	
+	assert_equals(List.sizeof(i, list_def), 3 );
+	assert_equals(List.unpack(i, list_def)?.values, [42,777,789].to_gtv());
+	
+	remove_type_attribute_op(i, list_def).sign(admin_account.keypair).run();
+	assert_false(util.is_implemented(i, Attribute.get(list_def)));
+}
+
+// dclass should be able to have map and list at the same time
+function test_list_20() {
+    val admin_account = create_ft3_test_acc(admin_keypair());
+    
+	val list_def = Attribute.def_I("ITest", "list");
+	val map_def = Attribute.def_I("ITest", "map");
+	
+	var types = Map.types(K = Attribute.type.text, V= Attribute.type.integer);
+	def_interface_op(admin_account.auth_id, "ITest", [
+		list_def: Type(List.T(Attribute.type.integer)),
+		map_def: Type(Map.T(types))
+	]).sign(admin_account.keypair).run();
+	
+	val l = [42, 21, 123];
+	var m = ["test".to_gtv(): integer(21).to_gtv()];
+	def_instance_op(admin_account.auth_id, "ITest", [
+		list_def: List.T(Attribute.type.integer, l.to_gtv()),
+		map_def: Map.T(types, m)
+	]).sign(admin_account.keypair).run();
+	
+	val i = get_last_instance();
+	
+	assert_equals(List.unpack(i, list_def)?.values, l.to_gtv());
+	assert_equals(Map.unpack(i, map_def)?.values, m);
+}

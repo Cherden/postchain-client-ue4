@@ -1,0 +1,13 @@
+struct list_player_dto {
+  username: text;
+  accountId: byte_array;
+  flag: (validTo: integer, name: text)?;
+}
+
+function map_player_to_player_list_dto (username: text, account_id: byte_array) : list_player_dto {
+  return list_player_dto(
+    username = username,
+    accountId = account_id,
+    flag = if(account_id == admin_account_id()) (validTo = -1, name = INITIAL_OWNER) else flag @? { .account_id == account_id } ( @sort_desc validTo = .valid_to, name = .name ) limit 1
+  );
+}

@@ -1,0 +1,10 @@
+import ft3_acc: rell_modules.ft3.account;
+
+function ensure_account(byte_array): ft3_acc.account {
+	val account = ft3_acc.account@?{byte_array};
+	if(account != null) {
+		return account;
+	} else {
+		return create ft3_acc.account(byte_array);	
+	}
+}

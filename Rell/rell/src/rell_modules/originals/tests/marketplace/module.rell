@@ -1,0 +1,6 @@
+@test module;
+
+import ^^.external.*;
+import ^^.external.dev.*;
+import ^^^.dip.dip_basic.*;
+import ^^^.ft3_helper.tests.*;

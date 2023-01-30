@@ -1,0 +1,27 @@
+@test module;
+import ^^^.tests.*;
+
+// should fine file
+function test_file_1() {
+    val admin_account = create_ft3_test_acc(admin_keypair());
+    
+	val file_content = x"deadbeef";
+	val file_hash = file_content.hash();
+	val test_file = File.data(
+		hash = file_hash,
+		hub_brid = x"affe",
+		hub_location = "localhost:7740"
+	);
+	
+	val model_attr = Attribute.def_I("ITest", "model");
+	def_interface_op(admin_account.auth_id, "ITest", [model_attr: Type(File.T())]).sign(admin_account.keypair).run();
+	
+	def_instance_op(
+	    admin_account.auth_id,
+		"ITest",
+		[model_attr: File.T(test_file)]
+	).sign(admin_account.keypair).run();
+	
+	val instance = get_last_instance();
+	assert_true( Attribute.find_instances(model_attr, file_hash.to_gtv(), Filter.p_from(), integer.MAX_VALUE).results.contains_all( [instance] ) );
+}

@@ -1,0 +1,31 @@
+function sum_octave_2d(
+  perm_mod12: list<integer>,
+  perm: list<integer>,
+  grad3: list<integer>,
+  iterations: integer, 
+  x: integer, 
+  y: integer, 
+  persistence: decimal, 
+  lacunarity: decimal, 
+  scale: decimal, 
+  low: integer, 
+  high: integer,
+  modifier: integer
+) {
+  var max_amp = 0.0;
+  var amp = 1.0;
+  var freq = scale;
+  var noise = 0.0;
+
+  for(i in range(1, iterations + 1)) {
+    noise += simplex_2d(perm_mod12, perm, grad3, x * freq, y*freq) * amp;
+    max_amp += amp;
+    amp *= persistence;
+    freq *= lacunarity;
+  }
+
+  noise /= max_amp;
+  noise = (noise * (high - low) / 2 + (high + low) / 2) - 2;
+
+  return noise;
+}

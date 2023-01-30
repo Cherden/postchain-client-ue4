@@ -1,0 +1,35 @@
+module;
+
+import ^^.dip.dip_basic.*;
+import ^^.ft3_helper.*;
+import ^.util.*;
+
+
+// deprecated
+//function _get_original(id: byte_array, interface_filter: text? = null): map<text, gtv> {
+//	val original = get_instance_by_asset_id(id);
+//	require(original, "Instance with id " + id + " not found");
+//	
+//	val ret = map<text, gtv>();
+//	ret.put(ID, id.to_gtv());
+//	val attributes = get_attributes_from_instance(original);
+//	for (attribute in attributes) {
+//		if (interface_filter == null or attribute.dclass.name == interface_filter) {
+//			val value = get_type_value(original, attribute);
+//	    
+//	    	val k = attribute.dclass.name + "." + attribute.name;
+//	        if(value??) {
+//	        	if (attribute.a_type == a_type.instance) {
+//	        		val i = instance.from_gtv(value);
+//        			ret[k] = get_asset_id_by_instance(i)!!.to_gtv();
+//	        	} else {
+//        			ret[k] = value;
+//	        	}
+//	        } else {
+//	        	ret[k] = null.to_gtv();
+//	        }    
+//        }
+//	}
+//	
+//	return ret; 
+//}

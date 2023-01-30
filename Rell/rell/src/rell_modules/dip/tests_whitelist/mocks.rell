@@ -1,0 +1,38 @@
+@test
+module;
+
+import ^^^.dip.external;
+import ^^^.ft3_helper.tests.*;
+
+function define_empty_interface(name = "TestInterface", auth_data) {
+    external
+        .def_interface_op(
+            auth_data.auth_id,
+            name,
+            [:]
+        )
+        .sign(auth_data.keypair)
+        .run();
+        
+    return name;
+}
+
+function define_empty_prototype(
+    name = "TestPrototype", 
+    parent_prototype: name? = null, 
+    interface_name: name, 
+    auth_data
+) {
+    external
+        .def_prototype_op(
+            auth_data.auth_id,
+            interface_name,
+            [:],
+            name,
+            parent_prototype
+        )
+        .sign(auth_data.keypair)
+        .run(); 
+        
+    return name;
+}

@@ -1,0 +1,125 @@
+module;
+
+import ^^.dip.core.*;
+
+val SEPERATOR = "/";
+
+function validate_name(name) {
+	require(not name.contains(SEPERATOR), "Illegal character in definition");
+}
+
+function ensure_type(expected: Attribute.type, got: Attribute.type) {
+	if (expected.name.contains("container")) {
+		require(expected == got, "Unexpected type, expected " + expected + " got " + got);	
+	} else {
+		require(expected == got or got.name.contains("container"), "Unexpected type, expected " + expected + " got " + got);	
+	}
+}
+
+function ensure_simple_type(got: Attribute.type) {
+	require(not got.name.contains("container"), "Unexpected type, expected simple type got " + got);
+}
+
+function ensure_attribute_can_be_added(instance, attribute) {
+    ensure_not_implemented(instance, attribute);
+    ensure_implements_attribute_interface(instance, attribute);
+}
+
+function ensure_not_implemented(instance, attribute) {
+	require(
+	    not is_implemented(instance, attribute), 
+	    "Attribute '" + Attribute.get_name_from_attribute(attribute) + "' already implemented in parent!"
+	);
+}
+
+function ensure_implements_attribute_interface(instance, attribute) {
+    require(
+        instance_dclass @? { instance, .dclass == attribute.dclass }, 
+        "Instance does not implement '" + attribute.dclass.name + "' interface"
+    );
+}
+
+function ensure_optional(attribute) {
+	require(AttributeMeta.is_attribute_optional(attribute), "Tried to remove non optional attribute value.");
+}
+
+function r_zero(): rowid {
+	return rowid.from_gtv(integer(0).to_gtv());
+}
+
+function is_implemented(instance, attribute): boolean {
+	val prototypes = Prototype.get_all(instance);
+	prototypes.add(instance);
+	
+	when (attribute.type) {
+		Attribute.type.boolean -> {
+			return Boolean.boolean_attribute @? {.instance in prototypes or .instance == instance, attribute} != null;
+		}
+		Attribute.type.byte_array -> {
+			return ByteArray.byte_array_attribute @? {.instance in prototypes or .instance == instance, attribute} != null;
+		}
+		Attribute.type.decimal -> {
+			return Decimal.decimal_attribute @? {.instance in prototypes or .instance == instance, attribute} != null;
+		}
+		Attribute.type.instance -> {
+			return Instance.instance_attribute @? {.instance in prototypes or .instance == instance, attribute} != null;
+		}
+		Attribute.type.integer -> {
+			return Integer.integer_attribute @? {.instance in prototypes or .instance == instance, attribute} != null;
+		}
+		Attribute.type.text -> {
+			return Text.text_attribute @? {.instance in prototypes or .instance == instance, attribute} != null;
+		}
+		Attribute.type.unordered_container -> {
+			return Set.set_attribute @? {.instance in prototypes or .instance == instance, attribute} != null;
+		}
+		Attribute.type.addressable_container -> {
+			return Map.map_attribute @? {.instance in prototypes or .instance == instance, attribute} != null;
+		}
+		Attribute.type.ordered_container -> {
+			return List.list_attribute @? {.instance in prototypes or .instance == instance, attribute} != null;
+		}
+		Attribute.type.file -> {
+			return File.file_attribute @? {.instance in prototypes or .instance == instance, attribute} != null;
+		}
+		else -> return false;
+	}
+}
+
+function gtv_to_list_of_gtv(gtv, type: Attribute.type): list<gtv> {
+	val ret = list<gtv>();
+	
+	when (type) {
+		Attribute.type.boolean -> {
+			val elements = list<boolean>.from_gtv(gtv);
+			for (element in elements) ret.add(element.to_gtv());
+		}
+		Attribute.type.byte_array -> {
+			val elements = list<byte_array>.from_gtv(gtv);
+			for (element in elements) ret.add(element.to_gtv());
+		}
+		Attribute.type.decimal -> {
+			val elements = list<decimal>.from_gtv(gtv);
+			for (element in elements) ret.add(element.to_gtv());
+		}
+		Attribute.type.instance -> {
+			val elements = list<instance>.from_gtv(gtv);
+			for (element in elements) ret.add(element.to_gtv());
+		}
+		Attribute.type.integer -> {
+			val elements = list<integer>.from_gtv(gtv);
+			for (element in elements) ret.add(element.to_gtv());
+		}
+		Attribute.type.text -> {
+			val elements = list<text>.from_gtv(gtv);
+			for (element in elements) ret.add(element.to_gtv());
+		}
+		else -> require(false, "Unimplemented path");
+	}
+	
+	return ret;
+}
+
+function gtv_to_set_of_gtv(gtv, type: Attribute.type): set<gtv> {	
+	return set(gtv_to_list_of_gtv(gtv, type));
+}

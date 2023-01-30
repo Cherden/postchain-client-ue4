@@ -1,0 +1,5 @@
+@mount("evm") module;
+
+namespace ft3 {
+  import acc: ^.ft3.account;
+}

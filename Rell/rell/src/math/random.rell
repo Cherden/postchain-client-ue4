@@ -1,0 +1,25 @@
+namespace random {
+  function number_in_range(from: integer, to: integer): integer {
+    require(
+      from <= to, 
+      error.new(error.type.PreconditionFailed, error.issue.DeveloperError, "To must be higher than from")
+    );
+    return from + number(to - from);
+  }
+  
+  // Returns a number from zero to high (non-inclusive)
+  function number(high: integer): integer {
+    if (high == 0) return 0; // avoid division by zero
+    return (op_context.last_block_time - op_context.block_height - op_context.op_index) % high;
+  }
+  
+  function byte_array(arrays: list<byte_array>): byte_array {
+    val random_index = number(arrays.size());
+    return arrays[random_index];
+  }
+  
+  function name(names: list<name>): name {
+    val random_index = number(names.size());
+    return names[random_index];
+  }
+}

@@ -1,0 +1,481 @@
+@test module;
+import ^^^.tests.*;
+import ^^^^.dip.tests.*;
+import ^^^^.originals.originals_basic_dev.*;
+
+namespace ITradableBertha {
+	val interface = "ITradableBertha";
+	
+	function dependencies(): list<text> {return [
+		Originals.chromia.INonFungibleOriginal.interface,
+		Originals.chromia.ITradable.interface
+	];}
+	
+	function register(auth_data) {
+        def_original_interface_op(
+            auth_data.auth_id,
+			interface,
+			[:],
+			dependencies(),
+			[
+				Marketplace.Meta.Category("Cow")
+			]
+		).sign(auth_data.keypair).run();
+    }
+    
+	function get() = Dip.Interface.get(interface);
+}
+
+namespace IBertha {
+	val interface = "IBertha";
+	
+	function dependencies(): list<text> {return [
+		Originals.chromia.INonFungibleOriginal.interface
+	];}
+	
+	function register(auth_data) {
+        def_original_interface_op(
+            auth_data.auth_id,
+			interface,
+			[:],
+			dependencies(),
+			[
+				Marketplace.Meta.Category("Cow")
+			]
+		).sign(auth_data.keypair).run();
+    }
+    
+	function get() = Dip.Interface.get(interface);
+}
+
+namespace IRanch {
+	val interface = "IRanch";
+	
+	function dependencies(): list<text> {return [
+		Originals.chromia.INonFungibleOriginal.interface,
+		Originals.chromia.ITradable.interface
+	];}
+	
+	val cows = Dip.Attribute.I(interface, name = "cows");
+	
+	function register(auth_data) {
+        def_original_interface_op(
+            auth_data.auth_id,
+			interface,
+			[
+				cows: Dip.Type(
+					Dip.Set.T(Dip.Attribute.type.instance, set<instance>().to_gtv()),
+					[OwnerMutable(), ImplementsInterface(ITradableBertha.interface)]
+				)
+			],
+			dependencies(),
+			[
+				Marketplace.Meta.Category("Ranch")
+			]
+		).sign(auth_data.keypair).run();
+    }
+    
+	function get() = Dip.Interface.get(interface);	
+}
+
+val ASSET_NAME = "CHR";
+val ASSET_ID = (ASSET_NAME).hash();
+val ASSET_AMOUNT = 1000;
+
+function register(acc1: auth_data, acc2: auth_data? = null) {
+	init_originals_interfaces_op(acc1.auth_id).sign(acc1.keypair).run();
+	create_asset_op(ASSET_NAME, acc1.auth_id.account_id, if (acc2??) acc2.auth_id.account_id else acc1.auth_id.account_id, ASSET_AMOUNT).run();
+	ITradableBertha.register(acc1);
+	IBertha.register(acc1);
+	IRanch.register(acc1);
+}
+
+function create_cow(auth_data) {
+	val original = Minter.I(
+	    interface_name = ITradableBertha.interface, [
+	        chromia.IOriginal.name: Text.T("Test Original"),
+			chromia.IOriginal.creator_id: ByteArray.T(auth_data.auth_id.account_id),
+			chromia.IOriginal.creator_name: Text.T("Admin"),
+            chromia.ITradable.image: File.T(dummy_file)
+		]
+	);
+	
+	NOP().op(mint_non_fungible_original_op(
+	    auth_data.auth_id,
+	    original
+	)).sign(auth_data.keypair).run();
+	return get_last();
+}
+
+function create_non_tradable_cow(auth_data) {
+	val original = Minter.I(
+	    interface_name = IBertha.interface, [
+	        chromia.IOriginal.name: Text.T("Test Original"),
+			chromia.IOriginal.creator_id: ByteArray.T(auth_data.auth_id.account_id),
+			chromia.IOriginal.creator_name: Text.T("Admin")
+        ]
+    );
+	
+	NOP().op(mint_non_fungible_original_op(
+	    auth_data.auth_id,
+	    original
+	)).sign(auth_data.keypair).run();
+	return get_last();
+}
+
+function create_ranch(auth_data, cows: list<byte_array>) {
+	val original = Minter.I(
+	    interface_name = IRanch.interface, [
+	        chromia.IOriginal.name: Text.T("Test Original"),
+			chromia.IOriginal.creator_id: ByteArray.T(auth_data.auth_id.account_id),
+			chromia.IOriginal.creator_name: Text.T("Admin"),
+            chromia.ITradable.image: File.T(dummy_file),
+			IRanch.cows: Dip.Set.T(Dip.Attribute.type.id, value=cows.to_gtv())
+		]
+	);
+	
+	NOP().op(mint_non_fungible_original_op(
+	    auth_data.auth_id,
+	    original
+	)).sign(auth_data.keypair).run();
+	return get_last();
+}
+
+function test_listing() {
+	val admin_account = create_ft3_test_acc(admin_keypair());
+	register(admin_account);
+	
+	val (bertha_id, bertha_instance) = create_cow(admin_account);
+	Originals.Marketplace.list_original_op(
+	    admin_account.auth_id,
+		bertha_id,
+		Ft3Helper.get_asset(ASSET_ID).id,
+		100
+	).sign(admin_account.keypair).run();
+	val listing = Originals.Marketplace.Listing.get(bertha_id);	
+	assert_equals(listing.price, 100);
+}
+
+function test_listing_fail_cases() {
+	val admin_account = create_ft3_test_acc(admin_keypair());
+	val bob_account = create_ft3_test_acc(bob_keypair());
+	register(admin_account);
+	val asset = Ft3Helper.get_asset(ASSET_ID);
+	
+	// does not implement ITradable
+	val (untradable_bertha_id, untradable_bertha_instance) = create_non_tradable_cow(admin_account);
+	Originals.Marketplace.list_original_op(
+	    admin_account.auth_id,
+		untradable_bertha_id,
+		asset.id,
+		100
+	).sign(admin_account.keypair).run_must_fail();
+	
+	val (bertha_id, bertha_instance) = create_cow(admin_account);
+	// no signer
+	Originals.Marketplace.list_original_op(
+	    admin_account.auth_id,
+		bertha_id,
+		asset.id,
+		100
+	).run_must_fail();
+	
+	// wrong signer
+	Originals.Marketplace.list_original_op(
+	    admin_account.auth_id,
+		bertha_id,
+		asset.id,
+		100
+	).sign(bob_account.keypair).run_must_fail();
+	
+	// not owner
+	Originals.Marketplace.list_original_op(
+	    bob_account.auth_id,
+		bertha_id,
+		asset.id,
+		100
+	).sign(bob_account.keypair).run_must_fail();
+	
+	// for free
+	Originals.Marketplace.list_original_op(
+	    admin_account.auth_id,
+		bertha_id,
+		asset.id,
+		0
+	).sign(admin_account.keypair).run_must_fail();
+	
+	// negative price
+	Originals.Marketplace.list_original_op(
+	    admin_account.auth_id,
+		bertha_id,
+		asset.id,
+		-1
+	).sign(admin_account.keypair).run_must_fail();
+	
+	// original doesn't exist
+	Originals.Marketplace.list_original_op(
+	    admin_account.auth_id,
+		x'affe',
+		asset.id,
+		100
+	).sign(admin_account.keypair).run_must_fail();
+	
+	// asset doesn't exist
+	Originals.Marketplace.list_original_op(
+	    admin_account.auth_id,
+		bertha_id,
+		x'affe',
+		100
+	).sign(admin_account.keypair).run_must_fail();
+	
+	Originals.Marketplace.list_original_op(
+	    admin_account.auth_id,
+		bertha_id,
+		asset.id,
+		100
+	).sign(admin_account.keypair).run();
+	
+	// relisting
+	Originals.Marketplace.list_original_op(
+	    admin_account.auth_id,
+		bertha_id,
+		asset.id,
+		100
+	).sign(admin_account.keypair).run_must_fail();
+}
+
+function test_listing_change_price() {
+	val admin_account = create_ft3_test_acc(admin_keypair());
+	register(admin_account);
+	
+	val (bertha_id, bertha_instance) = create_cow(admin_account);
+	Originals.Marketplace.list_original_op(
+	    admin_account.auth_id,
+		bertha_id,
+		Ft3Helper.get_asset(ASSET_ID).id,
+		100
+	).sign(admin_account.keypair).run();
+	Originals.Marketplace.change_original_price_op(
+	    admin_account.auth_id,
+	    bertha_id,
+        200
+	).sign(admin_account.keypair).run();
+	
+	val listing = Originals.Marketplace.Listing.get(bertha_id);	
+	assert_equals(listing.price, 200);
+}
+
+function test_listing_change_price_fail_cases() {
+	val admin_account = create_ft3_test_acc(admin_keypair());
+	val bob_account = create_ft3_test_acc(bob_keypair());
+	register(admin_account);
+	
+	val (bertha_id, bertha_instance) = create_cow(admin_account);
+	Originals.Marketplace.list_original_op(
+	    admin_account.auth_id,
+		bertha_id,
+		Ft3Helper.get_asset(ASSET_ID).id,
+		100
+	).sign(admin_account.keypair).run();
+	
+	// no signer
+	Originals.Marketplace.change_original_price_op(
+	    admin_account.auth_id,
+	    bertha_id,
+	    200
+	).run_must_fail();
+	
+	// wrong signer
+	Originals.Marketplace.change_original_price_op(
+	    admin_account.auth_id,
+	    bertha_id,
+	    200
+	).sign(bob_account.keypair).run_must_fail();
+	
+	// not owner
+	Originals.Marketplace.change_original_price_op(
+	    bob_account.auth_id,
+	    bertha_id,
+	    200
+	).sign(bob_account.keypair).run_must_fail();
+	
+	// for free
+	Originals.Marketplace.change_original_price_op(
+	    admin_account.auth_id,
+	    bertha_id,
+	    0
+	).sign(admin_account.keypair).run_must_fail();
+	
+	// negative price
+	Originals.Marketplace.change_original_price_op(
+	    admin_account.auth_id,
+	    bertha_id,
+        -1
+	).sign(admin_account.keypair).run_must_fail();
+}
+
+function test_listing_unlist() {
+	val admin_account = create_ft3_test_acc(admin_keypair());
+	register(admin_account);
+	
+	val (bertha_id, bertha_instance) = create_cow(admin_account);
+	Originals.Marketplace.list_original_op(
+	    admin_account.auth_id,
+		bertha_id,
+		Ft3Helper.get_asset(ASSET_ID).id,
+		100
+	).sign(admin_account.keypair).run();
+	
+	Originals.Marketplace.unlist_original_op(
+	    admin_account.auth_id,
+	    bertha_id
+	).sign(admin_account.keypair).run();
+		
+	assert_null(Originals.Marketplace.Listing.original_listing @? {.original.asset.id == bertha_id});
+}
+
+function test_unlisting_fail_cases() {
+	val admin_account = create_ft3_test_acc(admin_keypair());
+	val bob_account = create_ft3_test_acc(bob_keypair());
+	register(admin_account);
+	
+	val (bertha_id, bertha_instance) = create_cow(admin_account);
+	
+	//not listed
+	Originals.Marketplace.unlist_original_op(
+	    admin_account.auth_id,
+	    bertha_id
+	).sign(admin_account.keypair).run_must_fail();
+	
+	Originals.Marketplace.list_original_op(
+	    admin_account.auth_id,
+		bertha_id,
+		Ft3Helper.get_asset(ASSET_ID).id,
+		100
+	).sign(admin_account.keypair).run();
+	
+	// no signer
+	Originals.Marketplace.unlist_original_op(
+	    admin_account.auth_id,
+	    bertha_id
+	).run_must_fail();
+	
+	// wrong signer
+	Originals.Marketplace.unlist_original_op(
+	    admin_account.auth_id,
+	    bertha_id
+	).sign(bob_account.keypair).run_must_fail();
+	
+	// not owner
+	Originals.Marketplace.unlist_original_op(
+	    bob_account.auth_id,
+	    bertha_id
+	).sign(bob_account.keypair).run_must_fail();
+}
+
+function test_listing_buy() {
+	val admin_account = create_ft3_test_acc(admin_keypair());
+	val bob_account = create_ft3_test_acc(bob_keypair());
+	register(admin_account, bob_account);
+	
+	val (bertha_id, bertha_instance) = create_cow(admin_account);
+	Originals.Marketplace.list_original_op(
+	    admin_account.auth_id,
+		bertha_id,
+		Ft3Helper.get_asset(ASSET_ID).id,
+		100
+	).sign(admin_account.keypair).run();
+	
+	Originals.Marketplace.buy_original_op(
+	    bob_account.auth_id,
+	    bertha_id
+	).sign(bob_account.keypair).run();
+		
+	assert_equals(core.get_asset_balance(admin_account.auth_id.account_id, ASSET_ID)!!.amount, 1100);
+	assert_equals(core.get_asset_balance(bob_account.auth_id.account_id, ASSET_ID)!!.amount, 900);
+	
+	assert_true(Originals.Ft3Helper.owns_original(bob_account.auth_id.account_id, bertha_id));
+}
+
+function test_listing_buy_fail_cases() {
+	val admin_account = create_ft3_test_acc(admin_keypair());
+	val bob_account = create_ft3_test_acc(bob_keypair());
+	register(admin_account, bob_account);
+	
+	val (bertha_id, bertha_instance) = create_cow(admin_account);
+	
+	// not listed
+	Originals.Marketplace.buy_original_op(
+	    bob_account.auth_id,
+	    bertha_id
+	).sign(bob_account.keypair).run_must_fail();
+	
+	Originals.Marketplace.list_original_op(
+	    admin_account.auth_id,
+		bertha_id,
+		Ft3Helper.get_asset(ASSET_ID).id,
+		100
+	).sign(admin_account.keypair).run();
+	
+	// no signer
+	Originals.Marketplace.buy_original_op(
+	    bob_account.auth_id,
+	    bertha_id
+	).run_must_fail();
+	
+	// wrong signer
+	Originals.Marketplace.buy_original_op(
+	    bob_account.auth_id,
+	    bertha_id
+	).sign(admin_account.keypair).run_must_fail();
+	
+	// not enough tokens
+	Originals.Marketplace.change_original_price_op(
+	    admin_account.auth_id,
+	    bertha_id,
+	    ASSET_AMOUNT+1
+	).sign(admin_account.keypair).run();
+	assert_equals(core.get_asset_balance(bob_account.auth_id.account_id, ASSET_ID)!!.amount, ASSET_AMOUNT);	
+	Originals.Marketplace.buy_original_op(
+	     bob_account.auth_id,
+	     bertha_id
+	).sign(bob_account.keypair).run_must_fail();
+}
+
+function test_listing_buy_linked() {
+	val admin_account = create_ft3_test_acc(admin_keypair());
+	val bob_account = create_ft3_test_acc(bob_keypair());
+	register(admin_account, bob_account);
+	
+	val cow_ids = list<byte_array>();
+	for(i in range(5)) {
+		val (id, _) = create_cow(admin_account); 
+		cow_ids.add(id);
+	}
+	
+	val (ranch_id, ranch_instance) = create_ranch(admin_account, cow_ids);
+	Originals.Marketplace.list_original_op(
+	    admin_account.auth_id,
+		ranch_id,
+		Ft3Helper.get_asset(ASSET_ID).id,
+		100
+	).sign(admin_account.keypair).run();
+	
+	Originals.Marketplace.buy_original_op(
+	    bob_account.auth_id,
+	    ranch_id
+	).sign(bob_account.keypair).run();
+	
+	val history = Marketplace.History.find_original_trade_events_page(ranch_instance, Dip.r_zero(), 1).events[0];
+	
+	val indirectly_traded_ids = Marketplace.History.indirect_trade @* {} (.asset_instance.asset.id);
+	
+	assert_true(Originals.Ft3Helper.owns_original(bob_account.auth_id.account_id, ranch_id));
+	for (cow in cow_ids) {
+		assert_true(Originals.Ft3Helper.is_asset_locked(bob_account.auth_id.account_id, cow));
+		assert_true(cow in indirectly_traded_ids);
+		indirectly_traded_ids.remove(cow);
+	}
+	
+	assert_true(indirectly_traded_ids.empty());
+}

@@ -1,0 +1,55 @@
+namespace Meta {
+	enum type {
+		creator_mutable,
+		owner_mutable
+	}
+	
+	@extend(Dip.Meta.Engine.access_constraint) function(
+		Dip.attribute,
+		Dip.instance,
+		meta_key: text,
+		meta_value: gtv,
+		Dip.Meta.Engine.access
+	): boolean {
+		when (meta_key) {
+			type.owner_mutable.name -> {
+				check_owner_mutable(instance, attribute, meta_value, access);
+				return true;
+			}
+			type.creator_mutable.name -> {
+				check_creator_mutable(instance, attribute, meta_value, access);
+				return true;
+			}
+		}
+		
+		return false;
+	}
+	
+	function check_owner_mutable(Dip.instance, Dip.attribute, meta_value: gtv, Dip.Meta.Engine.access) {				
+		val id = Id.get_id(instance);		
+		require(Ft3Helper.owns_original(access.account.id, id), "Attribute " + attribute.name + " can only be changed by owner.");
+	}
+	
+	function check_creator_mutable(Dip.instance, Dip.attribute, meta_value: gtv, Dip.Meta.Engine.access) {
+		val creator_id = Dip.ByteArray.get_value(instance, chromia.IOriginal.creator_id);
+		require(creator_id, "No creator value found from instance");
+		
+		require(creator_id == access.account.id, "Only the creator can modify that attribute");
+	}
+}
+	
+function OwnerMutable(): Dip.Meta.I {
+	return Dip.Meta.I(
+		meta_key = Meta.type.owner_mutable.name,
+		meta_value = true.to_gtv().to_bytes(),
+		category = Dip.AttributeMeta.category.access_constraint.name
+	);
+}
+
+function CreatorMutable(): Dip.Meta.I {
+	return Dip.Meta.I(
+		meta_key = Meta.type.creator_mutable.name,
+		meta_value = true.to_gtv().to_bytes(),
+		category = Dip.AttributeMeta.category.access_constraint.name
+	);
+}

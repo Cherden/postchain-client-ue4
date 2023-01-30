@@ -1,0 +1,28 @@
+@extend(init_player) function give_starting_tokens(player) {
+  give_starting_assets(player);
+}
+
+function give_starting_assets(player) {
+  val all_assets = assets.list_all();
+  
+  if(chain_context.args.starting_ft3_tokens > 0) {
+    for(ft3 in all_assets.FT3) {
+      assets.reward_ft3_asset(
+        ft3.name, 
+        chain_context.args.starting_ft3_tokens, 
+        player
+      );
+    }
+  }
+
+  if(chain_context.args.starting_original_tokens > 0) {
+    for(original in all_assets.Originals @* { .interface not in [assets.IStake.interface, assets.IERC721.interface]}) {
+      assets.reward_original_asset(
+        original.name, 
+        original.interface, 
+        chain_context.args.starting_original_tokens, 
+        player
+      );
+    }
+  }
+}

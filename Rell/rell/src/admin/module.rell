@@ -1,0 +1,14 @@
+@mount("admin")
+module;
+
+import common;
+import player.*;
+import assets;
+import game_master.*;
+
+namespace ft3 {
+  import acc: rell_modules.ft3.account;
+  import rell_modules.ft3.account.operations;
+  import core: rell_modules.ft3.core;
+  import rell_modules.ft3.core.operations.transfer;
+}

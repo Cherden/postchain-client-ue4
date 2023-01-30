@@ -1,0 +1,297 @@
+@test
+module;
+
+import ^^.external;
+import ^^^.access.whitelist;
+import ^^^.ft3_helper.tests.*;
+
+import ^.mocks;
+import wl_helper: ^^^.access.whitelist.tests.helper;
+
+function test_account_cannot_define_interface_when_not_whitelisted() {
+    val alice = register_alice();
+    
+    external
+        .def_interface_op(
+            alice.auth_id,
+            "TestInterface",
+            [:]
+        )
+        .sign(alice.keypair)
+        .run_must_fail();       
+}
+
+function test_whitelisted_account_can_define_interface() {
+    val alice = register_alice();
+    
+    whitelist
+        .whitelist_account(alice.auth_id.account_id)
+        .sign(admin_keypair())
+        .run();
+        
+    external
+        .def_interface_op(
+            alice.auth_id,
+            "TestInterface",
+            [:]
+        )
+        .sign(alice.keypair)
+        .run();
+}
+
+function test_locked_account_cannot_define_interface() {
+    val alice = register_alice();
+    
+    whitelist
+        .whitelist_account(alice.auth_id.account_id)
+        .sign(admin_keypair())
+        .run();
+        
+    whitelist
+        .lock_account(alice.auth_id.account_id)
+        .sign(admin_keypair())
+        .run();
+        
+    external
+        .def_interface_op(
+            alice.auth_id,
+            "TestInterface",
+            [:]
+        )
+        .sign(alice.keypair)
+        .run_must_fail();
+}
+
+function test_whitelisted_account_cannot_define_interface_when_not_dependent_interface_owner() {
+    val admin = register_admin();
+    val alice = register_alice();
+    val bob = register_bob();
+    
+    wl_helper.whitelist_accounts([alice, bob], admin);
+    
+    external
+        .def_interface_op(
+            alice.auth_id,
+            "TestInterface1",
+            [:]
+        )
+        .sign(alice.keypair)
+        .run();
+    
+    external
+        .def_interface_op(
+            bob.auth_id,
+            "TestInterface2",
+            [:],
+            ["TestInterface1"]
+        )
+        .sign(bob.keypair)
+        .run_must_fail();
+}
+
+function test_whitelisted_account_can_define_interface_when_dependent_interface_owner() {
+    val admin = register_admin();
+    val alice = register_alice();
+    
+    wl_helper.whitelist_accounts([alice], admin);
+    
+    external
+        .def_interface_op(
+            alice.auth_id,
+            "TestInterface1",
+            [:]
+        )
+        .sign(alice.keypair)
+        .run();
+    
+    external
+        .def_interface_op(
+            alice.auth_id,
+            "TestInterface2",
+            [:],
+            ["TestInterface1"]
+        )
+        .sign(alice.keypair)
+        .run();
+}
+
+function test_whitelisted_account_can_define_prototype_when_interface_owner() {
+    val admin = register_admin();
+    val alice = register_alice();
+    
+    wl_helper.whitelist_accounts([alice], admin);
+    val interface_name = mocks.define_empty_interface(auth_data = alice);
+    
+    external
+        .def_prototype_op(
+            alice.auth_id,
+            interface_name,
+            [:],
+            "TestPrototype"
+        )
+        .sign(alice.keypair)
+        .run();
+}
+
+function test_whitelisted_account_cannot_define_prototype_when_not_interface_owner() {
+    val admin = register_admin();
+    val alice = register_alice();
+    val bob = register_bob();
+    
+    wl_helper.whitelist_accounts([alice, bob], admin);
+    val interface_name = mocks.define_empty_interface(auth_data = alice);
+    
+    external
+        .def_prototype_op(
+            bob.auth_id,
+            interface_name,
+            [:],
+            "TestPrototype"
+        )
+        .sign(bob.keypair)
+        .run_must_fail();
+}
+
+function test_whitelisted_account_can_define_prototype_when_parent_prototype_owner() {
+    val admin = register_admin();
+    val alice = register_alice();
+    
+    wl_helper.whitelist_accounts([alice], admin);
+    val interface_name = mocks.define_empty_interface(auth_data = alice);
+    
+    external
+        .def_prototype_op(
+            alice.auth_id,
+            interface_name,
+            [:],
+            "TestParentPrototype"
+        )
+        .sign(alice.keypair)
+        .run();   
+        
+    external
+        .def_prototype_op(
+            alice.auth_id,
+            interface_name,
+            [:],
+            "TestChildPrototype",
+            "TestParentPrototype"
+        )
+        .sign(alice.keypair)
+        .run();  
+}
+
+function test_whitelisted_account_cannot_define_prototype_when_not_parent_prototype_owner() {
+    val admin = register_admin();
+    val alice = register_alice();
+    val bob = register_bob();
+    
+    wl_helper.whitelist_accounts([alice, bob], admin);
+    val interface_name_1 = mocks.define_empty_interface("TestInterface1", alice);
+    val interface_name_2 = mocks.define_empty_interface("TestInterface2", bob);
+    
+    external
+        .def_prototype_op(
+            alice.auth_id,
+            interface_name_1,
+            [:],
+            "TestParentPrototype"
+        )
+        .sign(alice.keypair)
+        .run();   
+        
+    external
+        .def_prototype_op(
+            bob.auth_id,
+            interface_name_2,
+            [:],
+            "TestChildPrototype",
+            "TestParentPrototype"
+        )
+        .sign(bob.keypair)
+        .run_must_fail();  
+}
+
+function test_whitelisted_account_can_create_instance_when_interface_owner() {
+    val admin = register_admin();
+    val alice = register_alice();
+    
+    wl_helper.whitelist_accounts([alice], admin);
+    val interface_name = mocks.define_empty_interface(auth_data = alice);
+    
+    external
+        .def_instance_op(
+            alice.auth_id,
+            interface_name,
+            [:]
+        )
+        .sign(alice.keypair)
+        .run();
+}
+
+function test_whitelisted_account_cannot_create_instance_when_not_interface_owner() {
+    val admin = register_admin();
+    val alice = register_alice();
+    val bob = register_bob();
+    
+    wl_helper.whitelist_accounts([alice, bob], admin);
+    val interface_name = mocks.define_empty_interface(auth_data = alice);
+    
+    external
+        .def_instance_op(
+            bob.auth_id,
+            interface_name,
+            [:]
+        )
+        .sign(bob.keypair)
+        .run_must_fail();
+}
+
+function test_whitelisted_account_can_create_instance_when_prototype_owner() {
+    val admin = register_admin();
+    val alice = register_alice();
+    
+    wl_helper.whitelist_accounts([alice], admin);
+    val interface_name = mocks.define_empty_interface(auth_data = alice);
+    val prototype_name = mocks.define_empty_prototype(
+        interface_name = interface_name, 
+        auth_data = alice
+    );
+    
+    external
+        .def_instance_op(
+            alice.auth_id,
+            interface_name,
+            [:],
+            prototype_name
+        )
+        .sign(alice.keypair)
+        .run();
+}
+
+
+function test_whitelisted_account_cannot_create_instance_when_not_prototype_owner() {
+    val admin = register_admin();
+    val alice = register_alice();
+    val bob = register_bob();
+    
+    wl_helper.whitelist_accounts([alice, bob], admin);
+    val interface_name_1 = mocks.define_empty_interface("TestInterface1", alice);
+    val prototype_name = mocks.define_empty_prototype(
+        interface_name = interface_name_1, 
+        auth_data = alice
+    );
+        
+    val interface_name_2 = mocks.define_empty_interface("TestInterface2", bob);
+
+    external
+        .def_instance_op(
+            bob.auth_id,
+            interface_name_2,
+            [:],
+            prototype_name
+        )
+        .sign(bob.keypair)
+        .run_must_fail();
+}
+

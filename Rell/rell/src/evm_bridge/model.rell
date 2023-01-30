@@ -1,0 +1,13 @@
+struct token_data {
+  id: integer;
+  contract_address: text;
+}
+
+entity chain {
+  key name: text;
+}
+
+entity contract {
+  key chain, address: text;
+  mutable block_number: integer;
+}

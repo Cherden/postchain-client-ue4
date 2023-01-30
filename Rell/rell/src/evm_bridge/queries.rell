@@ -1,0 +1,7 @@
+query get_contract (address: text, chain_name: text) {
+  return contract @? { .address == address.lower_case() and .chain.name == chain_name } (
+    chain = .chain.name,
+    .address,
+    deployedBlockHeight = .block_number
+  );
+}

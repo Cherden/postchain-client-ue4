@@ -1,0 +1,15 @@
+function create_chain(name: text) {
+  require(
+    chain @? { name } == null,
+    error.new(error.type.BadInput, error.issue.ChainAlreadyExists)
+  );
+
+  create chain(name);
+}
+
+function require_chain_exists(name: text) {
+  return require(
+    chain @? { .name == name },
+    error.new(error.type.BadInput, error.issue.ChainUnknown)
+  );
+}

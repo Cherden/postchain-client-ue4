@@ -1,0 +1,102 @@
+
+struct session_auth_descriptor {
+	rell.test.keypair;
+	ft3_acc.auth_descriptor;
+}
+
+struct test_account {
+	id: byte_array;
+	mutable ft3_acc: ft3_acc.account?;
+	session_auth_descriptors: list<session_auth_descriptor>;
+}
+
+function auth_descriptor_single_sig_args(pub: byte_array, flags: set<text>): ft3_acc.single_sig_args {
+	return ft3_acc.single_sig_args(flags, pub);
+}
+
+function auth_descriptor_multi_sig_args(pubkeys: list<byte_array>, flags: set<text>, signatures_required: integer): gtv {
+	for(pub in pubkeys) {
+		require(is_signer(pub));
+	}
+	
+	return ft3_acc.multi_sig_args(flags, pubkeys, signatures_required).to_gtv();
+}  
+
+function init_account(keypair: rell.test.keypair) {
+	val flags = set<text>(["A", "T"]);
+	val args = auth_descriptor_single_sig_args(keypair.pub, set<text>(["A", "T"]));
+	val auth_descriptor = ft3_acc.auth_descriptor(
+		auth_type = "S",
+		participants = [keypair.pub],
+		[args.flags.to_gtv(), args.pubkey.to_gtv()],
+		rules = gtv.from_json(json("null"))
+	);
+	return test_account(
+		id = auth_descriptor.hash(),
+		session_auth_descriptors = [session_auth_descriptor(auth_descriptor, keypair)],
+		ft3_acc = null
+	);
+}
+
+
+function tx_create_account(test_account): test_account {
+	require(test_account.session_auth_descriptors.size() >0, "TEST_FT3: You need to have at least one auth_descriptor");
+	
+	val session_auth_desc = test_account.session_auth_descriptors[0];
+	
+	require(session_auth_desc.auth_descriptor.auth_type == "S" or session_auth_desc.auth_descriptor.auth_type == "M", "TEST_FT3: Only single sig (S) or multi sig (M) auth_descriptors supported");
+	
+	val tx = rell.test.tx()
+		.op(ft3_op_account.dev_register_account(session_auth_desc.auth_descriptor))
+		.sign(session_auth_desc.keypair);
+	
+	rell.test.block().tx(tx).run();
+	
+	test_account.ft3_acc = ft3_acc.account@{session_auth_desc.auth_descriptor.hash()}; 
+	return test_account;
+}
+
+
+
+function tx_add_single_sig_auth_descriptor(test_account, new_keypair: rell.test.keypair, flags: set<text>): test_account {
+	
+	val signing_auth_descriptor = require_not_empty(find_auth_descriptor_with_flags(test_account.session_auth_descriptors, set<text>(["A"]), "S"), "There is not such auth_descriptor!");
+	
+	val new_auth_descriptor = ft3_acc.auth_descriptor(
+		auth_type = "S",
+		participants = [new_keypair.pub],
+		[flags.to_gtv(), new_keypair.pub.to_gtv()],
+		rules = gtv.from_json(json("null"))
+	);
+
+	val op = ft3_acc_op.add_auth_descriptor(test_account.id, signing_auth_descriptor.auth_descriptor.hash(), new_auth_descriptor);
+	val tx = rell.test.tx()
+		.op(op)
+		.sign(signing_auth_descriptor.keypair)
+		.sign(new_keypair);
+	rell.test.block().tx(tx).run();
+	
+	test_account.session_auth_descriptors.add(session_auth_descriptor(new_keypair, new_auth_descriptor));
+	return test_account;
+} 
+
+
+/**
+ * Returns the first auth_descriptor with the specified flags and the given auth_type (only single sig or multi sig supported atm)
+ */
+function find_auth_descriptor_with_flags(session_auth_descriptors: list<session_auth_descriptor>, flags: set<text>, auth_type: text): session_auth_descriptor? {
+	for(session_auth_descriptor in session_auth_descriptors) {
+		val auth_descriptor = session_auth_descriptor.auth_descriptor;
+		when {
+			auth_descriptor.auth_type == "S" -> {
+				val single_sig_args = ft3_acc.single_sig_args.from_gtv(auth_descriptor.args.to_gtv());
+				if(single_sig_args.flags.contains_all(flags)) return session_auth_descriptor;
+			}
+			auth_descriptor.auth_type == "T" -> {
+				val multi_sig_args = ft3_acc.multi_sig_args.from_gtv(auth_descriptor.args.to_gtv());
+				if(multi_sig_args.flags.contains_all(flags)) return session_auth_descriptor;
+			}
+		}
+	}
+	return null;
+}

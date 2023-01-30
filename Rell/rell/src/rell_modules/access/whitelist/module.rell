@@ -1,0 +1,4 @@
+@mount("access.whitelist")
+module;
+
+import rell_modules.ft3.account.*;

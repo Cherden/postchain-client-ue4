@@ -1,0 +1,15 @@
+function list_all() {
+  val prototypes = (p: assets.Dip.Prototype.prototype, d: assets.Dip.instance_dclass) @* {
+    p.instance == d.instance,
+    d.direct == true
+  } (
+    name = p.name,
+    interface = d.dclass.name
+  );
+  val ft3 = assets.game_asset @* {} ( name = .asset.name );
+
+  return (
+    FT3 = ft3,
+    Originals = prototypes
+  );
+}

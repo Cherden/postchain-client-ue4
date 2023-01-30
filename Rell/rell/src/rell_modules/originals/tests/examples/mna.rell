@@ -1,0 +1,321 @@
+@test module;
+
+import ^^^.tests.*;
+import ^^^^.dip.tests.*;
+
+/*
+ * MNA integration test example
+ */
+ 
+// Defines an interface IMyNeighbourAlice which extends INonFungibleOriginal.
+// All Originals implementing IMyNeighbourAlice will therefore be "NFTs".
+namespace mna.IBasic {
+	val interface = "mna.IBasic";
+	
+	function dependencies(): list<text> {
+        return [
+            chromia.INonFungibleOriginal.interface
+        ];
+    }
+    
+    function register(auth_data) {
+        def_original_interface_op(
+            auth_data.auth_id,
+            interface,
+            [:],
+            dependencies()
+        ).sign(auth_data.keypair).run();
+    }
+	
+	function get() = Dip.Interface.get(interface);
+}
+// Interface that defines plot Originals and extends IMyNeighbourAlice.
+// Each attribute is accessible by mna.IPlot.<attr_name>.
+// Attributes are only declared at this point, but not implemented. This is done with the Type()
+// function. Text.T, Set.T and Integer.T are structs which define the attribute type. Default values for
+// each attribute are defined in them. So if an Original does not implement the attribute "region",
+// its name will default to "Nature's Rest".
+// In the type definition, optional meta constraints can be defined in an array. The "content"
+// attribute for example can be modified by the owner of the Original and all linked Originals
+// to it have to implement the interface "mna.IItem". pos_x and pos_y can only contain integers
+// between 0 and 100.   
+namespace mna.IPlot {
+	val interface = "mna.IPlot";
+	
+	function dependencies(): list<text> {
+        return [ mna.IBasic.interface ];
+    }
+	
+	val region = Dip.Attribute.I(interface, name = "region");
+	val content = Dip.Attribute.I(interface, name = "content");
+	val pos_x = Dip.Attribute.I(interface, name = "pos_x");
+	val pos_y = Dip.Attribute.I(interface, name = "pos_y");
+	
+	function register(auth_data) {
+        def_original_interface_op(
+            auth_data.auth_id,
+            interface,
+            [
+                region: Type(Text.T("Nature's Rest")),
+                content: Type(Set.T(Attribute.type.instance, set<instance>().to_gtv()),
+                    [OwnerMutable(), ImplementsInterface("mna.IItem")]
+                ),
+                pos_x: Type(Integer.T(), [Min(0), Max(100)]),
+                pos_y: Type(Integer.T(), [Min(0), Max(100)])
+            ],
+            dependencies()
+        ).sign(auth_data.keypair).run();
+    }
+	
+	function get() = Dip.Interface.get(interface);
+}
+
+// mna.IItem are Originals that can be placed on a plot. Their positions are optional
+// so that not set positions mean they are on no plot.      
+namespace mna.IItem {
+	val interface = "mna.IItem";
+	
+	function dependencies(): list<text> {
+        return [ mna.IBasic.interface ];
+    }
+	
+	val name = Dip.Attribute.I(interface, name = "name");
+	val type = Dip.Attribute.I(interface, name = "type");
+	val pos_x = Dip.Attribute.I(interface, name = "pos_x");
+	val pos_y = Dip.Attribute.I(interface, name = "pos_y");
+	
+	function register(auth_data) {
+        def_original_interface_op(
+            auth_data.auth_id,
+            interface,
+            [
+                name: Type(Text.T()),
+                type: Type(Text.T()),
+                pos_x: Type(Integer.T(), [Min(0), Max(100), Optional(), OwnerMutable()]),
+                pos_y: Type(Integer.T(), [Min(0), Max(100), Optional(), OwnerMutable()])
+            ],
+            dependencies()
+        ).sign(auth_data.keypair).run();
+    }
+	
+	function get() = Dip.Interface.get(interface);
+}
+
+// Creates a prototype called MNA that is discoverable by mna.PBasic.
+// Implements the creator attributes so that all Originals implementing this prototype
+// do not have to define them. In this example the creator will be the admin keypair.
+namespace mna.PBasic {
+    val prototype = "mna.PBasic";
+    
+    function register(auth_data) {
+        def_original_prototype_op(
+            auth_data.auth_id,
+            mna.IBasic.interface,
+            [
+                chromia.IOriginal.name: Text.T("mna Original"),
+                chromia.IOriginal.creator_id: ByteArray.T(auth_data.auth_id.account_id),
+                chromia.IOriginal.creator_name: Text.T("Admin")
+            ],
+            mna.PBasic.prototype
+        ).sign(auth_data.keypair).run();
+    }
+    
+    function get() = Dip.Prototype.get(prototype);
+}
+
+// Creates a prototype for cow "items". Cows can be placed on a plot and are set
+// to have the type "cow". It extend implements the interface mna.IItem and extends the
+// prototype IMyNeighbourAlice.MNA. It will be discoverable with the name mna.IItem.MNACow.
+// In the real MNA it would also include the 3D model of the cow to save space. A prototype
+// only implements the attribute once. So if we have 1000 cows the 3D model will only be stored
+// once.
+namespace mna.PCow {
+    val prototype = "mna.PCow";
+    
+    val dependency = mna.PBasic.prototype;
+    
+    function register(auth_data) {
+        def_original_prototype_op(
+            auth_data.auth_id,
+            mna.IItem.interface,
+            [
+                mna.IItem.type: Text.T("cow")
+            ],
+            prototype,
+            dependency
+        ).sign(admin_keypair()).run();
+    }
+    
+    function get() = Dip.Prototype.get(prototype);
+}
+ 
+function init_originals() {
+	val admin_account = create_ft3_test_acc(admin_keypair());
+	// Defines standard interfaces like IOriginal, INonFungibleOriginal and so on.
+	init_originals_interfaces_op(admin_account.auth_id).sign(admin_account.keypair).run(); 
+	
+	mna.IBasic.register(admin_account);
+	mna.IPlot.register(admin_account);
+	mna.IItem.register(admin_account);
+	
+    mna.PBasic.register(admin_account);
+	mna.PCow.register(admin_account);
+}
+
+// Mints a new plot directly to an account
+function assign_plot(owner_id: byte_array, pos: (x: integer, y: integer)): byte_array {
+	val admin_account = get_ft3_test_acc(admin_keypair());
+	// Defines the structure of the Original. First array is the interfaces it implements.
+	// Additional to these interfaces, it will also implement the interfaces defined in the
+	// prototype ("IMyNeighbourAlice.MNA").
+	// The map defines the attributes the Original implements (in this case plot position).
+	val original = Minter.I(
+		interface_name = mna.IPlot.interface,
+		[
+			mna.IPlot.pos_x: Integer.T(pos.x),
+			mna.IPlot.pos_y: Integer.T(pos.y)
+		],
+		prototype_name = mna.PBasic.prototype
+	);
+	
+	// MintNonFungibleOriginalToAccount is a shortcut function that mints the Original and directly
+	// afterwards transfers it to a different account. Since only the creator of the interface can
+	// mint new Originals of it, the new owner cannot mint it themselves.
+	mint_non_fungible_original_to_account_op(
+	    admin_account.auth_id,
+	    original,
+	    owner_id
+	).sign(admin_account.keypair).run();
+	
+	return get_last_id();
+}
+
+// Mints a new item. Similar to assign_plot()
+function create_item(owner_id: byte_array, name: text, type: text): byte_array {
+	val admin_account = get_ft3_test_acc(admin_keypair());
+	val original = Minter.I(
+		interface_name = mna.IItem.interface,
+		[
+			mna.IItem.name: Text.T(name),
+			mna.IItem.type: Text.T(type)
+		],
+		prototype_name = mna.PBasic.prototype
+	);
+	
+	mint_non_fungible_original_to_account_op(
+	    admin_account.auth_id,
+	    original,
+	    owner_id
+	).sign(admin_account.keypair).run();
+	
+	return get_last_id();
+}
+
+// Mints a batch of new item. Similar to create_item()
+function create_items(owner_id: byte_array, name: text, type: text, quantity: integer) {
+	val admin_account = get_ft3_test_acc(admin_keypair());
+	val original = Minter.I(
+		interface_name = mna.IItem.interface,
+		[
+			mna.IItem.name: Text.T(name),
+			mna.IItem.type: Text.T(type)
+		],
+		prototype_name = mna.PBasic.prototype
+	);
+	
+	mint_non_fungible_original_to_account_batch_op(
+	    admin_account.auth_id,
+	    original,
+        owner_id,
+        quantity
+	).sign(admin_account.keypair).run();
+}
+
+// Mints a cow that implements the "mna.IItem.MNACow" prototype.
+function create_cow(owner_id: byte_array, name: text): byte_array {
+	val admin_account = get_ft3_test_acc(admin_keypair());
+	val original = Minter.I(
+		interface_name = mna.IItem.interface,
+		[
+			mna.IItem.name: Text.T(name)
+		], 
+		prototype_name = mna.PCow.prototype
+	);
+	
+	mint_non_fungible_original_to_account_op(
+	    admin_account.auth_id,
+	    original,
+	    owner_id
+	).sign(admin_account.keypair).run();
+	
+	return get_last_id();
+}
+
+// Places an item on the plot at a specific position.
+function place_item_on_plot(owner: auth_data, plot_id: byte_array, item_id: byte_array, pos: (x: integer, y: integer)) {
+	set_item_position(owner, item_id, pos);	
+	
+	// Originals can be composed in a way where one is linked to another. In a typical RPG world this could be a
+	// character which has a sword, shield, armour, etc. linked to it. In this context, we are placing items on the
+	// plot by linking it to the plot Original. This also allows for a fully furnished plot sale, because all linked
+	// Originals will be transferred as well if sold.
+	// The linked Original (in this case the item), will be transferred to a special account of the owner which makes
+	// it impossible to trade/modify while it is linked.
+	link_original_op(
+	    owner.auth_id,
+	    mna.IPlot.content,
+	    plot_id,
+	    item_id
+	).sign(owner.keypair).run();
+}
+
+// Sets the position of an item on the plot
+function set_item_position(owner: auth_data, item_id: byte_array, pos: (x: integer, y: integer)) {
+	// Attributes can be modified if they are marked mutable in the interface type definition. Per default,
+	// all attributes are immutable. But since "mna.IItem.pos_x" got the meta constraint OwnerMutable(), the owner
+	// of the Original can modify this attribute. Besides OwnerMutable() there is CreatoreMutable() (creator of the Original
+	// can change it), DappMutable() (can only be changed on dapp level) and PublicMutable() (everyone can change it).
+	// In this case the owner sets the attributes to the desired coordinate on the plot.
+	set_original_attribute_op(
+	    owner.auth_id,
+	    item_id,
+	    mna.IItem.pos_x,
+	    pos.x.to_gtv()
+	).sign(owner.keypair).run();
+	set_original_attribute_op(
+	    owner.auth_id,
+	    item_id,
+	    mna.IItem.pos_y,
+	    pos.y.to_gtv()
+	).sign(owner.keypair).run();
+}
+
+function test_mna_example() {
+	init_originals();
+	val bob_account = create_ft3_test_acc(bob_keypair());
+	
+	// Create plot, cow, house and some fences
+	val plot = assign_plot(bob_account.auth_id.account_id, (x=21, y=42));
+	val cow = create_cow(bob_account.auth_id.account_id, "Bertha");
+	val house = create_item(bob_account.auth_id.account_id, "torp", "house");
+	
+	val fence_amount = 20;
+	create_items(bob_account.auth_id.account_id, "fence_01", "fence", fence_amount);	
+	val fence_instances = Attribute.find_instances(mna.IItem.type, "fence".to_gtv(), Filter.p_from(), fence_amount).results;
+	val fences = fence_instances @* {} (Id.get_id($));
+	
+	// Place house and cow on plot
+	place_item_on_plot(bob_account, plot, house, (x=5,y=5));
+	place_item_on_plot(bob_account, plot, cow, (x=4,y=5));
+	
+	// Put fence around our belongings
+	var idx = 0;
+	for (i in range(3, 7)) {
+		for (j in range(3, 7)) {
+			if (i==3 or i==6 or j==3 or j==6) {
+				place_item_on_plot(bob_account, plot, fences[idx++], (x=i,y=j));				
+			}
+		}
+	}
+}
+

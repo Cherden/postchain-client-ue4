@@ -1,0 +1,474 @@
+val CHAIN_NAME = "Ethereum";
+val DEPOSIT_CONTRACT_ADDRESS = "0x1E4dDeA00CD144b45015Fbeb93faE8E8acfa0551";
+val ONENFT_CONTRACT_ADDRESS = "0xAbCdDeA00CD144b45015Fbeb93faE8E8acfa1662";
+val ETH_WALLET_ADDRESS = "0x73580E7BB63d8acfD0aC9bfA736B8D3911CBECe5";
+
+function test_register_chain() {
+  util.init_chain();
+
+  val chain = evm_bridge.chain @? { .name == CHAIN_NAME };
+  assert_null(chain);
+
+  create_chain(CHAIN_NAME);
+
+  val chains = evm_bridge.chain @* { .name == CHAIN_NAME };
+
+  assert_equals(chains.size(), 1);
+  assert_equals(CHAIN_NAME, chains.get(0).name);
+}
+
+function test_register_existing_chain() {
+  util.init_chain();
+
+  create_chain(CHAIN_NAME);
+
+  rell.test
+    .tx()
+    .op(evm_bridge.register_chain(CHAIN_NAME))
+    .sign(data.admin_keypair)
+    .run_must_fail();
+}
+
+function test_register_contract() {
+  util.init_chain();
+
+  val deposit_contract_address = DEPOSIT_CONTRACT_ADDRESS.lower_case();
+
+  val contract = evm_bridge.contract @? { .address == deposit_contract_address, .chain.name == CHAIN_NAME };
+  assert_null(contract);
+
+  create_chain(CHAIN_NAME);
+  create_contract(CHAIN_NAME, DEPOSIT_CONTRACT_ADDRESS, 10);
+
+  val contracts = evm_bridge.contract @* { .address == deposit_contract_address, .chain.name == CHAIN_NAME };
+
+  assert_equals(contracts.size(), 1);
+  assert_equals(contracts.get(0).address, deposit_contract_address);
+  assert_equals(contracts.get(0).chain.name, CHAIN_NAME);
+}
+
+function test_register_contract_fail_chain_doesnt_exist() {
+  util.init_chain();
+
+  rell.test
+    .tx()
+    .op(evm_bridge.register_contract(DEPOSIT_CONTRACT_ADDRESS, CHAIN_NAME, 10))
+    .sign(data.admin_keypair)
+    .run_must_fail();
+}
+
+function test_register_contract_fail_existing_contract() {
+  setup();
+
+  rell.test
+    .tx()
+    .op(evm_bridge.register_contract(DEPOSIT_CONTRACT_ADDRESS, CHAIN_NAME, 10))
+    .sign(data.admin_keypair)
+    .run_must_fail();
+}
+
+function test_register_contract_fail_invalid_block_number() {
+  util.init_chain();
+
+  create_chain(CHAIN_NAME);
+
+  rell.test
+    .tx()
+    .op(evm_bridge.register_contract(DEPOSIT_CONTRACT_ADDRESS, CHAIN_NAME, -10))
+    .sign(data.admin_keypair)
+    .run_must_fail();
+}
+
+function test_process_request_token_withdrawal_event_one_token() {
+  setup();
+
+  val user_auth_data = register_evm_address();
+  val token_id = 100;
+
+  util.give_user_IERC721Plot(user_auth_data, 3001, CHAIN_NAME, ONENFT_CONTRACT_ADDRESS, token_id);
+
+  val tokens = [
+    evm_bridge.token_data(token_id, ONENFT_CONTRACT_ADDRESS)
+  ];
+
+  process_request_token_withdrawal_event(tokens);
+
+  val alice = ft3.acc.account @ { alice_account_id() };
+  val token = assets.IERC721.fetch_by_id(CHAIN_NAME, ONENFT_CONTRACT_ADDRESS, token_id);
+  assets.IERC721.assert_owner_of(alice, token);
+}
+
+function test_process_request_token_withdrawal_event_multiple_tokens() {
+  setup();
+
+  val user_auth_data = register_evm_address();
+  val token_id1 = 100;
+  val token_id2 = 200;
+
+  util.give_user_IERC721Plot(user_auth_data, 3001, CHAIN_NAME, ONENFT_CONTRACT_ADDRESS, token_id1);
+  util.give_user_IERC721Plot(user_auth_data, 3002, CHAIN_NAME, ONENFT_CONTRACT_ADDRESS, token_id2);
+
+  val tokens = [
+    evm_bridge.token_data(token_id1, ONENFT_CONTRACT_ADDRESS),
+    evm_bridge.token_data(token_id2, ONENFT_CONTRACT_ADDRESS)
+  ];
+
+  process_request_token_withdrawal_event(tokens);
+
+  val alice = ft3.acc.account @ { alice_account_id() };
+
+  val token1 = assets.IERC721.fetch_by_id(CHAIN_NAME, ONENFT_CONTRACT_ADDRESS, token_id1);
+  val token2 = assets.IERC721.fetch_by_id(CHAIN_NAME, ONENFT_CONTRACT_ADDRESS, token_id2);
+  assets.IERC721.assert_owner_of(alice, token1);
+  assets.IERC721.assert_owner_of(alice, token2);
+}
+
+function test_process_request_token_withdrawal_fail_unknown_chain() {
+  setup();
+
+  val user_auth_data = register_evm_address();
+  val token_id = 100;
+
+  util.give_user_IERC721Plot(user_auth_data, 3001, CHAIN_NAME, ONENFT_CONTRACT_ADDRESS, token_id);
+
+  val tokens = [
+    evm_bridge.token_data(token_id, ONENFT_CONTRACT_ADDRESS)
+  ];
+
+  val unknown_chain = "Unknown";
+
+  rell.test
+    .tx()
+    .op(evm_bridge.process_request_token_withdrawal_event(unknown_chain, DEPOSIT_CONTRACT_ADDRESS, tokens, 20, ETH_WALLET_ADDRESS))
+    .sign(data.admin_keypair)
+    .run_must_fail();
+}
+
+function test_process_request_token_withdrawal_fail_unknown_deposit_contract_address() {
+  setup();
+
+  val user_auth_data = register_evm_address();
+  val token_id = 100;
+
+  util.give_user_IERC721Plot(user_auth_data, 3001, CHAIN_NAME, ONENFT_CONTRACT_ADDRESS, token_id);
+
+  val tokens = [
+    evm_bridge.token_data(token_id, ONENFT_CONTRACT_ADDRESS)
+  ];
+
+  val unknown_deposit_contract_address = "0xUnknown";
+
+  rell.test
+    .tx()
+    .op(evm_bridge.process_request_token_withdrawal_event(CHAIN_NAME, unknown_deposit_contract_address, tokens, 20, ETH_WALLET_ADDRESS))
+    .sign(data.admin_keypair)
+    .run_must_fail();
+}
+
+function test_process_request_token_withdrawal_fail_unknown_token_contract_address() {
+  setup();
+
+  val user_auth_data = register_evm_address();
+  val token_id = 100;
+
+  util.give_user_IERC721Plot(user_auth_data, 3001, CHAIN_NAME, ONENFT_CONTRACT_ADDRESS, token_id);
+
+  val unknown_token_contract_address = "0xUnknown";
+
+  val tokens = [
+    evm_bridge.token_data(token_id, unknown_token_contract_address)
+  ];
+
+  rell.test
+    .tx()
+    .op(evm_bridge.process_request_token_withdrawal_event(CHAIN_NAME, DEPOSIT_CONTRACT_ADDRESS, tokens, 20, ETH_WALLET_ADDRESS))
+    .sign(data.admin_keypair)
+    .run_must_fail();
+}
+
+function test_process_request_token_withdrawal_fail_invalid_block_height() {
+  setup();
+
+  val user_auth_data = register_evm_address();
+  val token_id = 100;
+
+  util.give_user_IERC721Plot(user_auth_data, 3001, CHAIN_NAME, ONENFT_CONTRACT_ADDRESS, token_id);
+
+  val tokens = [
+    evm_bridge.token_data(token_id, ONENFT_CONTRACT_ADDRESS)
+  ];
+
+  // blockheight is lower than the initially deployed contract block height above -> 10
+  val invalid_block_height = 1;
+  rell.test
+    .tx()
+    .op(evm_bridge.process_request_token_withdrawal_event(CHAIN_NAME, DEPOSIT_CONTRACT_ADDRESS, tokens, invalid_block_height, ETH_WALLET_ADDRESS))
+    .sign(data.admin_keypair)
+    .run_must_fail();
+}
+
+function test_process_request_token_withdrawal_fail_evm_address_not_registered() {
+  setup();
+
+  val token_id = 100;
+
+  val tokens = [
+    evm_bridge.token_data(token_id, ONENFT_CONTRACT_ADDRESS)
+  ];
+
+  rell.test
+    .tx()
+    .op(evm_bridge.process_request_token_withdrawal_event(CHAIN_NAME, DEPOSIT_CONTRACT_ADDRESS, tokens, 20, ETH_WALLET_ADDRESS))
+    .sign(data.admin_keypair)
+    .run_must_fail();
+}
+
+function test_process_request_token_withdrawal_fail_no_plots_owned_by_user() {
+  setup();
+
+  val user_auth_data = register_evm_address();
+  val token_id = 100;
+
+  val tokens = [
+    evm_bridge.token_data(token_id, ONENFT_CONTRACT_ADDRESS)
+  ];
+
+  rell.test
+    .tx()
+    .op(evm_bridge.process_request_token_withdrawal_event(CHAIN_NAME, DEPOSIT_CONTRACT_ADDRESS, tokens, 20, ETH_WALLET_ADDRESS))
+    .sign(data.admin_keypair)
+    .run_must_fail();
+}
+
+function test_process_token_deposited_event_one_token() {
+  setup();
+
+  val user_auth_data = register_evm_address();
+  val account = ft3.acc.account @ { .id == user_auth_data.account_id };
+  val token_id = 100;
+
+  pre_mint_plot(3010, CHAIN_NAME, ONENFT_CONTRACT_ADDRESS, token_id);
+
+  val tokens = [
+    evm_bridge.token_data(token_id, ONENFT_CONTRACT_ADDRESS)
+  ];
+
+  process_token_deposited_event(tokens);
+
+  val token = assets.IERC721.fetch_by_id(CHAIN_NAME, ONENFT_CONTRACT_ADDRESS, token_id);
+  assets.IERC721.assert_owner_of(account, token);
+}
+
+function test_process_token_deposited_event_multiple_tokens() {
+  setup();
+
+  val user_auth_data = register_evm_address();
+  val token_id1 = 100;
+  val token_id2 = 200;
+
+  pre_mint_plot(3010, CHAIN_NAME, ONENFT_CONTRACT_ADDRESS, token_id1);
+  pre_mint_plot(3020, CHAIN_NAME, ONENFT_CONTRACT_ADDRESS, token_id2);
+
+  val tokens = [
+    evm_bridge.token_data(token_id1, ONENFT_CONTRACT_ADDRESS),
+    evm_bridge.token_data(token_id2, ONENFT_CONTRACT_ADDRESS)
+  ];
+
+  process_token_deposited_event(tokens);
+
+  val account = ft3.acc.account @ { .id == user_auth_data.account_id };
+
+  val token1 = assets.IERC721.fetch_by_id(CHAIN_NAME, ONENFT_CONTRACT_ADDRESS, token_id1);
+  assets.IERC721.assert_owner_of(account, token1);
+
+  var token2 = assets.IERC721.fetch_by_id(CHAIN_NAME, ONENFT_CONTRACT_ADDRESS, token_id2);
+  assets.IERC721.assert_owner_of(account, token2);
+}
+
+function test_process_token_deposited_event_failed_alice_not_the_owner() {
+  setup();
+
+  val user_auth_data = register_evm_address();
+  val token_id = 100;
+
+  // User already owns the land, not alice
+  util.give_user_IERC721Plot(user_auth_data, 3001, CHAIN_NAME, ONENFT_CONTRACT_ADDRESS, token_id);
+
+  val tokens = [
+    evm_bridge.token_data(token_id, ONENFT_CONTRACT_ADDRESS)
+  ];
+
+  rell.test
+    .tx()
+    .op(evm_bridge.process_token_deposited_event(CHAIN_NAME, DEPOSIT_CONTRACT_ADDRESS, tokens, 20, ETH_WALLET_ADDRESS))
+    .sign(data.admin_keypair)
+    .run_must_fail();
+}
+
+function test_process_token_deposited_event_fail_unknown_chain() {
+  setup();
+
+  val user_auth_data = register_evm_address();
+  val token_id = 100;
+
+  pre_mint_plot(3010, CHAIN_NAME, ONENFT_CONTRACT_ADDRESS, token_id);
+
+  val tokens = [
+    evm_bridge.token_data(token_id, ONENFT_CONTRACT_ADDRESS)
+  ];
+
+  val unknown_chain = "Unknown";
+
+  rell.test
+    .tx()
+    .op(evm_bridge.process_token_deposited_event(unknown_chain, DEPOSIT_CONTRACT_ADDRESS, tokens, 20, ETH_WALLET_ADDRESS))
+    .sign(data.admin_keypair)
+    .run_must_fail();
+}
+
+function test_process_token_deposited_event_fail_unknown_deposit_contract_address() {
+  setup();
+
+  val user_auth_data = register_evm_address();
+  val token_id = 100;
+
+  pre_mint_plot(3010, CHAIN_NAME, ONENFT_CONTRACT_ADDRESS, token_id);
+
+  val tokens = [
+    evm_bridge.token_data(token_id, ONENFT_CONTRACT_ADDRESS)
+  ];
+
+  val unknown_deposit_contract_address = "0xUnknown";
+
+  rell.test
+    .tx()
+    .op(evm_bridge.process_token_deposited_event(CHAIN_NAME, unknown_deposit_contract_address, tokens, 20, ETH_WALLET_ADDRESS))
+    .sign(data.admin_keypair)
+    .run_must_fail();
+}
+
+function test_process_token_deposited_event_fail_unknown_token_contract_address() {
+  setup();
+
+  val user_auth_data = register_evm_address();
+  val token_id = 100;
+
+  pre_mint_plot(3010, CHAIN_NAME, ONENFT_CONTRACT_ADDRESS, token_id);
+
+  val unknown_token_contract_address = "0xUnknown";
+
+  val tokens = [
+    evm_bridge.token_data(token_id, unknown_token_contract_address)
+  ];
+
+  rell.test
+    .tx()
+    .op(evm_bridge.process_token_deposited_event(CHAIN_NAME, DEPOSIT_CONTRACT_ADDRESS, tokens, 20, ETH_WALLET_ADDRESS))
+    .sign(data.admin_keypair)
+    .run_must_fail();
+}
+
+function test_process_token_deposited_event_fail_invalid_block_height() {
+  setup();
+
+  val user_auth_data = register_evm_address();
+  val token_id = 100;
+
+  pre_mint_plot(3010, CHAIN_NAME, ONENFT_CONTRACT_ADDRESS, token_id);
+
+  val tokens = [
+    evm_bridge.token_data(token_id, ONENFT_CONTRACT_ADDRESS)
+  ];
+
+  // blockheight is lower than the initially deployed contract block height above -> 10
+  val invalid_block_height = 1;
+  rell.test
+    .tx()
+    .op(evm_bridge.process_token_deposited_event(CHAIN_NAME, DEPOSIT_CONTRACT_ADDRESS, tokens, invalid_block_height, ETH_WALLET_ADDRESS))
+    .sign(data.admin_keypair)
+    .run_must_fail();
+}
+
+function test_process_token_deposited_event_fail_evm_address_not_registered() {
+  setup();
+
+  val token_id = 100;
+
+  pre_mint_plot(3010, CHAIN_NAME, ONENFT_CONTRACT_ADDRESS, token_id);
+
+  val tokens = [
+    evm_bridge.token_data(token_id, ONENFT_CONTRACT_ADDRESS)
+  ];
+
+  rell.test
+    .tx()
+    .op(evm_bridge.process_token_deposited_event(CHAIN_NAME, DEPOSIT_CONTRACT_ADDRESS, tokens, 20, ETH_WALLET_ADDRESS))
+    .sign(data.admin_keypair)
+    .run_must_fail();
+}
+
+function setup() {
+  util.init_chain();
+
+  create_chain(CHAIN_NAME);
+  create_contract(CHAIN_NAME, DEPOSIT_CONTRACT_ADDRESS, 10);
+  create_contract(CHAIN_NAME, ONENFT_CONTRACT_ADDRESS, 12);
+}
+
+function process_request_token_withdrawal_event(tokens: list<evm_bridge.token_data>){
+  rell.test
+    .tx()
+    .op(evm_bridge.process_request_token_withdrawal_event(CHAIN_NAME, DEPOSIT_CONTRACT_ADDRESS, tokens, 20, ETH_WALLET_ADDRESS))
+    .sign(data.admin_keypair)
+    .run();
+}
+
+function process_token_deposited_event(tokens: list<evm_bridge.token_data>) {
+  rell.test
+    .tx()
+    .op(evm_bridge.process_token_deposited_event(CHAIN_NAME, DEPOSIT_CONTRACT_ADDRESS, tokens, 20, ETH_WALLET_ADDRESS))
+    .sign(data.admin_keypair)
+    .run();
+}
+
+function create_chain(chain_name: text) {
+  rell.test
+    .tx()
+    .op(evm_bridge.register_chain(chain_name))
+    .sign(data.admin_keypair)
+    .run();
+}
+
+function create_contract(chain_name: text, contract_address: text, block_number: integer) {
+  rell.test
+    .tx()
+    .op(evm_bridge.register_contract(contract_address, chain_name, block_number))
+    .sign(data.admin_keypair)
+    .run();
+}
+
+function register_evm_address() {
+  val signature = evm.signature(
+    r = "29e88421ab43e9dfcab1c6b00879f415fbc4d45a8d4197962c33c3d2b717d701",
+    s = "552971de0bb5b1ed8645e6de4357358a033502f1200664d647605fee01d248a4",
+    v = 27
+  );
+
+  val user_auth_data = util.create_test_account(data.player1);
+
+  rell.test
+    .tx()
+    .op(evm.register_address(user_auth_data.account_id, user_auth_data.auth_descriptor, ETH_WALLET_ADDRESS, signature))
+    .sign(data.player1.keypair)
+    .run();
+
+  return user_auth_data;
+}
+
+function pre_mint_plot(plot_id: integer, chain_id: text, contract_address: text, token_id: integer) {
+  rell.test
+    .tx()
+    .op(admin.mint_plot(plot_id, 0, 0, 0, 0, 0, 50, 50, 50, 50, "301", chain_id, contract_address, token_id))
+    .sign(data.admin_keypair)
+    .run();
+}

@@ -1,0 +1,88 @@
+function test_alice_able_assign_game_master_flag() {
+  util.init_chain();
+
+  val alice = util.create_admin_user();
+  val bob = util.create_test_account(data.player2);
+
+  rell.test
+    .tx()
+    .op(game_master.assign_flag("Game Master", bob.player.username, time.days_from_now(1), alice.account_id, alice.auth_descriptor))
+    .sign(alice.player.keypair)
+    .run();
+  
+  assert_true(game_master.has_active_flag("Game Master", bob.account_id));
+}
+
+function test_bob_unable_assign_game_master_flag() {
+  util.init_chain();
+
+  val alice = util.create_admin_user();
+  val bob = util.create_test_account(data.player2);
+
+  rell.test
+    .tx()
+    .op(game_master.assign_flag("Game Master", alice.player.username, time.days_from_now(1), alice.account_id, alice.auth_descriptor))
+    .sign(bob.player.keypair)
+    .run_must_fail();
+}
+
+function test_bob_able_to_ban_troudy() {
+  util.init_chain();
+
+  val alice = util.create_admin_user();
+  val bob = util.create_test_account(data.player2);
+  val troudy = util.create_test_account(data.player3);
+  
+  rell.test
+    .tx()
+    .op(game_master.assign_flag("Game Master", bob.player.username, time.days_from_now(1), alice.account_id, alice.auth_descriptor))
+    .sign(alice.player.keypair)
+    .run();
+  
+  rell.test
+    .tx()
+    .op(game_master.assign_flag("Banned", troudy.player.username, time.days_from_now(1), bob.account_id, bob.auth_descriptor))
+    .sign(bob.player.keypair)
+    .run();
+  
+  assert_true(game_master.has_active_flag("Banned", troudy.account_id));
+}
+
+function test_alice_unable_to_ban_herself() {
+  util.init_chain();
+  
+  val alice = util.create_admin_user();
+  
+  rell.test
+    .tx()
+    .op(game_master.assign_flag("Banned", alice.player.username, time.days_from_now(1), alice.account_id, alice.auth_descriptor))
+    .sign(alice.player.keypair)
+    .run_must_fail();
+}
+
+function test_alice_able_to_assign_herself_as_game_master() {
+  util.init_chain();
+  
+  val alice = util.create_admin_user();
+  
+  rell.test
+    .tx()
+    .op(game_master.assign_flag("Game Master", alice.player.username, time.days_from_now(1), alice.account_id, alice.auth_descriptor))
+    .sign(alice.player.keypair)
+    .run();
+  
+  assert_true(game_master.has_active_flag("Game Master", alice.account_id));
+}
+
+function test_alice_unable_to_ban_herself_as_game_master() {
+  util.init_chain();
+
+  val alice = util.create_admin_user();
+
+  rell.test
+    .tx()
+    .op(game_master.assign_flag("Game Master", alice.player.username, time.days_from_now(1), alice.account_id, alice.auth_descriptor))
+    .op(game_master.assign_flag("Banned", alice.player.username, time.days_from_now(1), alice.account_id, alice.auth_descriptor))
+    .sign(alice.player.keypair)
+    .run_must_fail();
+}

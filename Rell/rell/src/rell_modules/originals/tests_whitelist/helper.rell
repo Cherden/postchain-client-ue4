@@ -1,0 +1,11 @@
+@test
+module;
+
+import ^^^.ft3_helper.tests.*;
+import ^^^.originals.external.*;
+
+function init_originals(admin: auth_data) {
+    init_originals_interfaces_op(admin.auth_id)
+        .sign(admin.keypair)
+        .run();
+}

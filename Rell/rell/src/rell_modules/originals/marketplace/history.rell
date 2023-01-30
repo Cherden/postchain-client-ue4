@@ -1,0 +1,91 @@
+
+namespace History {
+	@log 
+	entity trade_event {
+		index Originals.Id.asset_instance;
+		seller: ft3.acc.account;
+		buyer: ft3.acc.account;
+		asset: ft3.asset;
+		price: integer;
+	}
+	
+	@log
+	entity indirect_trade {
+		index Originals.Id.asset_instance, trade_event;
+	}
+	
+	function log_buy_event(
+	    Originals.Id.asset_instance,
+	    seller: ft3.acc.account,
+	    buyer: ft3.acc.account,
+	    asset: ft3.asset,
+	    price: integer
+	) {
+	    return create trade_event(
+            asset_instance,
+            seller,
+            buyer,
+            asset,
+            price
+        );
+	}
+	
+	function log_indirect_buy(
+		Originals.Id.asset_instance,
+		trade_event
+	) {
+		create indirect_trade (
+			asset_instance,
+			trade_event
+		);
+	}
+	
+	function find_original_trade_events(Dip.instance) {
+	    return trade_event @* { .asset_instance.instance == instance } (
+            seller_id = .seller.id,
+            buyer_id = .buyer.id,
+            asset_id = .asset.id,
+            price = .price,
+            timestamp = .transaction.block.timestamp,
+            @sort_desc block_height = .transaction.block.block_height,
+            
+            indirect = find_indirect_trade_events($)
+        );
+	}
+	
+	function find_indirect_trade_events(trade_event) {
+	    return indirect_trade @* {trade_event} .asset_instance.asset.id;
+	}
+	
+	function find_original_trade_events_page(
+        Dip.instance,
+        before_rowid: rowid, 
+        page_size: integer
+    ) {
+        val events = trade_event @* {
+            .rowid > before_rowid , .asset_instance.instance == instance
+        } (
+            seller_id = .seller.id,
+            buyer_id = .buyer.id,
+            asset_id = .asset.id,
+            price = .price,
+            timestamp = .transaction.block.timestamp,
+            block_height = .transaction.block.block_height,
+            @sort_desc .rowid,
+            
+            indirect = find_indirect_trade_events($)
+        ) limit page_size;
+        
+        val last_rowid =
+            if (events.size() > 0)
+                events[events.size()-1].rowid.to_gtv()
+            else
+                (0).to_gtv();
+        
+        return (
+            count = events.size(),
+            events = events,
+            last_rowid = last_rowid
+        );
+    }
+}

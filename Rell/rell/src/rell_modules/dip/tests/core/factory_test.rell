@@ -1,0 +1,338 @@
+@test module;
+
+import ^^^.tests.*;
+
+// Should fail if attribute path not provided
+function test_interface_1() {
+    val admin_account = create_ft3_test_acc(admin_keypair());
+	
+	val id = Attribute.def_I("ITest1", "id");
+	val id_wrong = Attribute.def_I("ITest1", "name");
+	
+	def_interface_op(admin_account.auth_id, "ITest1", [
+		id: Type(Text.T())
+	]).sign(admin_account.keypair).run();
+	
+	def_instance_op(admin_account.auth_id, "ITest1", [
+		id_wrong: Text.T("test1")
+	]).sign(admin_account.keypair).run_must_fail();
+}
+
+// Should create instance with same attribute name
+function test_interface_2() {
+    val admin_account = create_ft3_test_acc(admin_keypair());
+    
+	val id = Attribute.def_I("ITest1", "id");
+	val id2 = Attribute.def_I("ITest2", "id");
+	
+	def_interface_op(admin_account.auth_id, "ITest1", [
+		id: Type(Text.T())
+	]).sign(admin_account.keypair).run();
+	
+	def_interface_op(admin_account.auth_id, "ITest2", [
+		id2: Type(Text.T())
+	], ["ITest1"]).sign(admin_account.keypair).run();
+	
+	def_instance_op(admin_account.auth_id, "ITest2", [
+		id: Text.T("test1"),
+		id2: Text.T("test2")
+	]).sign(admin_account.keypair).run();
+}
+
+// should create instances if right attribute paths are provided
+function test_interface_3() {
+    val admin_account = create_ft3_test_acc(admin_keypair());
+    
+	val id = Attribute.def_I("ITest1", "id");
+	val name = Attribute.def_I("ITest2", "name");
+	
+	def_interface_op(admin_account.auth_id, "ITest1", [
+		id: Type(Text.T())
+	]).sign(admin_account.keypair).run();
+	
+	def_interface_op(admin_account.auth_id, "ITest2", [
+		name: Type(Text.T())
+	], ["ITest1"]).sign(admin_account.keypair).run();
+	
+	def_instance_op(admin_account.auth_id, "ITest2", [
+		id: Text.T("abc"),
+		name: Text.T("xyz")
+	]).sign(admin_account.keypair).run();
+}
+
+// should create interface with container type
+function test_interface_4() {
+    val admin_account = create_ft3_test_acc(admin_keypair());
+    
+	val ids = Attribute.def_I("EthereumNFT", "ids");
+	
+	def_interface_op(admin_account.auth_id, "EthereumNFT", [
+		ids: Type(List.T(Attribute.type.integer))
+	]).sign(admin_account.keypair).run();
+	
+	def_prototype_op(admin_account.auth_id, "EthereumNFT", [
+		ids: List.T(Attribute.type.integer, [1, 255].to_gtv())
+	], "AliceAnimalNFT").sign(admin_account.keypair).run();
+	
+	val protoype_def = "AliceAnimalNFT";
+	val alice_animal_prot = Prototype.get(protoype_def);
+		
+	def_instance_op(admin_account.auth_id, "EthereumNFT", [:], protoype_def).sign(admin_account.keypair).run();
+	val berta01 = get_last_instance();
+	
+	var unpacked = List.unpack(alice_animal_prot, ids);	
+	assert_equals(list<integer>.from_gtv(unpacked?.values!!), [1, 255]);
+	
+	unpacked = List.unpack(berta01, ids);
+	assert_equals(list<integer>.from_gtv(unpacked?.values!!), [1, 255]);
+}
+
+function test_interface_5() {
+    val admin_account = create_ft3_test_acc(admin_keypair());
+    
+	val contract_address = Attribute.def_I("EthereumNFT", "contract_address");
+	val id = Attribute.def_I("EthereumNFT", "id");
+	val name = Attribute.def_I("EthereumNFT", "name");
+	val description = Attribute.def_I("EthereumNFT", "description");
+	val image = Attribute.def_I("EthereumNFT", "image");
+	val image_type = Attribute.def_I("EthereumNFT", "image_type");
+	
+	
+	val alice_animal_prot_def = "AliceAnimalNFT";
+	val berta_the_cow_prot_def = "BertaTheCow";
+	
+	def_interface_op(admin_account.auth_id, "EthereumNFT", [
+		contract_address: Type(Text.T()),
+		id: Type(Integer.T(), [Min(1), Max(10)]),
+		name: Type(Text.T(), [Mutable()]),
+		description: Type(Text.T()),
+		image: Type(ByteArray.T()),
+		image_type: Type(Text.T())
+	]).sign(admin_account.keypair).run();
+	
+	// AliceAnimalNFT
+	def_prototype_op(admin_account.auth_id, "EthereumNFT",[
+		contract_address: Text.T("0x111")
+	], "AliceAnimalNFT").sign(admin_account.keypair).run();
+	val alice_animal_prot = Prototype.get(alice_animal_prot_def);
+	
+	// BertaTheCow
+	def_prototype_op(admin_account.auth_id, "EthereumNFT",  [
+		description: Text.T("This is a cow!"),
+		image: ByteArray.T(x'affe'),
+		image_type: Text.T("jpeg")
+	], "BertaTheCow",
+	alice_animal_prot_def).sign(admin_account.keypair).run();
+	val berta_the_cow_prot = Prototype.get(berta_the_cow_prot_def);
+	
+	def_instance_op(admin_account.auth_id, "EthereumNFT", [
+		name: Text.T("Berta #01"),
+		id: Integer.T(1)
+	], berta_the_cow_prot_def).sign(admin_account.keypair).run();
+	val berta01 = get_last_instance();
+	
+	def_instance_op(admin_account.auth_id, "EthereumNFT", [
+		name: Text.T("Berta #02"),
+		id: Integer.T(2)
+	], berta_the_cow_prot_def).sign(admin_account.keypair).run();
+	val berta02 = get_last_instance();
+	
+	// Single Filter
+	assert_true( Attribute.find_instances(contract_address, "0x111".to_gtv(), Filter.p_from(), integer.MAX_VALUE).results.contains_all( [berta01, berta02] ) );
+	assert_true( Attribute.find_instances(name, "Berta #01".to_gtv(), Filter.p_from(), integer.MAX_VALUE).results.contains_all( [berta01] ) );
+	assert_true( Attribute.find_instances(name, "Berta #02".to_gtv(), Filter.p_from(), integer.MAX_VALUE).results.contains_all( [berta02] ) );
+	assert_true( Attribute.find_instances(name, "Berta #03".to_gtv(), Filter.p_from(), integer.MAX_VALUE).results.contains_all( [] ) );
+	
+	var res = Attribute.find_instances(contract_address, "0x111".to_gtv(), Filter.p_from(), 1);
+	assert_true( res.results.contains_all( [berta01] ) );
+	assert_true( Attribute.find_instances(contract_address, "0x111".to_gtv(), res.from, 1).results.contains_all( [berta02] ) );
+	
+	// Constraint
+	// Readonly
+	set_type_attribute_meta_op(admin_account.auth_id, alice_animal_prot, contract_address, "0x222".to_gtv()).sign(admin_account.keypair).run_must_fail();
+	set_type_attribute_meta_op(admin_account.auth_id, berta01, id, integer(12).to_gtv()).sign(admin_account.keypair).run_must_fail();
+	
+	set_type_attribute_meta_op(admin_account.auth_id, berta02, name, "Berta #03!".to_gtv()).sign(admin_account.keypair).run();
+	assert_equals(Text.get_value(berta02, name), "Berta #03!");
+}
+
+
+/*
+ * 
+ * 
+ */
+
+namespace ITest1 {
+    val interface = "ITest1";
+    
+    function register(auth_data) {
+        def_interface_op(auth_data.auth_id, interface,
+            [:],
+            meta = [
+                Owner(auth_data.auth_id.account_id)
+            ]
+        ).sign(auth_data.keypair).run();
+    }
+    
+    function get() = Interface.get(interface);
+}
+
+namespace ITest2 {
+    val interface = "ITest2";
+    
+    function register(auth_data) {
+        def_interface_op(auth_data.auth_id, interface,
+            [:],
+            meta = [
+                Owner(auth_data.auth_id.account_id)
+            ]
+        ).sign(auth_data.keypair).run();
+    }
+    
+    function get() = Interface.get(interface);
+}
+
+function test_can_create_instance_with_ownership() {
+    val admin_account = create_ft3_test_acc(admin_keypair());
+    
+    ITest1.register(admin_account);
+    
+    def_instance_op(
+        admin_account.auth_id,
+        ITest1.interface,
+        [:]
+    ).sign(admin_account.keypair).run();
+}
+
+function test_cannot_create_instance_when_not_owner_of_interface() {
+    val admin_account = create_ft3_test_acc(admin_keypair());
+    val alice_account = create_ft3_test_acc(alice_keypair());
+    
+    ITest1.register(admin_account);
+    
+    def_instance_op(
+        alice_account.auth_id,
+        ITest1.interface,
+        [:]
+    ).sign(alice_account.keypair).run_must_fail();
+}
+
+function test_can_create_prototype_with_ownership() {
+    val admin_account = create_ft3_test_acc(admin_keypair());
+    
+    ITest1.register(admin_account);
+    
+    val proto = "PTest";
+    def_prototype_op(
+        admin_account.auth_id,
+    	ITest1.interface,
+        [:],
+        proto
+    ).sign(admin_account.keypair).run();
+}
+
+function test_cannot_create_prototype_when_not_owner_of_interface() {
+    val admin_account = create_ft3_test_acc(admin_keypair());
+    val alice_account = create_ft3_test_acc(alice_keypair());
+    
+    ITest1.register(admin_account);
+    
+    val proto = "PTest";
+    def_prototype_op(
+        alice_account.auth_id,
+    	ITest1.interface,
+        [:],
+        proto
+    ).sign(alice_account.keypair).run_must_fail();
+}
+
+function test_can_use_prototype_with_ownership() {
+    val admin_account = create_ft3_test_acc(admin_keypair());
+    
+    ITest1.register(admin_account);
+    
+    val proto = "PTest";
+    def_prototype_op(
+        admin_account.auth_id,
+    	ITest1.interface,
+        [:],
+        proto
+    ).sign(admin_account.keypair).run();
+    
+    def_instance_op(
+        admin_account.auth_id,
+        ITest1.interface,
+        [:],
+        proto
+    ).sign(admin_account.keypair).run();
+}
+
+function test_cannot_use_prototype_when_not_owner_of_interface() {
+    val admin_account = create_ft3_test_acc(admin_keypair());
+    val alice_account = create_ft3_test_acc(alice_keypair());
+    
+    ITest1.register(admin_account);
+    
+    val proto = "PTest";
+    def_prototype_op(
+        admin_account.auth_id,
+    	ITest1.interface,
+        [:],
+        proto
+    ).sign(admin_account.keypair).run();
+    
+    def_instance_op(
+        alice_account.auth_id,
+        ITest1.interface,
+        [:],
+        proto
+    ).sign(alice_account.keypair).run_must_fail();
+}
+
+function test_cannot_use_prototype_when_not_owner_of_prototype() {
+    val admin_account = create_ft3_test_acc(admin_keypair());
+    val alice_account = create_ft3_test_acc(alice_keypair());
+    
+    ITest1.register(admin_account);
+    ITest2.register(alice_account);
+    
+    val proto = "PTest";
+    def_prototype_op(
+        admin_account.auth_id,
+    	ITest1.interface,
+        [:],
+        proto
+    ).sign(admin_account.keypair).run();
+    
+    def_instance_op(
+        alice_account.auth_id,
+        ITest2.interface,
+        [:],
+       proto
+    ).sign(alice_account.keypair).run_must_fail();
+}
+
+function test_cannot_create_prototype_chain_when_not_owner_of_interface() {
+    val admin_account = create_ft3_test_acc(admin_keypair());
+    val alice_account = create_ft3_test_acc(alice_keypair());
+    
+    ITest1.register(admin_account);
+    ITest2.register(alice_account);
+    
+    val proto1 = "PTest1";
+    def_prototype_op(
+        admin_account.auth_id,
+    	ITest1.interface,
+        [:],
+        proto1
+    ).sign(admin_account.keypair).run();
+    
+    val proto2 = "PTest2";
+    def_prototype_op(
+        alice_account.auth_id,
+    	ITest2.interface,
+        [:],
+        proto2,
+        proto1
+    ).sign(alice_account.keypair).run_must_fail();
+}

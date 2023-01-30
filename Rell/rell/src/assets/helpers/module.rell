@@ -1,0 +1,5 @@
+module;
+
+import rell_modules.dip.attributes.*;
+
+import common.*;

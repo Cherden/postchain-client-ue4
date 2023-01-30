@@ -1,0 +1,7 @@
+function day_in_millis() {
+	return 86400000;
+}
+
+function minute_in_millis() {
+	return 60000;
+}

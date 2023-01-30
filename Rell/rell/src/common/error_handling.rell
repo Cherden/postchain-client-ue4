@@ -1,0 +1,60 @@
+namespace error {
+  val ignorable_template = "{\"type\":\"%s\",\"details\":\"%s\"}";
+  val base_template = "{\"type\":\"%s\",\"issue\":\"%s\"";
+  val description_template = ",\"description\":\"%s\"}";
+
+  enum type {
+    BadInput,
+    Ignorable,
+    InvalidState,
+    NotFound,
+    PreconditionFailed,
+    TryAgainLater,
+    Unauthorized
+  }
+
+  // Issues are keys that the client can use as more details & translations.
+  // In order to better keep it grouped & sorted the naming pattern is: DomainIssue
+  enum issue {
+    AccountUnknown,
+    BalanceInsufficient,
+    BlockchainNotInitialized,
+    ChainAlreadyExists,
+    ChainUnknown,
+    ContractAlreadyExists,
+    ContractUnknown,
+    DeveloperError,
+    EvmAccountUnknown,
+    FlagsTargetInvalid,
+    InvalidBlockHeight,
+    NotFoundAsset,
+    NotFoundOriginal,
+    OriginalsMissingAttribute,
+    OriginalsNonOwner,
+    OriginalsUnknownInterface,
+    PermissionAdminOnly,
+    PermissionGameMasterOnly,
+    PlayerBanned,
+    PlayerUsernameBusy,
+    PlayerUsernameInvalid,
+    PlotBounds,
+    PlotUnavailable,
+    PlotUnknown,
+    RewardsExcessBalance,
+    RewardsTooEarly,
+    TokenNotFound,
+    TokenNotUnique
+  }
+
+  function ignorable(details: text) {
+    return ignorable_template.format(type.Ignorable, details);
+  }
+
+  // Ugly string concatenating due to bug in Rell v0.10.8 where text.format only accepts max 2 arguments
+  // This issue will be fixed from 0.10.9 and then we can make this cleaner
+  function new(type, issue, details: text = "") {
+    val base = base_template.format(type, issue);
+    if (details != "") return base + description_template.format(details);
+    return base + "}";
+  }
+}

@@ -1,0 +1,4 @@
+entity account {
+  key ft3.acc.account;
+  key mutable address: text;
+}

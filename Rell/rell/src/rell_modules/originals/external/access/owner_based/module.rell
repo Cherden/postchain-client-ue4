@@ -1,0 +1,25 @@
+
+import rell_modules.ft3.account.*;
+import rell_modules.dip.core.*;
+import ^^.access;
+
+@extend(access.has_interface_definition_permission)
+function (account, dependencies: list<Interface.dclass>): boolean {
+    for (interface in dependencies) {
+        if (not Interface.is_open_or_owner(interface, account)) return false;
+    }
+    return true;
+}
+
+@extend(access.has_prototype_definition_permission)
+function (account, Interface.dclass, prototype: instance?): boolean {
+    return 
+        Interface.is_open_or_owner(dclass, account)
+            and 
+        if (prototype??) Prototype.is_open_or_owner(prototype, account) else true;
+}
+
+@extend(access.has_minting_permission)
+function (account, Interface.dclass): boolean {
+    return Interface.is_open_or_owner(dclass, account);
+}

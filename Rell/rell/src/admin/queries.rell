@@ -1,0 +1,28 @@
+query list_players(search: text, page_size: integer = 50, page_num:integer = 0) {
+  val search_lowercase = search.trim().lower_case();
+
+  val total = player @ { 
+    .username.lower_case().contains(search_lowercase)
+  } ( @sum 1 );
+
+  val players = player @* { 
+    .username.lower_case().contains(search_lowercase)
+  } ( 
+    @sort username = .username,
+    account_id = .account.id
+  ) offset (page_size * page_num) limit page_size;
+
+  val results = players @* { } ( 
+    map_player_to_player_list_dto($.username, $.account_id)
+  );
+
+  return (
+    total = total,
+    players = results
+  );
+}
+
+query list_assets() {
+  return assets.list_all();
+}
+

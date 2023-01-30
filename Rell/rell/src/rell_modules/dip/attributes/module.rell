@@ -1,0 +1,4 @@
+@mount('dip')
+module;
+
+import ^.core.*;

@@ -1,0 +1,5 @@
+@mount('dip')
+module;
+
+import ^.attributes.*;
+import ^^.ft3_helper.*;

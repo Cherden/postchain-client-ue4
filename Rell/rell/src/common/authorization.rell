@@ -1,0 +1,11 @@
+function is_authorized(account_id: byte_array, auth_descriptor_id: byte_array, rules: list<text> = []) {
+  _is_active(account_id);
+  ft3.acc.auth_and_log(account_id, auth_descriptor_id, []);
+}
+
+function _is_active(account_id: byte_array) {
+  require(
+    not game_master.has_active_flag("Banned", account_id), 
+    error.new(error.type.Unauthorized, error.issue.PlayerBanned)
+  );
+}

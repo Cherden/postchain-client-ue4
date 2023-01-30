@@ -1,0 +1,712 @@
+@test
+module;
+
+import ^.mocks;
+import ^.helper;
+import ^^^.ft3_helper.tests.*;
+import ^^^.dip.core.*;
+import ^^^.access.whitelist;
+import ^^^.originals.external;
+import ^^^.originals.core.*;
+import ^^^.originals.tests.*;
+
+import wl_helper: ^^^.access.whitelist.tests.helper;
+
+function test_account_cannot_define_interface_if_not_whitelisted() {
+    val admin = register_admin();
+    val alice = register_alice();
+    
+    helper.init_originals(admin);
+    
+    external
+        .def_original_interface_op(
+            alice.auth_id,
+            "TestInterface",
+            [:],
+            []
+        )
+        .sign(alice.keypair)
+        .run_must_fail();
+}
+
+function test_whitelisted_account_can_define_interface() {
+    val admin = register_admin();
+    val alice = register_alice();
+    
+    helper.init_originals(admin);
+    
+    whitelist
+        .whitelist_account(alice.auth_id.account_id)
+        .sign(admin.keypair)
+        .run();
+    
+    external
+        .def_original_interface_op(
+            alice.auth_id,
+            "TestInterface",
+            [:],
+            []
+        )
+        .sign(alice.keypair)
+        .run();
+}
+
+function test_locked_account_cannot_define_interface() {
+    val admin = register_admin();
+    val alice = register_alice();
+    
+    helper.init_originals(admin);
+    wl_helper.whitelist_accounts([alice], admin);
+        
+    whitelist
+        .lock_account(alice.auth_id.account_id)
+        .sign(admin.keypair)
+        .run();
+    
+    external
+        .def_original_interface_op(
+            alice.auth_id,
+            "TestInterface",
+            [:],
+            []
+        )
+        .sign(alice.keypair)
+        .run_must_fail();    
+}
+
+function test_whitelisted_account_can_mint_original_when_interface_owner() {
+    val admin = register_admin();
+    val alice = register_alice();
+    
+    helper.init_originals(admin);
+    wl_helper.whitelist_accounts([alice], admin);
+    val interface_name = mocks.define_empty_non_fungible_interface(auth_data = alice);
+        
+    external
+        .mint_non_fungible_original_op(
+            alice.auth_id,
+            Minter.I(
+                interface_name, 
+                [
+                    chromia.IOriginal.name: Text.T("Test Original"),
+                    chromia.IOriginal.creator_id: ByteArray.T(alice.auth_id.account_id),
+                    chromia.IOriginal.creator_name: Text.T("Admin")
+                ]
+            )
+        )
+        .sign(alice.keypair)
+        .run();
+}
+
+
+function test_whitelisted_account_cannot_mint_original_when_not_interface_owner() {
+    val admin = register_admin();
+    val alice = register_alice();
+    val bob = register_bob();
+    
+    helper.init_originals(admin);
+    wl_helper.whitelist_accounts([alice, bob], admin);    
+    val interface_name = mocks.define_empty_non_fungible_interface(auth_data = alice);
+        
+    external
+        .mint_non_fungible_original_op(
+            bob.auth_id,
+            Minter.I(
+                interface_name, 
+                [
+                    chromia.IOriginal.name: Text.T("Test Original"),
+                    chromia.IOriginal.creator_id: ByteArray.T(bob.auth_id.account_id),
+                    chromia.IOriginal.creator_name: Text.T("Admin")
+                ]
+            )
+        )
+        .sign(bob.keypair)
+        .run_must_fail();
+}
+
+function test_whitelisted_account_can_define_prototype_when_interface_owner() {
+    val admin = register_admin();
+    val alice = register_alice();
+    
+    helper.init_originals(admin);
+    wl_helper.whitelist_accounts([alice], admin);
+    val interface_name = mocks.define_empty_non_fungible_interface(auth_data = alice);
+        
+    external
+        .def_original_prototype_op(
+            alice.auth_id,
+            interface_name, 
+            [
+                chromia.IOriginal.name: Text.T("Test Original"),
+                chromia.IOriginal.creator_id: ByteArray.T(alice.auth_id.account_id),
+                chromia.IOriginal.creator_name: Text.T("Admin")
+            ],
+            "TestPrototype"
+        )
+        .sign(alice.keypair)
+        .run();    
+}
+
+function test_whitelisted_account_cannot_define_prototype_when_not_interface_owner() {
+    val admin = register_admin();
+    val alice = register_alice();
+    val bob = register_bob();
+    
+    helper.init_originals(admin);
+    wl_helper.whitelist_accounts([alice, bob], admin);        
+    val interface_name = mocks.define_empty_non_fungible_interface(auth_data = alice);
+        
+    external
+        .def_original_prototype_op(
+            bob.auth_id,
+            interface_name, 
+            [:],
+            "TestPrototype"
+        )
+        .sign(bob.keypair)
+        .run_must_fail();        
+}
+
+function test_whitelisted_account_can_mint_from_prototype_when_interface_owner() {
+    val admin = register_admin();
+    val alice = register_alice();
+    
+    helper.init_originals(admin);
+    wl_helper.whitelist_accounts([alice], admin);
+    val interface_name = mocks.define_empty_non_fungible_interface(auth_data = alice);
+        
+    external
+        .def_original_prototype_op(
+            alice.auth_id,
+            interface_name,
+            [:],
+            "TestPrototype"
+        )
+        .sign(alice.keypair)
+        .run();    
+        
+    external
+        .mint_non_fungible_original_op(
+            alice.auth_id,
+            Minter.I(
+                interface_name, 
+                [
+                    chromia.IOriginal.name: Text.T("Test Original"),
+                    chromia.IOriginal.creator_id: ByteArray.T(alice.auth_id.account_id),
+                    chromia.IOriginal.creator_name: Text.T("Admin")
+                ],
+                prototype_name = "TestPrototype"
+            )
+        )
+        .sign(alice.keypair)
+        .run();        
+}
+
+function test_whitelisted_account_cannot_mint_from_prototype_when_not_interface_owner() {
+    val admin = register_admin();
+    val alice = register_alice();
+    val bob = register_bob();
+    
+    helper.init_originals(admin);
+    wl_helper.whitelist_accounts([alice, bob], admin);    
+        
+    val interface_name_1 = mocks.define_empty_non_fungible_interface(
+        name = "TestInterface1",
+        auth_data = alice
+    );
+        
+    val interface_name_2 = mocks.define_empty_non_fungible_interface(
+        name = "TestInterface2",
+        auth_data = bob
+    );
+        
+    external
+        .def_original_prototype_op(
+            alice.auth_id,
+            interface_name_1, 
+            [:],
+            "TestPrototype"
+        )
+        .sign(alice.keypair)
+        .run();    
+        
+    external
+        .mint_non_fungible_original_op(
+            bob.auth_id,
+            Minter.I(
+                interface_name = interface_name_2, 
+                [
+                    chromia.IOriginal.name: Text.T("Test Original"),
+                    chromia.IOriginal.creator_id: ByteArray.T(bob.auth_id.account_id),
+                    chromia.IOriginal.creator_name: Text.T("Admin")
+                ],
+                prototype_name = "TestPrototype"
+            )
+        )
+        .sign(bob.keypair)
+        .run_must_fail();        
+}
+
+function test_whitelisted_account_cannot_mint_from_prototype_when_not_prototype_owner() {
+    val admin = register_admin();
+    val alice = register_alice();
+    val bob = register_bob();
+    
+    helper.init_originals(admin);
+    wl_helper.whitelist_accounts([alice, bob], admin);
+        
+    val interface_name_1 = mocks.define_empty_non_fungible_interface(
+        name = "TestInterface1",
+        auth_data = alice
+    );
+    val interface_name_2 = mocks.define_empty_non_fungible_interface(
+        name = "TestInterface2",
+        auth_data = bob
+    );
+        
+    external
+        .def_original_prototype_op(
+            alice.auth_id,
+            interface_name_1, 
+            [:],
+            "TestPrototype"
+        )
+        .sign(alice.keypair)
+        .run();    
+        
+    external
+        .mint_non_fungible_original_op(
+            alice.auth_id,
+            Minter.I(
+                interface_name = interface_name_2, 
+                [
+                    chromia.IOriginal.name: Text.T("Test Original"),
+                    chromia.IOriginal.creator_id: ByteArray.T(alice.auth_id.account_id),
+                    chromia.IOriginal.creator_name: Text.T("Admin")
+                ],
+                prototype_name = "TestPrototype"
+            )
+        )
+        .sign(alice.keypair)
+        .run_must_fail();        
+}
+
+function test_whitelisted_account_can_mint_non_fungible_original_to_account_when_interface_owner() {
+    val admin = register_admin();
+    val alice = register_alice();
+    val bob = register_bob();
+    
+    helper.init_originals(admin);
+    wl_helper.whitelist_accounts([alice], admin);
+    val interface_name = mocks.define_empty_non_fungible_interface(auth_data = alice);
+        
+    external
+        .mint_non_fungible_original_to_account_op(
+            alice.auth_id,
+            Minter.I(
+                interface_name, 
+                [
+                    chromia.IOriginal.name: Text.T("Test Original"),
+                    chromia.IOriginal.creator_id: ByteArray.T(alice.auth_id.account_id),
+                    chromia.IOriginal.creator_name: Text.T("Admin")
+                ]
+            ),
+            bob.auth_id.account_id
+        )
+        .sign(alice.keypair)
+        .run();        
+}
+
+function test_whitelisted_account_cannot_mint_non_fungible_original_to_account_when_not_interface_owner() {
+    val admin = register_admin();
+    val alice = register_alice();
+    val bob = register_bob();
+    val eve = register_eve();
+    
+    helper.init_originals(admin);
+    wl_helper.whitelist_accounts([alice, bob], admin);
+    val interface_name = mocks.define_empty_non_fungible_interface(auth_data = alice);    
+        
+    external
+        .mint_non_fungible_original_to_account_op(
+            bob.auth_id,
+            Minter.I(
+                interface_name, 
+                [
+                    chromia.IOriginal.name: Text.T("Test Original"),
+                    chromia.IOriginal.creator_id: ByteArray.T(bob.auth_id.account_id),
+                    chromia.IOriginal.creator_name: Text.T("Admin")
+                ]
+            ),
+            eve.auth_id.account_id
+        )
+        .sign(bob.keypair)
+        .run_must_fail();        
+}
+
+function test_whitelisted_account_can_mint_non_fungible_original_batch_when_interface_owner() {
+    val admin = register_admin();
+    val alice = register_alice();
+    
+    helper.init_originals(admin);
+    wl_helper.whitelist_accounts([alice], admin);
+    val interface_name = mocks.define_empty_non_fungible_interface(auth_data = alice);    
+        
+    external
+        .mint_non_fungible_original_batch_op(
+            alice.auth_id,
+            Minter.I(
+                interface_name, 
+                [
+                    chromia.IOriginal.name: Text.T("Test Original"),
+                    chromia.IOriginal.creator_id: ByteArray.T(alice.auth_id.account_id),
+                    chromia.IOriginal.creator_name: Text.T("Admin")
+                ]
+            ),
+            100
+        )
+        .sign(alice.keypair)
+        .run();        
+}
+
+function test_whitelisted_account_cannot_mint_non_fungible_original_batch_when_not_interface_owner() {
+    val admin = register_admin();
+    val alice = register_alice();
+    val bob = register_bob();
+    
+    helper.init_originals(admin);
+    wl_helper.whitelist_accounts([alice, bob], admin);    
+    val interface_name = mocks.define_empty_non_fungible_interface(auth_data = alice);
+        
+    external
+        .mint_non_fungible_original_batch_op(
+            bob.auth_id,
+            Minter.I(
+                interface_name, 
+                [
+                    chromia.IOriginal.name: Text.T("Test Original"),
+                    chromia.IOriginal.creator_id: ByteArray.T(bob.auth_id.account_id),
+                    chromia.IOriginal.creator_name: Text.T("Admin")
+                ]
+            ),
+            100
+        )
+        .sign(bob.keypair)
+        .run_must_fail();        
+}
+
+function test_whitelisted_account_can_mint_non_fungible_original_batch_to_account_when_interface_owner() {
+    val admin = register_admin();
+    val alice = register_alice();
+    val bob = register_bob();
+    
+    helper.init_originals(admin);
+    wl_helper.whitelist_accounts([alice], admin);
+    val interface_name = mocks.define_empty_non_fungible_interface(auth_data = alice);
+        
+    external
+        .mint_non_fungible_original_to_account_batch_op(
+            alice.auth_id,
+            Minter.I(
+                interface_name, 
+                [
+                    chromia.IOriginal.name: Text.T("Test Original"),
+                    chromia.IOriginal.creator_id: ByteArray.T(alice.auth_id.account_id),
+                    chromia.IOriginal.creator_name: Text.T("Admin")
+                ]
+            ),
+            bob.auth_id.account_id,
+            100
+        )
+        .sign(alice.keypair)
+        .run();        
+}
+
+function test_whitelisted_account_cannot_mint_non_fungible_original_batch_to_account_when_not_interface_owner() {
+    val admin = register_admin();
+    val alice = register_alice();
+    val bob = register_bob();
+    val eve = register_eve();
+    
+
+    helper.init_originals(admin);
+    wl_helper.whitelist_accounts([alice, bob], admin);
+    val interface_name = mocks.define_empty_non_fungible_interface(auth_data = alice);
+        
+    external
+        .mint_non_fungible_original_to_account_batch_op(
+            bob.auth_id,
+            Minter.I(
+                interface_name, 
+                [
+                    chromia.IOriginal.name: Text.T("Test Original"),
+                    chromia.IOriginal.creator_id: ByteArray.T(bob.auth_id.account_id),
+                    chromia.IOriginal.creator_name: Text.T("Admin")
+                ]
+            ),
+            eve.auth_id.account_id,
+            100
+        )
+        .sign(bob.keypair)
+        .run_must_fail();        
+}
+
+function test_whitelisted_account_can_create_fungible_original_when_interface_owner() {
+    val admin = create_ft3_test_acc(admin_keypair());
+    val alice = create_ft3_test_acc(alice_keypair());
+    
+    helper.init_originals(admin);
+    wl_helper.whitelist_accounts([alice], admin);
+        
+    val interface_name = mocks.define_empty_fungible_interface(auth_data = alice);
+        
+    external
+        .create_fungible_original_op(
+            alice.auth_id,
+            Minter.I(
+                interface_name, 
+                [
+                    chromia.IOriginal.name: Text.T("Test Original"),
+                    chromia.IOriginal.creator_id: ByteArray.T(alice.auth_id.account_id),
+                    chromia.IOriginal.creator_name: Text.T("Admin"),
+                    chromia.IFungibleOriginal.max_supply: Integer.T(100)
+                ]
+            )
+        )
+        .sign(alice.keypair)
+        .run();        
+}
+
+function test_whitelisted_account_cannot_create_fungible_original_when_not_interface_owner() {
+    val admin = register_admin();
+    val alice = register_alice();
+    val bob = register_bob();
+
+    helper.init_originals(admin);
+    wl_helper.whitelist_accounts([alice, bob], admin);
+        
+    val interface_name = mocks.define_empty_fungible_interface(auth_data = alice);
+        
+    external
+        .create_fungible_original_op(
+            bob.auth_id,
+            Minter.I(
+                interface_name, 
+                [
+                    chromia.IOriginal.name: Text.T("Test Original"),
+                    chromia.IOriginal.creator_id: ByteArray.T(bob.auth_id.account_id),
+                    chromia.IOriginal.creator_name: Text.T("Admin"),
+                    chromia.IFungibleOriginal.max_supply: Integer.T(100)
+                ]
+            )
+        )
+        .sign(bob.keypair)
+        .run_must_fail();        
+}
+
+function test_whitelisted_account_can_create_fungible_original_to_account_when_interface_owner() {
+    val admin = register_admin();
+    val alice = register_alice();
+    val bob = register_bob();
+    
+    helper.init_originals(admin);
+    wl_helper.whitelist_accounts([alice], admin);
+    
+    val interface_name = mocks.define_empty_fungible_interface(auth_data = alice);
+    
+    external
+        .create_fungible_original_to_account_op(
+            alice.auth_id,
+            Minter.I(
+                interface_name, 
+                [
+                    chromia.IOriginal.name: Text.T("Test Original"),
+                    chromia.IOriginal.creator_id: ByteArray.T(alice.auth_id.account_id),
+                    chromia.IOriginal.creator_name: Text.T("Admin"),
+                    chromia.IFungibleOriginal.max_supply: Integer.T(100)
+                ]
+            ),
+            bob.auth_id.account_id
+        )
+        .sign(alice.keypair)
+        .run();        
+}
+
+function test_whitelisted_account_cannot_create_fungible_original_to_account_when_not_interface_owner() {
+    val admin = register_admin();
+    val alice = register_alice();
+    val bob = register_bob();
+    val eve = register_eve();
+    
+    helper.init_originals(admin);
+    wl_helper.whitelist_accounts([alice, bob], admin);
+    
+    val interface_name = mocks.define_empty_fungible_interface(auth_data = alice);
+    
+    external
+        .create_fungible_original_to_account_op(
+            bob.auth_id,
+            Minter.I(
+                interface_name, 
+                [
+                    chromia.IOriginal.name: Text.T("Test Original"),
+                    chromia.IOriginal.creator_id: ByteArray.T(bob.auth_id.account_id),
+                    chromia.IOriginal.creator_name: Text.T("Admin"),
+                    chromia.IFungibleOriginal.max_supply: Integer.T(100)
+                ]
+            ),
+            eve.auth_id.account_id
+        )
+        .sign(bob.keypair)
+        .run_must_fail();        
+}
+
+function test_whitelisted_account_can_mint_fungible_original_when_interface_owner() {
+    val admin = register_admin();
+    val alice = register_alice();
+    
+    helper.init_originals(admin);
+    wl_helper.whitelist_accounts([alice], admin);
+    
+    val interface_name = mocks.define_empty_fungible_interface(auth_data = alice);
+    
+    external
+        .create_fungible_original_to_account_op(
+            alice.auth_id,
+            Minter.I(
+                interface_name, 
+                [
+                    chromia.IOriginal.name: Text.T("Test Original"),
+                    chromia.IOriginal.creator_id: ByteArray.T(alice.auth_id.account_id),
+                    chromia.IOriginal.creator_name: Text.T("Admin"),
+                    chromia.IFungibleOriginal.max_supply: Integer.T(100)
+                ]
+            ),
+            alice.auth_id.account_id
+        )
+        .sign(alice.keypair)
+        .run();    
+        
+    val id = get_last_id();
+    
+    external
+        .mint_fungible_original_op(
+            alice.auth_id,
+            id
+        )
+        .sign(alice.keypair)
+        .run();
+}
+
+function test_whitelisted_account_cannot_mint_fungible_original_when_not_interface_owner() {
+    val admin = register_admin();
+    val alice = register_alice();
+    val bob = register_bob();
+    
+    helper.init_originals(admin);
+    wl_helper.whitelist_accounts([alice, bob], admin);
+    
+    val interface_name = mocks.define_empty_fungible_interface(auth_data = alice);
+    
+    external
+        .create_fungible_original_op(
+            alice.auth_id,
+            Minter.I(
+                interface_name, 
+                [
+                    chromia.IOriginal.name: Text.T("Test Original"),
+                    chromia.IOriginal.creator_id: ByteArray.T(alice.auth_id.account_id),
+                    chromia.IOriginal.creator_name: Text.T("Admin"),
+                    chromia.IFungibleOriginal.max_supply: Integer.T(100)
+                ]
+            )
+        )
+        .sign(alice.keypair)
+        .run();    
+        
+    val id = get_last_id();
+    
+    external
+        .mint_fungible_original_op(
+            bob.auth_id,
+            id
+        )
+        .sign(bob.keypair)
+        .run_must_fail();    
+}
+
+function test_whitelisted_account_can_mint_fungible_original_to_account_when_interface_owner() {
+    val admin = register_admin();
+    val alice = register_alice();
+    val bob = register_bob();
+    
+    helper.init_originals(admin);
+    wl_helper.whitelist_accounts([alice], admin);
+    val interface_name = mocks.define_empty_fungible_interface(auth_data = alice);
+    
+    external
+        .create_fungible_original_op(
+            alice.auth_id,
+            Minter.I(
+                interface_name, 
+                [
+                    chromia.IOriginal.name: Text.T("Test Original"),
+                    chromia.IOriginal.creator_id: ByteArray.T(alice.auth_id.account_id),
+                    chromia.IOriginal.creator_name: Text.T("Admin"),
+                    chromia.IFungibleOriginal.max_supply: Integer.T(100)
+                ]
+            )
+        )
+        .sign(alice.keypair)
+        .run();    
+        
+    val id = get_last_id();
+    
+    external
+        .mint_fungible_original_to_account_op(
+            alice.auth_id,
+            id,
+            bob.auth_id.account_id
+        )
+        .sign(alice.keypair)
+        .run();
+}
+
+function test_whitelisted_account_cannot_mint_fungible_original_to_account_when_not_interface_owner() {
+    val admin = register_admin();
+    val alice = register_alice();
+    val bob = register_bob();
+    val eve = register_eve();
+    
+    helper.init_originals(admin);
+    wl_helper.whitelist_accounts([alice, bob], admin);
+    val interface_name = mocks.define_empty_fungible_interface(auth_data = alice);
+    
+    external
+        .create_fungible_original_op(
+            alice.auth_id,
+            Minter.I(
+                interface_name, 
+                [
+                    chromia.IOriginal.name: Text.T("Test Original"),
+                    chromia.IOriginal.creator_id: ByteArray.T(alice.auth_id.account_id),
+                    chromia.IOriginal.creator_name: Text.T("Admin"),
+                    chromia.IFungibleOriginal.max_supply: Integer.T(100)
+                ]
+            )
+        )
+        .sign(alice.keypair)
+        .run();    
+        
+    val id = get_last_id();
+    
+    external
+        .mint_fungible_original_to_account_op(
+            bob.auth_id,
+            id,
+            eve.auth_id.account_id
+        )
+        .sign(bob.keypair)
+        .run_must_fail();
+}
+

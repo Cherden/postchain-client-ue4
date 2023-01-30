@@ -1,0 +1,4 @@
+
+function require_admin(message: text = "Admin expected") {
+    require(op_context.is_signer(admin_pubkey()), message);
+}

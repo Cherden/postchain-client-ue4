@@ -1,0 +1,25 @@
+@mount("assets")
+module;
+
+import common.*;
+import math;
+
+import rell_modules.originals.core.*;
+import rell_modules.dip.attributes.*;
+import rell_modules.originals.external.*;
+import rell_modules.dip.core.*;
+
+import player.*;
+
+import .helpers.*;
+
+namespace ft3 {
+  import acc: rell_modules.ft3.account;
+  import rell_modules.ft3.account.operations;
+  import core: rell_modules.ft3.core;
+  import rell_modules.ft3.core.operations.transfer;
+}
+
+struct module_args {
+  token_name: name;
+}

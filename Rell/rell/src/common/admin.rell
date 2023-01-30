@@ -1,0 +1,24 @@
+/*
+ * ADMIN ACCOUNT
+ * The admin account would be the one to have all assets initally, and people would buy assets from the admin account by paying X_TOKEN (below)
+ */
+
+function admin_auth_descriptor(): ft3.acc.auth_descriptor {
+  return ft3.acc.auth_descriptor(
+    "S",
+    [chain_context.args.admin_pubkey],
+    [["A", "T"].to_gtv(), chain_context.args.admin_pubkey.to_hex().to_gtv()], // chain_context arguments is defined in config/run.xml
+    gtv.from_bytes(x'a0020500')
+  );
+}
+
+function admin_account_id(): byte_array {
+  return admin_auth_descriptor().hash();
+}
+
+function require_admin_signature() {
+  require(
+    op_context.is_signer(chain_context.args.admin_pubkey), 
+    error.new(error.type.Unauthorized, error.issue.PermissionAdminOnly)
+  );
+}

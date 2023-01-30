@@ -1,0 +1,3 @@
+function clamp(x: integer, min: integer, max: integer) {
+  return if(x < min) min else x.min(max);
+}

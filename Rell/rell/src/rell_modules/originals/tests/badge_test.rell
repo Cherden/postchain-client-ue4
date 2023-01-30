@@ -1,0 +1,273 @@
+@test module;
+import ^^.tests.*;
+import ^^^.dip.tests.*;
+
+namespace INonFungibleBadges {
+    val interface = "INonFungibleBadges";
+    
+    function dependencies(): list<text> {return [
+        chromia.INonFungibleOriginal.interface,
+        chromia.IHasBadges.interface
+    ];}
+    
+    function register(auth_data) {
+        def_original_interface_op(
+            auth_data.auth_id,
+            interface,
+            [:],
+            dependencies()
+        ).sign(auth_data.keypair).run();
+    }
+    
+    function get() = Dip.Interface.get(interface);
+}
+
+function mint_mock_instance(auth_data) {
+    val original = Minter.I(
+        interface_name = INonFungibleBadges.interface,
+        [
+            chromia.IOriginal.name: Text.T("Test Original"),
+            chromia.IOriginal.creator_id: ByteArray.T(auth_data.auth_id.account_id),
+            chromia.IOriginal.creator_name: Text.T("Admin")
+        ]
+    );
+    
+    mint_non_fungible_original_op(
+        auth_data.auth_id,
+        original
+    ).sign(auth_data.keypair).run();
+    
+    return get_last();
+}
+
+function create_mock_badge(auth_data, badge_name: name) {
+    def_instance_op(
+        auth_data.auth_id,
+        chromia.IBadge.interface,
+        [
+            chromia.IBadge.name: Text.T(badge_name),
+            chromia.IBadge.display_name: Text.T(badge_name),
+            chromia.IBadge.description: Text.T(badge_name + " description"),
+            chromia.IBadge.image: Text.T("")
+        ]
+    ).sign(auth_data.keypair).run();
+    
+    return get_last_instance();
+}
+
+namespace IFakeBadge {
+    val interface = "IFakeBadge";
+    
+    function register(auth_data) {
+        def_original_interface_op(
+            auth_data.auth_id,
+            interface,
+            [:]
+        ).sign(auth_data.keypair).run();
+    }
+}
+
+function create_mock_fake_badge(auth_data) {
+    def_instance_op(
+        auth_data.auth_id,
+        IFakeBadge.interface,
+        [:]
+    ).sign(auth_data.keypair).run();
+    
+    return get_last_instance();
+}
+
+// should add badge to original
+function test_badge_1() {
+	val admin_account = create_ft3_test_acc(admin_keypair());
+	init_originals_interfaces_op(admin_account.auth_id).sign(admin_account.keypair).run();
+	INonFungibleBadges.register(admin_account);
+	
+	val (mock_id, mock_instance) = mint_mock_instance(admin_account);
+	val badge_instance = create_mock_badge(admin_account, "initial tester");
+	
+	
+	add_badge_to_original_op(
+	    mock_instance,
+        badge_instance
+	).sign(admin_account.keypair).run();
+	
+	assert_true( Badge.Original.get_all(mock_instance).contains_all([badge_instance]) );
+}
+
+// should fail adding badge to original if badge interface is not implemented
+function test_badge_2() {
+	val admin_account = create_ft3_test_acc(admin_keypair());
+	init_originals_interfaces_op(admin_account.auth_id).sign(admin_account.keypair).run();
+	INonFungibleBadges.register(admin_account);
+	
+	val (mock_id, mock_instance) = mint_mock_instance(admin_account);
+	
+	IFakeBadge.register(admin_account);	
+	val fake_badge_instance = create_mock_fake_badge(admin_account);
+	
+	add_badge_to_original_op(
+	    Id.get_instance(mock_id),
+        fake_badge_instance
+	).run_must_fail();
+}
+
+// should add badge instance to implementing prototype
+// should fail adding badge instance to original if not implementing attribute
+function test_badge_3() {
+	val admin_account = create_ft3_test_acc(admin_keypair());
+	init_originals_interfaces_op(admin_account.auth_id).sign(admin_account.keypair).run();
+	
+	INonFungibleBadges.register(admin_account);
+	
+	val prototype_def = "PrototypeName";
+	def_original_prototype_op(
+	    admin_account.auth_id,
+		INonFungibleBadges.interface, [
+		    chromia.IOriginal.name: Text.T("Test Original"),
+			chromia.IOriginal.creator_id: ByteArray.T(admin_account.auth_id.account_id),
+			chromia.IOriginal.creator_name: Text.T("Admin"),
+			chromia.IHasBadges.badges: Set.T(Attribute.type.instance, set<instance>().to_gtv())
+		], prototype_def
+	).sign(admin_account.keypair).run();
+	val prototype = Prototype.get(prototype_def);
+	
+	val original = Minter.I(
+		interface_name = INonFungibleBadges.interface,
+		types = [:],
+		prototype_name = prototype_def
+	);
+	
+	mint_non_fungible_original_op(
+	    admin_account.auth_id,
+		original
+	).sign(admin_account.keypair).run();
+	val original_id = get_last_id();
+	
+	val badge_instance = create_mock_badge(admin_account, "initial tester");
+	
+	add_badge_to_original_op(
+	    Id.get_instance(original_id),
+	    badge_instance
+	).run_must_fail();
+	
+	add_badge_to_original_op(
+	    prototype,
+	    badge_instance
+	).sign(admin_account.keypair).run();
+	
+	assert_true( Badge.Original.get_all(Id.get_instance(original_id)).contains_all([badge_instance]) );
+	assert_true( Badge.Original.get_all(prototype).contains_all([badge_instance]) );
+}
+
+// should add badges to original during init and later
+function test_badge_4() {
+	val admin_account = create_ft3_test_acc(admin_keypair());
+	init_originals_interfaces_op(admin_account.auth_id).sign(admin_account.keypair).run();
+	
+	INonFungibleBadges.register(admin_account);
+	
+	val badge_instance = create_mock_badge(admin_account, "initial tester");
+	
+	val original = Minter.I(
+		interface_name = INonFungibleBadges.interface,
+		types = [
+		    chromia.IOriginal.name: Text.T("Test Original"),
+			chromia.IOriginal.creator_id: ByteArray.T(admin_account.auth_id.account_id),
+			chromia.IOriginal.creator_name: Text.T("Admin"),
+			chromia.IHasBadges.badges: Set.T(Attribute.type.instance, [badge_instance.to_gtv()].to_gtv())
+		]
+	);
+	mint_non_fungible_original_op(
+	    admin_account.auth_id,
+	    original
+	).sign(admin_account.keypair).run();
+	val original_id = get_last_id();
+		
+	add_badge_to_original_op(
+	    Id.get_instance(original_id),
+	    badge_instance
+	).sign(admin_account.keypair).run();
+	
+	assert_true( Badge.Original.get_all(Id.get_instance(original_id)).contains_all([badge_instance]) );
+}
+
+// should add different badges to original
+function test_badge_5() {
+	val admin_account = create_ft3_test_acc(admin_keypair());
+	init_originals_interfaces_op(admin_account.auth_id).sign(admin_account.keypair).run();
+	
+	INonFungibleBadges.register(admin_account);
+	val (mock_id, mock_instance) = mint_mock_instance(admin_account);
+	
+	val badge_instance = create_mock_badge(admin_account, "initial tester");
+	
+	add_badge_to_original_op(
+	    Id.get_instance(mock_id),
+	    badge_instance
+	).sign(admin_account.keypair).run();
+	assert_true( Badge.Original.get_all(Id.get_instance(mock_id)).contains_all([badge_instance]) );
+	
+	
+	val badge_instance2 = create_mock_badge(admin_account, "initial tester2");
+	add_badge_to_original_op(
+	    Id.get_instance(mock_id),
+	    badge_instance2
+	).sign(admin_account.keypair).run();
+	assert_true( Badge.Original.get_all(Id.get_instance(mock_id)).contains_all([badge_instance, badge_instance2]) );
+}
+
+// should add badge to account
+function test_badge_6() {
+	val admin_account = create_ft3_test_acc(admin_keypair());
+	init_originals_interfaces_op(admin_account.auth_id).sign(admin_account.keypair).run();
+	
+	val badge_instance = create_mock_badge(admin_account, "initial tester");
+	
+	add_badge_to_account_op(admin_account.auth_id.account_id, badge_instance).sign(admin_account.keypair).run();
+	add_badge_to_account_op(admin_account.auth_id.account_id, badge_instance).run_must_fail();
+	assert_true( Badge.Account.get_all(Ft3Helper.get_ft3_account(admin_account.auth_id.account_id)).contains_all([badge_instance]) );
+}
+
+// should add extended badge interface to account
+function test_badge_7() {
+	val admin_account = create_ft3_test_acc(admin_keypair());
+	init_originals_interfaces_op(admin_account.auth_id).sign(admin_account.keypair).run();
+	
+	val interface = "ITestBadge";
+	val rep = Dip.Attribute.def_I(interface, "reputation");
+	def_original_interface_op(
+	    admin_account.auth_id,
+		interface,
+		[rep: Type(Integer.T())],
+		[chromia.IBadge.interface]
+	).sign(admin_account.keypair).run();
+	
+	def_instance_op(
+	    admin_account.auth_id,
+		interface,
+		[
+			chromia.IBadge.name: Text.T("Too_Easy"),
+			chromia.IBadge.display_name: Text.T("Too Easy"),
+            chromia.IBadge.description: Text.T("description"),
+            chromia.IBadge.image: Text.T(""),
+			rep: Integer.T(42)
+		]
+	).sign(admin_account.keypair).run();
+	val badge_instance = get_last_instance();
+	
+	add_badge_to_account_op(admin_account.auth_id.account_id, badge_instance).sign(admin_account.keypair).run();
+	
+	assert_true( Badge.Account.get_all(Ft3Helper.get_ft3_account(admin_account.auth_id.account_id)).contains_all([badge_instance]) );
+}
+
+// should fail adding badge if wrong interface is implemented
+function test_badge_8() {
+	val admin_account = create_ft3_test_acc(admin_keypair());
+	init_originals_interfaces_op(admin_account.auth_id).sign(admin_account.keypair).run();
+	
+	IFakeBadge.register(admin_account);    
+    val fake_badge_instance = create_mock_fake_badge(admin_account);
+	
+	add_badge_to_account_op(admin_account.auth_id.account_id, fake_badge_instance).run_must_fail();
+}

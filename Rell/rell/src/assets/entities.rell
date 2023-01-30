@@ -1,0 +1,4 @@
+entity game_asset {
+  key ft3.core.asset;
+  hidden_in_inventory: boolean;
+}

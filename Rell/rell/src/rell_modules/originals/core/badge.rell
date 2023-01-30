@@ -1,0 +1,48 @@
+
+namespace Badge {
+    function require_interface(badge: Dip.instance) {
+        require(
+            chromia.IBadge.has(badge),
+            "Badge instance not implementing interface " + chromia.IBadge.interface
+        );
+    }
+}
+
+namespace Badge.Account {
+	entity account_badge {
+	   key ft3.acc.account, Dip.instance;
+	}
+	
+	function add(ft3.acc.account, badge: Dip.instance) {
+		require_interface(badge);
+		create account_badge(account, badge);
+	}
+	
+	function get_all(ft3.acc.account): list<Dip.instance> {
+		return account_badge @* {account} .instance;
+	}
+}
+
+namespace Badge.Original {
+	function add(original_instance: Dip.instance, badge: Dip.instance) {
+		require(
+			chromia.IHasBadges.has(original_instance),
+			"Original instance not implementing interface " + chromia.IHasBadges.interface
+		);
+		
+		require_interface(badge);
+		
+		Wrapper.Attribute.Unsafe.add_container_element(original_instance, chromia.IHasBadges.badges, badge.to_gtv());
+	}
+	
+	function get_all(Dip.instance): set<Dip.instance> {
+		val values = Wrapper.Attribute.get_value(instance, chromia.IHasBadges.badges);
+		val instances = set<Dip.instance>();
+		
+		if(values??) {
+			instances.add_all(set<Dip.instance>.from_gtv(values));
+		}
+		
+		return instances;
+	}
+}

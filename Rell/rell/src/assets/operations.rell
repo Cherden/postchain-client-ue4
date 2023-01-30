@@ -1,0 +1,33 @@
+// This operation is also used to define ALICE token
+operation register_ft3_asset(name, hidden_in_inventory: boolean) {
+  require_admin_signature();
+  var asset = ft3.core.asset @? { .id == (name, chain_context.blockchain_rid).hash() };
+
+  if(empty(asset)) {
+    asset = ft3.core.register_asset(name, chain_context.blockchain_rid);
+    create game_asset(asset, hidden_in_inventory);
+  }
+}
+
+operation register_original_asset(
+  name, 
+  interface_name: name, 
+  hub_location: text,
+  hub_brid: byte_array,
+  hash: byte_array
+) {
+  require_admin_signature();
+  
+//  when(interface_name) {
+//    IAsset.interface -> IAsset.Prototype.register(
+//      name,
+//      hub_location,
+//      hub_brid,
+//      hash,
+//      name,
+//      admin_account_id(),
+//      INITIAL_OWNER
+//    );
+//    else -> require(false, error.new(error.type.BadInput, error.issue.OriginalsUnknownInterface, "Unknown interface: " + interface_name));
+//  }
+}

@@ -1,0 +1,62 @@
+namespace Filter {
+    function get_by_interface(name): map<name, gtv> {
+        val filters_definition = map<name, gtv>();
+        val attribute_tag_pairs = Meta.find_interface_attributes_by_meta_tag(name, Meta.tag.marketplace_filter);
+        
+        for((attribute, tag_value) in attribute_tag_pairs) {
+            when(attribute.type) {
+                Dip.Attribute.type.text -> filters_definition[tag_value] = _handle_text_filter(attribute).to_gtv();
+                Dip.Attribute.type.integer -> filters_definition[tag_value] = _handle_integer_filter(attribute).to_gtv();
+            }
+        }
+        
+        return filters_definition;
+    }
+    
+    /*
+     * TODO only on protoypes and fungible originals?
+     * or limit
+     */
+    function _handle_text_filter(Dip.attribute): map<name, gtv> {
+        val values = Dip.Text.text_attribute @* {attribute} .value;
+        return _options_filter(
+            attribute.name,
+            Dip.gtv_to_list_of_gtv(values.to_gtv(), attribute.type)
+        );
+    }
+    
+    function _options_filter(name, values: list<gtv>): map<text, gtv> {
+        return [
+            "name": name.to_gtv(),
+            "type": "options".to_gtv(),
+            "values": values.to_gtv()
+        ];
+    }
+    
+    /*
+     * TODO only on protoypes and fungible originals?
+     * or limit
+     */
+    function _handle_integer_filter(Dip.attribute): map<name, gtv> {
+        val values = Dip.Integer.integer_attribute @* {attribute} (@sort .value);
+        
+        if (values.size() == 0) return _range_filter(attribute.name, 0,100);
+        if (values.size() == 1) return _range_filter(attribute.name, values[0], values[0]);
+        
+        return _range_filter(
+            attribute.name,
+            values[0], values[values.size()-1]
+        );
+    }
+    
+    function _range_filter(name, min: integer, max: integer): map<text, gtv> {
+        return [
+            "name": name.to_gtv(),
+            "type": "range".to_gtv(),
+            "values": [
+                "min": min.to_gtv(),
+                "max": max.to_gtv()
+            ].to_gtv()
+        ];
+    }
+}

@@ -1,0 +1,49 @@
+struct player_asset_info{
+  name;
+  amount: integer;
+}
+
+query get_ft3_inventory(account_id: byte_array) {
+  val result = list<player_asset_info>();
+
+  val player = player @? { .account.id == account_id };
+
+  if(empty(player)) return result;
+
+  for(game_asset in assets.get_all_inventory_assets()) {
+    val player_balance = player_asset_balance(player, game_asset.asset.name);
+    if(player_balance != null) {
+      if(player_balance.amount > 0) {
+        result.add(
+        player_asset_info(
+          game_asset.asset.name,
+          player_balance.amount
+        )
+        );
+      }
+    }
+  }
+
+  return result;
+}
+
+query lookup_tokens(account_id: byte_array) {
+  val account = ft3.acc.account @? { .id == account_id };
+
+  if(empty(account)) {
+    return null;
+  }
+
+  return assets.calculate_tokens(account);
+}
+
+query lookup_tokens_by_name(account_id: byte_array, name) {
+  val account = ft3.acc.account @? { .id == account_id };
+
+  if(empty(account)) return 0;
+
+  val balance = assets.get_balance(account, name);
+
+  if(exists(balance)) return balance.amount;
+  else return 0;
+}

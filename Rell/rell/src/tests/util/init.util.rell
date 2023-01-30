@@ -1,0 +1,13 @@
+val BJORN = "BJÖRN";
+val ALICE = "ALICE";
+
+function init_chain() {
+  rell.test
+    .tx()
+    .op(admin.initialize())
+    .op(assets.initialize())
+    .op(assets.register_ft3_asset(ALICE, false))
+    .op(assets.register_ft3_asset(BJORN, false))
+    .sign(data.alice.keypair)
+    .run();
+}

@@ -1,0 +1,13 @@
+@test
+module;
+
+import ^^^^.access.whitelist;
+import ^^^^.ft3_helper.tests.*;
+
+function whitelist_accounts(auths: list<auth_data>, admin: auth_data) {
+    val tx = rell.test.tx();
+    for (auth in auths) {
+        tx.op(whitelist.whitelist_account(auth.auth_id.account_id));
+    }
+    tx.sign(admin.keypair).run();
+}

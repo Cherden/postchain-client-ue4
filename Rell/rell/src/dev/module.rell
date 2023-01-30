@@ -1,0 +1,17 @@
+@mount("dev")
+module;
+
+// This module contains custom logic intended just for the development environment
+// for production, this module can, and should, be excluded/removed.
+
+import assets;
+import admin.*;
+
+namespace ft3 {
+  import acc: rell_modules.ft3.account;
+}
+
+struct module_args {
+  starting_ft3_tokens: integer;
+  starting_original_tokens: integer;
+}

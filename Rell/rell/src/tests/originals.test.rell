@@ -1,0 +1,8 @@
+function test_find_IERC721() {
+  util.create_user_and_give_IERC721Plot();
+  val instance = assets.IERC721.fetch_by_id("Test Chain ID", "Test Contract Address", 1);
+
+  assert_equals(assets.IERC721.get_chain_id(instance), "Test Chain ID");
+  assert_equals(assets.IERC721.get_contract_address(instance), "test contract address");
+  assert_equals(assets.IERC721.get_token_id(instance), 1);
+}

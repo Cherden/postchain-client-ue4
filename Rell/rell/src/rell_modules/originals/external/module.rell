@@ -1,0 +1,5 @@
+@mount('originals')
+module;
+
+import ^.core.*;
+import ^.external.access;
