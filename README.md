@@ -55,12 +55,13 @@ The structure should look like this at this moment:
 4. Open the .env file you juts created in the Administration folder and paste the private key after "ADMIN_PRIV_KEY=". Save it.
 5.
 - If you want to run blockchain with Docker: 
-  - `cd Administration`  
+  - `cd /Administration`  
   - `npm i`
   - `npm start`
 - If you don't want to use Docker, then:
   - Open and run ./Rell project with Eclipse (https://docs.chromia.com/tools/eclipse/installation)
   - `cd /Administration`
+  - `npm i`
   - `node init_blockchain.js`
 6. Use a browser (not Mozilla Firefox!) to go to http://localhost:7740/brid/iid_0. Copy the RID shown.
 7. Open https://dev.vault.chromia-development.com/ and create a Custom D-App. Name: `Chromia Unity`, Host: `http://localhost`, Port: `7740`, Website: `http://localhost`, and paste the RID into ChainID.
