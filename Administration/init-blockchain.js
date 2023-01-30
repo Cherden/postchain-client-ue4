@@ -39,6 +39,7 @@ const adminPrivKey = process.env.ADMIN_PRIV_KEY;
 // Add all your assets here
 const assetCategories = require("./GameConfigs/migrated-asset-list.json");
 const trashItems = require("./GameConfigs/trash_items.json");
+const nftExampleCategories = require("./GameConfigs/NFTs/nftexample.json");
 
 async function getBlockchainRid() {
   const brid = await request({
@@ -113,9 +114,7 @@ async function executeTimedTransaction(transaction, name) {
   const configDir = path.join(
     __dirname,
     "..",
-    "UnityBase",
-    "Assets",
-    "Resources"
+    "Config"
   );
   const sampleFile = require(path.join(
     configDir,
@@ -152,11 +151,47 @@ async function executeTimedTransaction(transaction, name) {
     .add(op("assets.initialize"));
 
   // eslint-disable-next-line array-callback-return
+  // Object.entries(assetCategories).map(([interfaceName, assets]) => {
+  //   if (interfaceName === "FT3") {
+  //     for (let { name, hidden_in_inventory } of assets) {
+  //       gameAssetsTransactionBuilder.add(
+  //         op("assets.register_ft3_asset", name, !!hidden_in_inventory)
+  //       );
+  //     }
+  //   } else {
+  //     for (const { name, file } of assets) {
+  //       gameAssetsTransactionBuilder.add(
+  //         op(
+  //           "assets.register_original_asset",
+  //           name,
+  //           interfaceName,
+  //           file.url,
+  //           Buffer.from(file.brid, "hex"),
+  //           Buffer.from(file.hash, "hex")
+  //         )
+  //       );
+  //     }
+  //   }
+  // });
+
   Object.entries(assetCategories).map(([interfaceName, assets]) => {
     if (interfaceName === "FT3") {
       for (let { name, hidden_in_inventory } of assets) {
         gameAssetsTransactionBuilder.add(
           op("assets.register_ft3_asset", name, !!hidden_in_inventory)
+        );
+      }
+    } else if (interfaceName == "com.myneighboralice.ICostume") {
+      for (const { name, hub_location, hub_brid, hash } of assets) {
+        gameAssetsTransactionBuilder.add(
+          op(
+            "assets.register_original_asset",
+            name,
+            interfaceName,
+            hub_location,
+            Buffer.from(hub_brid, "hex"),
+            Buffer.from(hash, "hex")
+          )
         );
       }
     } else {

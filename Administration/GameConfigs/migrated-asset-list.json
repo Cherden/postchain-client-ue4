@@ -1,10 +1,20 @@
 {
-  "FT3": [
+  "FT3": 
+  [
     {
       "name": "trash_boot"
     },
     {
       "name": "trash_tire"
+    }
+  ],
+  "com.myneighboralice.ICostume": 
+  [
+    {
+      "name": "com.myneighboralice.IERC721Costume",
+      "hub_location": "https://7hrrjxz2g4.execute-api.eu-central-1.amazonaws.com/dev/",
+      "hub_brid": "6CF5431833EDC8BEACBDBBF10791A2323E43F2182CC37E663772D06C82093981",
+      "hash": "bd8c5fdcbfe55894cdc477d1c8fdbe696c9a81280478d2007aa6cca13f3fef43"
     }
   ]
 }

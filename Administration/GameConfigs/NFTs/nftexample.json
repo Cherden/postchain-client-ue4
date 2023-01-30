@@ -1,0 +1,12 @@
+{
+    "com.myneighboralice.IERC721Costume": {
+        "Bunny Suit": {
+            "description": "Do you often find yourself hopping around from building to building? Are you trying to claim walls? While a costume won't make you jump higher, this scary-looking Bunny can help you show that you mean business.",
+            "file_data": {
+                "hub_location": "https://7hrrjxz2g4.execute-api.eu-central-1.amazonaws.com/dev/",
+                "hub_brid": "6CF5431833EDC8BEACBDBBF10791A2323E43F2182CC37E663772D06C82093981",
+                "hash": "bd8c5fdcbfe55894cdc477d1c8fdbe696c9a81280478d2007aa6cca13f3fef43"
+            }
+        }
+    }
+}
