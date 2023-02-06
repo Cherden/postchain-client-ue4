@@ -1,0 +1,260 @@
+@test module;
+import ^^^.tests.*;
+
+// should find instance via simple Filter.I
+function test_filter_1() {
+    val admin_account = create_ft3_test_acc(admin_keypair());
+    
+	val integer_def = Attribute.def_I("ITest", "integer");
+	val text_def = Attribute.def_I("ITest", "text");
+	
+	def_interface_op(admin_account.auth_id, "ITest", [
+		integer_def: Type(Integer.T()),
+		text_def: Type(Text.T())
+	]).sign(admin_account.keypair).run();
+
+	def_instance_op(admin_account.auth_id, 
+		"ITest",
+		[integer_def: Integer.T(42), text_def: Text.T("Hello")]
+	).sign(admin_account.keypair).run();
+	
+	val instance = get_last_instance();
+	
+	def_instance_op(admin_account.auth_id, 
+		"ITest",
+		[integer_def: Integer.T(1), text_def: Text.T("Hello")]
+	).sign(admin_account.keypair).run();
+	
+	val apply_filter = [
+		Filter.I(integer_def, integer(42).to_gtv()),
+		Filter.I(text_def, "Hello".to_gtv())
+	];
+	
+	val res = Filter.find_instances(apply_filter, Filter.p_from(), integer.MAX_VALUE);
+	assert_true( res.results.contains(instance) );	
+}
+
+// should find instances with prototypes unpacking
+function test_filter_2() {
+    val admin_account = create_ft3_test_acc(admin_keypair());
+    
+	val integer_def = Attribute.def_I("ITest", "integer");
+	val text_def = Attribute.def_I("ITest", "text");
+	
+	val prototype_def = "PrototypeName";
+	
+	def_interface_op(admin_account.auth_id, "ITest", [
+		integer_def: Type(Integer.T()),
+		text_def: Type(Text.T())
+	]).sign(admin_account.keypair).run();
+	
+	def_prototype_op(admin_account.auth_id, 
+		"ITest",
+		[integer_def: Integer.T(42)],
+		"PrototypeName"
+	).sign(admin_account.keypair).run();
+	
+	val first = list<instance>();
+	for(i in range(0, 5)) {
+		NOP().op(def_instance_op(admin_account.auth_id, 
+			"ITest",
+			[text_def: Text.T("first")],
+			prototype_def
+		)).sign(admin_account.keypair).run();
+		
+		first.add(get_last_instance());
+	}
+	
+	val second = list<instance>();
+	for(i in range(0, 5)) {
+		NOP().op(def_instance_op(admin_account.auth_id, 
+			"ITest",
+			[text_def: Text.T("second")],
+			prototype_def
+		)).sign(admin_account.keypair).run();
+		
+		second.add(get_last_instance());
+	}
+	
+	var apply_filter = [
+		Filter.I(integer_def, integer(42).to_gtv()),
+		Filter.I(text_def, "first".to_gtv())
+	];
+	var res = Filter.find_instances(apply_filter, Filter.p_from(), integer.MAX_VALUE);
+	assert_true( res.results.contains_all(first) );
+	
+	apply_filter = [
+		Filter.I(text_def, "first".to_gtv()),
+		Filter.I(integer_def, integer(42).to_gtv())
+	];
+	res = Filter.find_instances(apply_filter, Filter.p_from(), integer.MAX_VALUE);
+	assert_true( res.results.contains_all(first) );	
+		
+	apply_filter = [
+		Filter.I(integer_def, integer(42).to_gtv()),
+		Filter.I(text_def, "second".to_gtv())
+	];
+	res = Filter.find_instances(apply_filter, Filter.p_from(), integer.MAX_VALUE);
+	assert_true( res.results.contains_all(second) );	
+	
+	apply_filter = [
+		Filter.I(text_def, "second".to_gtv()),
+		Filter.I(integer_def, integer(42).to_gtv())
+	];
+	res = Filter.find_instances(apply_filter, Filter.p_from(), integer.MAX_VALUE);
+	assert_true( res.results.contains_all(second) );
+}
+
+// should find instances with prototypes unpacking paginated
+function test_filter_3() {
+    val admin_account = create_ft3_test_acc(admin_keypair());
+    
+	val integer_def = Attribute.def_I("ITest", "integer");
+	val text_def = Attribute.def_I("ITest", "text");
+	
+	val prototype_def = "PrototypeName";
+	
+	def_interface_op(admin_account.auth_id, "ITest", [
+		integer_def: Type(Integer.T()),
+		text_def: Type(Text.T())
+	]).sign(admin_account.keypair).run();
+	
+	def_prototype_op(admin_account.auth_id, 
+		"ITest",
+		[integer_def: Integer.T(42)],
+		"PrototypeName"
+	).sign(admin_account.keypair).run();
+	
+	val instances = list<instance>();
+	for(i in range(0, 5)) {
+		NOP().op(def_instance_op(admin_account.auth_id, 
+			"ITest",
+			[text_def: Text.T("first")],
+			prototype_def
+		)).sign(admin_account.keypair).run();
+		
+		instances.add(get_last_instance());
+	}
+	
+	var apply_filter = [
+		Filter.I(integer_def, integer(42).to_gtv()),
+		Filter.I(text_def, "first".to_gtv())
+	];
+	
+	var res = Filter.find_instances(apply_filter, Filter.p_from(), 5);
+	assert_true( res.results.contains_all( instances ) );
+	
+	res = Filter.find_instances(apply_filter, res.from, 2);
+	assert_true( res.results.contains_all( instances.sub(0, 2) ) );
+	
+	res = Filter.find_instances(apply_filter, res.from, 2 );
+	assert_true( res.results.contains_all( instances.sub(2, 4) ) );
+	
+	res = Filter.find_instances(apply_filter, res.from, 2);
+	assert_true( res.results.contains_all( instances.sub(4, 5) ) );
+}
+
+// should find instances with 3 Filter.I
+function test_filter_4() {
+    val admin_account = create_ft3_test_acc(admin_keypair());
+    
+	val integer_def = Attribute.def_I("ITest", "integer");
+	val text_def = Attribute.def_I("ITest", "text");
+	val bool_def = Attribute.def_I("ITest", "boolean");
+	
+	val grand_prototype_def = "GrandPrototype";
+	val prototype_branch1_def = "PrototypeBranch1";
+	val prototype_branch2_def = "PrototypeBranch2";
+	
+	def_interface_op(admin_account.auth_id, "ITest", [
+		integer_def: Type(Integer.T()),
+		text_def: Type(Text.T()),
+		bool_def: Type(Boolean.T())
+	]).sign(admin_account.keypair).run();
+	
+	def_prototype_op(admin_account.auth_id, 
+		"ITest",
+		[text_def: Text.T("GrandPrototype")],
+		"GrandPrototype"
+	).sign(admin_account.keypair).run();
+	
+	def_prototype_op(admin_account.auth_id, 
+		"ITest",
+		[integer_def: Integer.T(42)],
+		"PrototypeBranch1",
+		grand_prototype_def
+	).sign(admin_account.keypair).run();
+	
+	def_prototype_op(admin_account.auth_id, 
+		"ITest",
+		[integer_def: Integer.T(84)],
+		"PrototypeBranch2",
+		grand_prototype_def
+	).sign(admin_account.keypair).run();
+	
+	val instances_branch1 = list<instance>();
+	for(i in range(0, 5)) {
+		NOP().op(def_instance_op(admin_account.auth_id, 
+			"ITest",
+			[bool_def: Boolean.T(true)],
+			prototype_branch1_def
+		)).sign(admin_account.keypair).run();
+		
+		instances_branch1.add(get_last_instance());
+	}
+	
+	val instances_branch2 = list<instance>();
+	for(i in range(0, 5)) {
+		NOP().op(def_instance_op(admin_account.auth_id, 
+			"ITest",
+			[bool_def: Boolean.T(false)],
+			prototype_branch2_def
+		)).sign(admin_account.keypair).run();
+		
+		instances_branch2.add(get_last_instance());
+	}
+	
+	var apply_filter = [
+		Filter.I(text_def, "GrandPrototype".to_gtv()),
+		Filter.I(integer_def, integer(42).to_gtv()),
+		Filter.I(bool_def, true.to_gtv())
+	];
+	
+	var res = Filter.find_instances(apply_filter, Filter.p_from(), integer.MAX_VALUE);
+	assert_true( res.results.contains_all(instances_branch1) );
+	//
+	apply_filter = [
+		Filter.I(text_def, "GrandPrototype".to_gtv()),
+		Filter.I(bool_def, true.to_gtv())
+	];
+	
+	res = Filter.find_instances(apply_filter, Filter.p_from(), integer.MAX_VALUE);
+	assert_true( res.results.contains_all(instances_branch1) );
+	//
+	apply_filter = [
+		Filter.I(text_def, "GrandPrototype".to_gtv()),
+		Filter.I(integer_def, integer(84).to_gtv()),
+		Filter.I(bool_def, false.to_gtv())
+	];
+	
+	res = Filter.find_instances(apply_filter, Filter.p_from(), integer.MAX_VALUE);
+	assert_true( res.results.contains_all(instances_branch2) );
+	//
+	apply_filter = [
+		Filter.I(text_def, "GrandPrototype".to_gtv()),
+		Filter.I(integer_def, integer(84).to_gtv())
+	];
+	
+	res = Filter.find_instances(apply_filter, Filter.p_from(), integer.MAX_VALUE);
+	assert_true( res.results.contains_all(instances_branch2) );
+	//
+	apply_filter = [
+		Filter.I(text_def, "GrandPrototype".to_gtv()),
+		Filter.I(integer_def, integer(84).to_gtv()),
+		Filter.I(bool_def, false.to_gtv())
+	];
+	
+	res = Filter.find_instances(apply_filter, Filter.p_from(), integer.MAX_VALUE);
+	assert_true( res.results.contains_all([]) );
+}
+

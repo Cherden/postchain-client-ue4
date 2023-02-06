@@ -1,0 +1,172 @@
+@test module;
+import ^^^.tests.*;
+import ^^^^.dip.tests.*;
+import ^^^.marketplace.*;
+
+namespace ISword {
+    val interface = "ISword";
+    
+    function dependencies(): list<text> {
+		return [
+	    	chromia.INonFungibleOriginal.interface,
+	    	chromia.ITradable.interface
+	    ];
+    }
+    
+    val name = Attribute.I(interface, name = "name");
+    val attack = Attribute.I(interface, name = "attack");
+    
+    function register(auth_data) {
+    	def_original_interface_op(
+    	    auth_data.auth_id,
+			interface,
+			[
+				name: Type(Text.T()),
+            	attack: Type(Integer.T())
+			],
+			dependencies(),
+			[
+				Marketplace.Meta.Category("Swords")
+			]
+		).sign(auth_data.keypair).run();
+    }
+    
+    function get() = Interface.get(interface);
+}
+
+namespace ICharacter {
+    val interface = "ICharacter";
+    
+    function dependencies(): list<text> {
+		return [
+	    	chromia.INonFungibleOriginal.interface,
+	    	chromia.IHasBadges.interface,
+	    	chromia.ITradable.interface
+	    ];
+    }
+    
+    val name = Attribute.I(interface, name = "name");
+    val c_class = Attribute.I(interface, name = "class");
+    val sword_hand = Attribute.I(interface, name = "sword_hand");
+    
+    function register(auth_data) {
+    	def_original_interface_op(
+    	    auth_data.auth_id,
+			interface,
+			[
+				name: Type(Text.T()),
+				c_class: Type(Text.T(), [
+                        Marketplace.Meta.Filter("Class"),
+                        Marketplace.Meta.Description("Character class"),
+                        Marketplace.Meta.Label("Class")
+                    ]),
+            	sword_hand:  Type(Instance.T(), [ImplementsInterface(ISword.interface)])
+			],
+			dependencies(),
+			[
+				Marketplace.Meta.Category("Character")
+			]
+		).sign(auth_data.keypair).run();
+    }
+    
+    function get() = Interface.get(interface);
+}
+
+function create_mock_instance_with_children(auth_data): (byte_array, instance) {
+	init_originals_interfaces_op(auth_data.auth_id).sign(auth_data.keypair).run();
+	
+    ISword.register(auth_data);
+    ICharacter.register(auth_data);
+    
+    val sword_type = Minter.I(
+		interface_name = ISword.interface,
+		[
+		    chromia.IOriginal.name: Text.T("Test Original"),
+			chromia.IOriginal.creator_id: ByteArray.T(auth_data.auth_id.account_id),
+			chromia.IOriginal.creator_name: Text.T("Tester"),
+            chromia.ITradable.image: File.T(dummy_file),
+			ISword.name: Text.T("Gram"),
+			ISword.attack: Integer.T(20)
+		]
+	);	
+	mint_non_fungible_original_op(
+	    auth_data.auth_id,
+	    sword_type
+	).sign(auth_data.keypair).run();
+	val (sword_id, sword_instance) = get_last();
+
+	val character_type = Minter.I(
+		interface_name = ICharacter.interface,
+		[
+		    chromia.IOriginal.name: Text.T("Test Original"),
+			chromia.IOriginal.creator_id: ByteArray.T(auth_data.auth_id.account_id),
+			chromia.IOriginal.creator_name: Text.T("Tester"),
+            chromia.ITradable.image: File.T(dummy_file),
+			ICharacter.name: Text.T("Perseus"),
+			ICharacter.c_class: Text.T("Mage"),
+			ICharacter.sword_hand: Id.T(sword_id)
+		]
+	);
+	
+	mint_non_fungible_original_op(
+	    auth_data.auth_id,
+	    character_type
+	).sign(auth_data.keypair).run();
+	
+	return get_last();
+}
+
+val ASSET_NAME = "CHR";
+val ASSET_ID = (ASSET_NAME).hash();
+
+function test_instance_can_be_mapped_by_listing() {
+	val admin_account = create_ft3_test_acc(admin_keypair());
+	create_asset_op(ASSET_NAME, admin_account.auth_id.account_id, admin_account.auth_id.account_id, 1000).run();
+	val (character_id, character_instance) = create_mock_instance_with_children(admin_account);
+	
+	def_instance_op(
+        admin_account.auth_id,
+        chromia.IBadge.interface,
+        [
+            chromia.IBadge.name: Text.T("chosen_one"),
+            chromia.IBadge.display_name: Text.T("Chosen one"),
+            chromia.IBadge.description: Text.T("Character is the chosen one"),
+            chromia.IBadge.image: Text.T("")
+        ]
+    ).sign(admin_account.keypair).run();
+    val badge_instance = get_last_instance();
+    
+    add_badge_to_original_op(
+        Id.get_instance(character_id),
+        badge_instance
+    ).run();
+	
+	// list original
+	Originals.Marketplace.list_original_op(
+	    admin_account.auth_id,
+        character_id,
+        Ft3Helper.get_asset(ASSET_ID).id,
+        100
+    ).sign(admin_account.keypair).run();
+    
+    var originals = find_listed_originals_by_interface(
+        ICharacter.interface, Dip.Filter.p_from(), 10
+    );
+    
+    val instance = originals.instances[0];
+    assert_equals(1, originals.count);
+    assert_equals(instance["id"], character_id.to_gtv());
+    
+    val listing = instance["listing"];
+    assert_equals(listing, [
+        "asset_id": ASSET_ID.to_gtv(),
+        "owner": admin_account.auth_id.account_id.to_gtv(),
+        "price": integer(100).to_gtv()
+    ].to_gtv());
+    
+   val children = instance["children"];
+   assert_equals(list<gtv?>.from_gtv(children!!).size(), 1);
+}
+
+
+

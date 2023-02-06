@@ -1,0 +1,255 @@
+
+namespace Ownership {
+	
+	function transfer(
+	    account: ft3.acc.account,
+        original: Dip.instance,
+        to_id: byte_array,
+        quantity: integer = 1
+    ) {         
+        Ft3Helper.transfer_original_asset(account, Id.get_id(original), to_id, quantity);
+        transfer_linked_originals(account, Ft3Helper.get_ft3_account(to_id), original);
+    }
+    
+    function transfer_linked_originals(
+        from_account: ft3.acc.account,
+        to_account: ft3.acc.account,
+        original: Dip.instance
+    ): list<byte_array> {
+        val instances = get_linked_originals(original);
+        val ids = list<byte_array>();
+        while (not instances.empty()) {
+            val instance = instances.remove_at(0);
+            val id = Id.get_id(instance);
+            Ft3Helper.transfer_locked_asset(from_account, to_account, id);
+            instances.add_all(get_linked_originals(instance));
+            ids.add(id);
+        }
+        
+        return ids;
+    }
+	
+	function get_linked_originals(Dip.instance): list<Dip.instance> {
+		return Dip.Instance.instance_attribute @* {
+			.instance == instance,
+			exists(Id.asset_instance @* {.instance == instance_attribute.value})
+		}.value;
+	}
+	
+	function fractionalize(
+	    account: ft3.acc.account,
+		original: Dip.instance,
+		fractional_type: Minter.I,
+		fractions: integer
+	): Dip.instance {			
+		require(fractions > 0, "Number of fractions has to be positive");
+		require(
+			Dip.Interface.get_all_by_name(fractional_type.interface_name).contains(chromia.IFractionalizedOriginal.get()),
+			"Fractionalized type interface has to implement " + chromia.IFractionalizedOriginal.interface
+		);
+		
+		// Get creator data from original to fractionalize
+		val name = Dip.Text.get_value(original, chromia.IOriginal.name);
+		val creator_id = Dip.ByteArray.get_value(original, chromia.IOriginal.creator_id);
+		val creator_name = Dip.Text.get_value(original, chromia.IOriginal.creator_name);
+		
+		fractional_type.types.put(chromia.IOriginal.name, Dip.Text.T(name));
+		fractional_type.types.put(chromia.IOriginal.creator_id, Dip.ByteArray.T(creator_id));
+		fractional_type.types.put(chromia.IOriginal.creator_name, Dip.Text.T(creator_name));
+		fractional_type.types.put(chromia.IFractionalizedOriginal.original, Id.T(Id.get_id(original)));
+		fractional_type.types.put(chromia.IFungibleOriginal.max_supply, Dip.Integer.T(fractions));
+		
+		return Minter.create_fungible_original(account, fractional_type, fractions);
+	}
+		
+	function link_instance(
+	    account: ft3.acc.account,
+		attribute_name: Dip.Attribute.I,
+		base: Dip.instance,
+		child: Dip.instance
+	) {
+		require(Id.is_original(base), "Base instance is not an original.");
+		require(Id.is_original(child), "Child instance is not an original.");
+		require(not is_linked(child), "Child is already linked to something.");
+		
+		val attribute = Dip.Attribute.get(attribute_name);
+		
+		if (attribute.type == Dip.Attribute.type.instance) {
+			val linked_instance = Dip.Instance.instance_attribute @? {attribute, .instance == base}.value;
+		
+			if (linked_instance??) {
+				Ft3Helper.unlock_asset(account.id, Id.get_id(linked_instance), Ft3Helper.SPECIAL);
+			}
+			Wrapper.Attribute.set_value(base, attribute_name, child.to_gtv());
+		} else if (attribute.type == Dip.Attribute.type.unordered_container) {
+			Wrapper.Attribute.add_container_element(base, attribute_name, child.to_gtv());
+		} else {
+			require(false, "Wrong attribute type. Expected instance or set.");
+		}
+		
+		Ft3Helper.lock_asset(account.id, Id.get_id(child), Ft3Helper.SPECIAL);
+	}
+	
+	function is_linked(Dip.instance): boolean {
+		return Dip.Instance.instance_attribute @? {.value == instance}??;
+	}
+	
+	function unlink_instance(
+	    account: ft3.acc.account,
+		attribute_name: Dip.Attribute.I,
+		base: Dip.instance,
+		child: Dip.instance? = null
+	) {		
+		val attribute = Dip.Attribute.get(attribute_name);
+		
+		var id: byte_array? = null;
+		if (attribute.type == Dip.Attribute.type.instance) {
+			val child_found = Dip.instance.from_gtv(Wrapper.Attribute.remove_value(base, attribute_name));
+			id = Id.get_id(child_found);
+			require(child == null or child == child_found, "Given child ID does not match ID from linked original.");
+		} else if (attribute.type == Dip.Attribute.type.unordered_container) {
+			require(child, "Child has to be set when unlinking from set.");
+			id = Id.get_id(child);
+			Wrapper.Attribute.remove_container_element(base, attribute_name, child.to_gtv());
+		} else {
+			require(false, "Wrong attribute type. Expected instance or set.");
+		}
+		
+		Ft3Helper.unlock_asset(account.id, id!!, Ft3Helper.SPECIAL);
+	}
+	
+	function get_base_instance(Dip.instance): Dip.instance {
+		return Dip.Instance.instance_attribute @ {.value == instance}.instance;
+	}
+	
+	function amount_owned_of_original(account_id: byte_array, original: Dip.instance): integer {
+		return Ft3Helper.get_asset_balance(account_id, Id.get_id(original));
+	}
+	
+	/*
+	 * Get instances
+	 */
+	
+	function get_unlocked_instances_from_owner(account_id: byte_array, _limit: integer, _offset: integer): list<Dip.instance> {
+		val original_account_id = Ft3Helper.get_original_account_id(account_id);
+		return (a: Id.asset_instance, b: ft3.balance) @* {
+			b.account.id == original_account_id,
+			a.asset.id == b.asset.id,
+			b.amount > 0
+		}.instance offset _offset limit _limit;
+	}
+	
+	function get_locked_instances_from_owner(account_id: byte_array, _limit: integer, _offset: integer): list<Dip.instance> {
+		val locked_account_id = Ft3Helper.get_locked_account_id(account_id);
+		return (a: Id.asset_instance, b: ft3.balance) @* {
+			b.account.id == locked_account_id,
+			a.asset.id == b.asset.id,
+			b.amount > 0
+		}.instance offset _offset limit _limit;
+	}
+	
+	function get_all_instances_from_owner(account_id: byte_array, _limit: integer, _offset: integer): list<Dip.instance> {
+		val original_account_id = Ft3Helper.get_original_account_id(account_id);
+		val locked_account_id = Ft3Helper.get_locked_account_id(account_id);
+		return (a: Id.asset_instance, b: ft3.balance) @* {
+			b.account.id == original_account_id or b.account.id == locked_account_id,
+			a.asset.id == b.asset.id,
+			b.amount > 0
+		}.instance offset _offset limit _limit;	
+	}
+
+	function find_last_original_with_interface(account_id: byte_array, Dip.Interface.dclass): Dip.instance? {
+		val original_account_id = Ft3Helper.get_original_account_id(account_id);
+		return (a: Id.asset_instance, b: ft3.balance, i: Dip.instance_dclass) @? {
+			b.account.id == original_account_id,
+			a.asset.id == b.asset.id,
+			b.amount > 0,
+			a.instance == i.instance,
+			i.dclass == dclass
+		} (a.instance, @omit @sort_desc a.rowid) limit 1;	
+	}
+
+	function find_all_originals_with_interface(account_id: byte_array, Dip.Interface.dclass, _limit: integer, _offset: integer): list<Dip.instance> {
+		val original_account_id = Ft3Helper.get_original_account_id(account_id);
+		val locked_account_id = Ft3Helper.get_locked_account_id(account_id);
+		return (a: Id.asset_instance, b: ft3.balance, i: Dip.instance_dclass) @* {
+			b.account.id in [original_account_id,locked_account_id],
+			a.asset.id == b.asset.id,
+			b.amount > 0,
+			a.instance == i.instance,
+			i.dclass == dclass
+		} (a.instance) offset _offset limit _limit;	
+	}
+	
+	function find_all_original_ids_with_interface(account_id: byte_array, Dip.Interface.dclass, _limit: integer, _offset: integer): list<byte_array> {
+		val original_account_id = Ft3Helper.get_original_account_id(account_id);
+        val locked_account_id = Ft3Helper.get_locked_account_id(account_id);		
+		return (a: Id.asset_instance, b: ft3.balance, i: Dip.instance_dclass) @* {
+			b.account.id in [original_account_id,locked_account_id],
+			a.asset.id == b.asset.id,
+			b.amount > 0,
+			a.instance == i.instance,
+			i.dclass == dclass
+		} (a.asset.id) offset _offset limit _limit;	
+	}
+	
+	/*
+	 * Get original ids
+	 */
+	
+	function get_unlocked_original_ids_from_owner(account_id: byte_array, _limit: integer, _offset: integer): list<byte_array> {
+		val original_account_id = Ft3Helper.get_original_account_id(account_id);
+		return (a: Id.asset_instance, b: ft3.balance) @* {
+			b.account.id == original_account_id,
+			a.asset.id == b.asset.id,
+			b.amount > 0
+		} (a.asset.id) offset _offset limit _limit;
+	}
+	
+	function get_locked_original_ids_from_owner(account_id: byte_array, _limit: integer, _offset: integer): list<byte_array> {
+		val locked_account_id = Ft3Helper.get_locked_account_id(account_id);
+		return (a: Id.asset_instance, b: ft3.balance) @* {
+			b.account.id == locked_account_id,
+			a.asset.id == b.asset.id,
+			b.amount > 0
+		} (a.asset.id) offset _offset limit _limit;
+	}
+	
+	function get_all_original_ids_from_owner(account_id: byte_array, _limit: integer, _offset: integer): list<byte_array> {
+		val original_account_id = Ft3Helper.get_original_account_id(account_id);
+		val locked_account_id = Ft3Helper.get_locked_account_id(account_id);
+		
+		return (a: Id.asset_instance, b: ft3.balance) @* {
+			b.account.id == original_account_id or b.account.id == locked_account_id,
+			a.asset.id == b.asset.id,
+			b.amount > 0
+		} (a.asset.id) offset _offset limit _limit;	
+	}
+	
+	function get_owner_if_one_by_original_id(original_id: byte_array): byte_array? {
+	    val owners = (a: Id.asset_instance, b: ft3.balance) @* {
+	        a.asset.id == original_id,
+	        a.asset.id == b.asset.id
+	    } (b.account.id) limit 2;
+	    
+	    return if (owners.size() == 1) owners[0] else null;
+	}
+	
+	function get_owner_if_one_by_original_instance(Dip.instance): byte_array? {
+	    val owners = (a: Id.asset_instance, b: ft3.balance) @* {
+            a.instance == instance,
+            a.asset.id == b.asset.id,
+            b.amount > 0
+        } (b.account.id) limit 2;
+        
+        return if (owners.size() == 1) owners[0] else null;
+	}
+}
+
+
+
+
+
+
+
+

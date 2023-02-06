@@ -1,0 +1,32 @@
+// Main module
+@mount("planetary")
+module;
+
+import lib.originals.core.*;
+import lib.dip.attributes.*;
+import lib.originals.external.*;
+import lib.dip.core.*;
+
+namespace ft3 {
+  import lib.ft3.core.*;
+  import lib.ft3.account.*;
+  import lib.ft3.operations.dev_op_asset;
+  import lib.ft3.operations.dev_op_account;
+  import lib.ft3.account.operations;
+  import lib.ft3.core.operations.transfer;
+  import lib.ft3.operations.dev_op_balance;
+  import lib.ft3.operations.dev_op_rate_limit;
+}
+
+struct module_args {
+  asset_name: text;
+  admin_pubkey: pubkey;
+}
+
+operation initialize() {
+  require(op_context.is_signer(chain_context.args.admin_pubkey));
+	val account = get_or_create_admin_account();
+	
+	register_asset_if_needed();
+  initialize_interfaces(account);
+}

@@ -1,0 +1,142 @@
+@test module;
+import ^^^.tests.*;
+import ^^^^.dip.tests.*;
+import ^^^.marketplace.*;
+import ^^.examples.planetary.*;
+
+val ASSET_NAME = "CHR";
+val ASSET_ID = (ASSET_NAME).hash();
+
+namespace IFoo {
+    val interface = "IFoo";
+    
+    function dependencies(): list<text> {
+        return [
+            chromia.INonFungibleOriginal.interface,
+            chromia.ITradable.interface
+        ];
+    }
+    
+    val foo = Attribute.I(interface, name = "foo");
+    
+    function register(auth_data) {
+        def_original_interface_op(
+            auth_data.auth_id,
+            interface,
+            [
+                foo: Type(Text.T())
+            ],
+            dependencies()
+        ).sign(auth_data.keypair).run();
+    }
+    
+    function get() = Interface.get(interface);
+}
+
+function create_mock_instance(auth_data, name) {
+    val foo_type = Minter.I(
+        interface_name = IFoo.interface,
+        [
+            chromia.IOriginal.name: Text.T("Test Original"),
+            chromia.IOriginal.creator_id: ByteArray.T(auth_data.auth_id.account_id),
+            chromia.IOriginal.creator_name: Text.T("Tester"),
+            chromia.ITradable.image: File.T(dummy_file),
+            IFoo.foo: Text.T(name)
+        ]
+    );  
+    mint_non_fungible_original_op(
+        auth_data.auth_id,
+        foo_type
+    ).sign(auth_data.keypair).run();
+    return get_last();
+}
+
+function test_find_instances_by_owner_and_status() {
+    val admin_account = create_ft3_test_acc(admin_keypair());
+    init_originals_interfaces_op(admin_account.auth_id).sign(admin_account.keypair).run();
+    IFoo.register(admin_account);
+    
+    val (foo_id1, foo_instance1) = create_mock_instance(admin_account, "Damocles");
+    val (foo_id2, foo_instance2) = create_mock_instance(admin_account, "Gram");
+    
+    create_asset_op(ASSET_NAME, admin_account.auth_id.account_id, admin_account.auth_id.account_id, 1000).run();
+    
+    // list original
+    Originals.Marketplace.list_original_op(
+        admin_account.auth_id,
+        foo_id1,
+        Ft3Helper.get_asset(ASSET_ID).id,
+        100
+    ).sign(admin_account.keypair).run();
+    
+    val all_instances = find_original_instances_by_owner_id(admin_account.auth_id.account_id, Dip.Filter.p_from(), 10);
+    assert_equals(all_instances.count, 2);
+     
+    val listed_instances = find_original_instances_by_owner_id_and_status(admin_account.auth_id.account_id, true, Dip.Filter.p_from(), 10);
+    assert_equals(listed_instances.instances[0]["id"], foo_id1.to_gtv());
+    
+    val not_listed_instances = find_original_instances_by_owner_id_and_status(admin_account.auth_id.account_id, false, Dip.Filter.p_from(), 10);
+    assert_equals(not_listed_instances.instances[0]["id"], foo_id2.to_gtv());
+}
+
+function test_find_distinct_original_names_by_interface() {
+    val admin_account = create_ft3_test_acc(admin_keypair());
+    init_originals_interfaces_op(admin_account.auth_id).sign(admin_account.keypair).run();
+    IFoo.register(admin_account);
+    
+    val foo_type = Minter.I(
+        interface_name = IFoo.interface,
+        [
+            chromia.IOriginal.name: Text.T("Test Original"),
+            chromia.IOriginal.creator_id: ByteArray.T(admin_account.auth_id.account_id),
+            chromia.IOriginal.creator_name: Text.T("Foo"),
+            chromia.ITradable.image: File.T(dummy_file),
+            IFoo.foo: Text.T("Foo")
+        ]
+    );  
+    mint_non_fungible_original_op(
+        admin_account.auth_id,
+        foo_type
+    ).sign(admin_account.keypair).run();
+    
+    val foo_type2 = Minter.I(
+        interface_name = IFoo.interface,
+        [
+            chromia.IOriginal.name: Text.T("Test Original"),
+            chromia.IOriginal.creator_id: ByteArray.T(admin_account.auth_id.account_id),
+            chromia.IOriginal.creator_name: Text.T("Foo"),
+            chromia.ITradable.image: File.T(dummy_file),
+            IFoo.foo: Text.T("Foo")
+        ]
+    );
+    NOP().op(mint_non_fungible_original_op(
+        admin_account.auth_id,
+        foo_type2
+    )).sign(admin_account.keypair).run();
+    
+    val foo_type3 = Minter.I(
+        interface_name = IFoo.interface,
+        [
+            chromia.IOriginal.name: Text.T("Test Original2"),
+            chromia.IOriginal.creator_id: ByteArray.T(admin_account.auth_id.account_id),
+            chromia.IOriginal.creator_name: Text.T("Foo2"),
+            chromia.ITradable.image: File.T(dummy_file),
+            IFoo.foo: Text.T("Foo")
+        ]
+    );  
+    mint_non_fungible_original_op(
+        admin_account.auth_id,
+        foo_type3
+    ).sign(admin_account.keypair).run();
+    
+    assert_equals(find_distinct_original_names_by_interface(IFoo.interface).size(), 2);
+}
+
+function test_grouped_interfaces() {
+    val admin_account = create_ft3_test_acc(admin_keypair());
+    init_originals_interfaces_op(admin_account.auth_id).sign(admin_account.keypair).run();
+	register_planetary_example(admin_account);
+	
+	print(get_grouped_interfaces());
+}
+

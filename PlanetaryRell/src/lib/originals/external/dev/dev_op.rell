@@ -1,0 +1,93 @@
+module;
+
+import ^^^.core.*;
+import ^.*;
+import ^^^^.ft3.account;
+
+operation create_asset_op(name: text, acc1: byte_array, acc2: byte_array, amount: integer) {
+	val issuing_chain_rid = chain_context.blockchain_rid;
+	val id = (name).hash();
+	val asset = create core.asset (id, issuing_chain_rid, name);
+	
+	val account1 = Ft3Helper.get_ft3_account(acc1);
+	val account2 = Ft3Helper.get_ft3_account(acc2);
+	ft3.ensure_balance(account1, asset).amount += amount;
+	ft3.ensure_balance(account2, asset).amount += amount;
+}
+
+operation mint_non_fungible_original_unsafe_op(
+    auth_id,
+    original_type: Minter.I
+) {
+    require_dev();
+    val account = do_auth(auth_id, ["T"]);
+    Minter.mint_non_fungible_original(account, original_type);
+}
+
+operation mint_non_fungible_original_unsafe_batch_op(
+    auth_id,
+    original_type: Minter.I,
+    quantity: integer
+){
+    require_dev();
+    val account = do_auth(auth_id, ["T"]);
+    Minter.mint_non_fungible_original_batch(account, original_type, quantity);
+}
+
+operation create_fungible_original_unsafe_op(
+    auth_id,
+    original_type: Minter.I,
+     quantity: integer = 1
+ ) {
+    require_dev();
+    val account = do_auth(auth_id, ["T"]);
+    Minter.create_fungible_original(account, original_type, quantity);
+}
+
+operation mint_fungible_original_unsafe_op(
+    auth_id,
+    fungible_id: byte_array, 
+    quantity: integer = 1
+) {
+    require_dev();
+    val account = do_auth(auth_id, ["T"]);
+    Minter.Unsafe.mint_fungible_original(account, fungible_id, quantity);
+}
+
+operation add_badge_to_original_op(
+    original: Dip.instance,
+    badge: Dip.instance
+) {
+	require_dev();
+	Badge.Original.add(original, badge);
+}
+
+operation add_badge_to_account_op(
+    account_id: byte_array,
+    badge: Dip.instance
+) {
+	require_dev();
+	Badge.Account.add(Ft3Helper.get_ft3_account(account_id), badge);
+}
+
+operation set_original_attribute_unsafe_op(instance: Dip.instance, attribute_name: Dip.Attribute.I, value: gtv) {
+	require_dev();
+	Wrapper.Attribute.Unsafe.set_value(instance, attribute_name, value);
+}
+
+operation link_original_direct_op(
+    auth_id,
+    attribute_name: Dip.Attribute.I,
+    base: Dip.instance,
+    child: Dip.instance
+) {
+	require_dev();
+    val account = do_auth(auth_id, ["T"]);
+    
+    Ownership.link_instance(
+        account,
+        attribute_name,
+        base,
+        child
+    );
+}

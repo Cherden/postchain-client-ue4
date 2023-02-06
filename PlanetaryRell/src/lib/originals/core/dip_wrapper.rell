@@ -1,0 +1,263 @@
+namespace Wrapper.InterfaceFactory {
+	function new(
+        account: ft3.acc.account,
+		name,
+		attributes: map<Dip.Attribute.I, Dip.attribute_def>,
+		dependencies: list<Dip.Interface.dclass> = list(),
+		meta: list<Dip.Meta.I> = list(),
+		is_open: boolean = false
+	) {
+		
+		val all_dependencies = list<Dip.Interface.dclass>();
+		for(dependency in dependencies) {
+			all_dependencies.add_all(
+				Dip.Interface.get_all(dependency)	
+			);
+		}
+		
+		/* check interface IFungibleOriginal attributes */
+		if(all_dependencies.contains(chromia.IFungibleOriginal.get())) {
+			// attributes must be creator mutable or immutable 
+			for((k, v) in attributes) {
+				val attrs = v.meta @* { .meta_key in [
+					Dip.AttributeMeta.type.public_mutable.name,
+					Meta.type.owner_mutable.name
+				]};
+				
+				require(
+					attrs.empty(),
+					"Attributes implementing "+
+					chromia.IFungibleOriginal.interface + 
+					" must be creator mutable or immutable."
+				);
+			}
+		}
+		Dip.InterfaceFactory.new(name, attributes, dependencies, meta, account, is_open);
+	}
+}
+
+namespace Wrapper.PrototypeFactory {
+	function new(
+		Dip.Interface.dclass,
+		attributes: map<Dip.Attribute.I, Dip.attribute_type>,
+		name,
+		prototype_name: text? = null
+	) {
+		Dip.PrototypeFactory.new(dclass, attributes, name, prototype_name);
+	}
+}
+
+namespace Wrapper.Attribute {
+	/* Add */
+	function add_values(
+		Dip.instance,
+		attribute_name: Dip.Attribute.I,
+		value: gtv
+	) {
+		Dip.Attribute.add_value(instance, attribute_name, value);
+	}
+	
+	function add_value(
+		Dip.instance,
+		attribute_name: Dip.Attribute.I,
+		value: gtv
+	) {
+		Dip.Attribute.add_value(instance, attribute_name, value);
+	}
+	
+	/* Update */
+	function update_values(
+		Dip.instance,
+		attributes: map<Dip.Attribute.I, gtv>
+	) {
+		for ((name, value) in attributes) {
+			update_value(instance, name, value);
+		}
+	}
+	
+	function update_value(
+		Dip.instance,
+		attribute_name: Dip.Attribute.I,
+		value: gtv
+	) {
+		Dip.Attribute.update_value(instance, attribute_name, value);
+	}
+	
+	/* Set */
+	function set_values(
+		Dip.instance,
+		attributes: map<Dip.Attribute.I, gtv>
+	) {
+		for ((name, value) in attributes) {
+			set_value(instance, name, value);
+		}
+	}
+	
+	function set_value(
+		Dip.instance,
+		attribute_name: Dip.Attribute.I,
+		value: gtv
+	) {
+		Dip.Attribute.set_value(instance, attribute_name, value);
+	}
+	
+	/* Remove */
+	function remove_values(
+		Dip.instance,
+		attributes: list<Dip.Attribute.I>
+	) {
+		for (name in attributes) {
+			remove_value(instance, name);
+		}
+	}
+	
+	function remove_value(
+		Dip.instance,
+		attribute_name: Dip.Attribute.I
+	): gtv {		
+		return Dip.Attribute.remove_value(instance, attribute_name);
+	}
+	
+	/* Add container element*/
+	function add_container_element(
+		Dip.instance,
+		attribute_name: Dip.Attribute.I,
+		value: gtv
+	) {
+		if (Dip.util.is_implemented(instance, Dip.Attribute.get(attribute_name))) {
+			Dip.Attribute.add_container_element(instance, attribute_name, value);
+		} else {
+			Dip.Attribute.add_value(instance, attribute_name, [value].to_gtv());
+		}
+	}
+	
+	/* Remove container element */
+	function remove_container_element(
+		Dip.instance,
+		attribute_name: Dip.Attribute.I,
+		value: gtv
+	) {
+		Dip.Attribute.remove_container_element(instance, attribute_name, value);
+	}
+	
+	/* Get value */
+	function get_value(
+		Dip.instance,
+		attribute_name: Dip.Attribute.I
+	): gtv? {		
+		return Dip.Attribute.get_value(instance, attribute_name);
+	}
+	
+	/* Find instances */
+	function find_instances(
+		attribute_name: Dip.Attribute.I,
+		value: gtv,
+		from: Dip.Filter.p_from,
+		page_size: integer
+	): (results: list<Dip.instance>, from: Dip.Filter.p_from) {
+		return Dip.Attribute.find_instances(attribute_name, value, from, page_size);
+	}
+	
+	function filter_instances(
+		filters: list<Dip.Filter.I>,
+		from: Dip.Filter.p_from,
+		page_size: integer
+	): (results: list<Dip.instance>, from: Dip.Filter.p_from) {
+		return Dip.Filter.find_instances(filters, from, page_size);
+	}
+}
+
+namespace Wrapper.Attribute.Unsafe {
+	/* Add unsafe*/
+	function add_values(
+		Dip.instance,
+		attributes: map<Dip.Attribute.I, gtv>
+	) {
+		for ((name, value) in attributes) {
+			add_value(instance, name, value);
+		}
+	}
+	
+	function add_value(
+		Dip.instance,
+		attribute_name: Dip.Attribute.I,
+		value: gtv
+	) {
+		Dip.Attribute.Unsafe.add_value(instance, attribute_name, value);
+	}
+	
+	/* Update unsafe*/
+	function update_values(
+		Dip.instance,
+		attributes: map<Dip.Attribute.I, gtv>
+	) {
+		for ((name, value) in attributes) {
+			update_value(instance, name, value);
+		}
+	}
+	
+	function update_value(
+		Dip.instance,
+		attribute_name: Dip.Attribute.I,
+		value: gtv
+	) {
+		Dip.Attribute.Unsafe.update_value(instance, attribute_name, value);
+	}
+	
+	/* Set unsafe*/
+	function set_values(
+		Dip.instance,
+		attributes: map<Dip.Attribute.I, gtv>
+	) {
+		for ((name, value) in attributes) {
+			set_value(instance, name, value);
+		}
+	}
+
+	function set_value(
+		Dip.instance,
+		attribute_name: Dip.Attribute.I,
+		value: gtv
+	) {
+		Dip.Attribute.Unsafe.set_value(instance, attribute_name, value);
+	}
+	
+	/* Remove unsafe*/
+	function remove_values(
+		Dip.instance,
+		attributes: list<Dip.Attribute.I>
+	) {
+		for (attribute in attributes) {
+			remove_value(instance, attribute);
+		}
+	}
+	
+	function remove_value(
+		Dip.instance,
+		attribute_name: Dip.Attribute.I
+	): gtv {		
+		return Dip.Attribute.Unsafe.remove_value(instance, attribute_name);
+	}
+	
+	/* Add container element unsafe*/
+	function add_container_element(
+		Dip.instance,
+		attribute_name: Dip.Attribute.I,
+		value: gtv
+	) {
+		if (Dip.util.is_implemented(instance, Dip.Attribute.get(attribute_name))) {
+			Dip.Attribute.Unsafe.add_container_element(instance, attribute_name, value);
+		} else {
+			Dip.Attribute.Unsafe.add_value(instance, attribute_name, [value].to_gtv());
+		}
+	}
+	
+	/* Remove container element unsafe*/
+	function remove_container_element(
+		Dip.instance,
+		attribute_name: Dip.Attribute.I,
+		value: gtv
+	) {
+		Dip.Attribute.Unsafe.remove_container_element(instance, attribute_name, value);
+	}
+}

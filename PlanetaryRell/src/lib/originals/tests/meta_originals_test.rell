@@ -1,0 +1,200 @@
+@test module;
+import ^^.tests.*;
+import ^^^.dip.tests.*;
+
+// should update attributes if creator of the original signs the tx
+// should fail updating attributes if another sign 
+function test_meta_originals_1() {
+	val admin_account = create_ft3_test_acc(admin_keypair());	
+	val bob_account = create_ft3_test_acc(bob_keypair());
+	init_originals_interfaces_op(admin_account.auth_id).sign(admin_account.keypair).run();
+	
+	val original = Minter.I(
+		interface_name = chromia.INonFungibleOriginal.interface,
+		[
+		    chromia.IOriginal.name: Text.T("Test Original"),
+			chromia.IOriginal.creator_id: ByteArray.T(admin_account.auth_id.account_id),
+			chromia.IOriginal.creator_name: Text.T("Admin")
+		]
+	);
+	
+	mint_non_fungible_original_unsafe_op(
+	    bob_account.auth_id,
+		original
+	).sign(bob_account.keypair).run();
+	val original_id = get_last_id();
+		
+	set_original_attribute_op(
+	    bob_account.auth_id,
+		original_id,
+		chromia.IOriginal.description,
+		"test".to_gtv()
+	).sign(bob_account.keypair).run_must_fail();
+	
+	set_original_attribute_op(
+	    admin_account.auth_id,
+		original_id,
+		chromia.IOriginal.description,
+		"test".to_gtv()
+	).sign(admin_account.keypair).run();
+}
+
+// should update owner mutable attribute if owner signs the tx
+// should fail if another one is the signer
+function test_meta_originals_2() {
+	val admin_account = create_ft3_test_acc(admin_keypair());
+	val bob_account = create_ft3_test_acc(bob_keypair());
+	init_originals_interfaces_op(admin_account.auth_id).sign(admin_account.keypair).run();
+	
+	var interface = "ITestDapp";
+	val price = Dip.Attribute.def_I(interface, "price");
+	def_original_interface_op(
+	    admin_account.auth_id,
+		interface, 
+		[
+			price: Type(Integer.T(0), [OwnerMutable()])
+		],
+		[
+			chromia.INonFungibleOriginal.interface
+		]
+	).sign(admin_keypair()).run();
+	
+	val original_def = Minter.I(
+		interface_name = interface,
+		[
+		    chromia.IOriginal.name: Text.T("Test Original"),
+			chromia.IOriginal.creator_id: ByteArray.T(admin_account.auth_id.account_id),
+			chromia.IOriginal.creator_name: Text.T("Admin")
+		]
+	);
+	mint_non_fungible_original_unsafe_op(
+        bob_account.auth_id,
+        original_def
+    ).sign(bob_account.keypair).run();
+	val original_id = get_last_id();
+
+	set_original_attribute_op(
+	    admin_account.auth_id,
+	    original_id,
+	    price,
+	    (123).to_gtv()
+	).sign(admin_account.keypair).run_must_fail();
+	
+	set_original_attribute_op(
+	    bob_account.auth_id,
+	    original_id,
+	    price,
+	    (123).to_gtv()
+	).sign(bob_account.keypair).run();
+}
+
+// should add the attribute if creator signs the tx
+// should fail if owner signs the tx
+function test_meta_originals_3() {
+	val admin_account = create_ft3_test_acc(admin_keypair());
+	val bob_account = create_ft3_test_acc(bob_keypair());
+	init_originals_interfaces_op(admin_account.auth_id).sign(admin_account.keypair).run();	
+	
+	var interface = "ITestDapp";
+	def_original_interface_op(
+	    admin_account.auth_id,
+	    interface,
+	    [:],
+	    [chromia.INonFungibleOriginal.interface]
+	).sign(admin_keypair()).run();
+	
+	val prototype_def = "PrototypeName";
+	def_original_prototype_op(
+	    admin_account.auth_id,
+		interface,
+		[
+		    chromia.IOriginal.name: Text.T("Test Original"),
+			chromia.IOriginal.creator_id: ByteArray.T(admin_account.auth_id.account_id),
+			chromia.IOriginal.creator_name: Text.T("Admin")
+		],
+		prototype_def
+	).sign(admin_keypair()).run();
+	
+	
+	val original_def = Minter.I(
+	    interface_name = interface,
+	    types=[:],
+	    prototype_name = prototype_def
+	);
+	
+	mint_non_fungible_original_op(
+	    admin_account.auth_id,
+	    original_def
+	).sign(admin_account.keypair).run();
+	val original_id = get_last_id();
+	
+	transfer_original_op(
+	    admin_account.auth_id,
+	    original_id,
+		bob_account.auth_id.account_id
+	).sign(admin_account.keypair).run();
+		
+	set_original_attribute_op(
+	    admin_account.auth_id,
+		original_id,
+		chromia.IOriginal.description,
+		"test".to_gtv()
+	).sign(admin_account.keypair).run();
+	
+	set_original_attribute_op(
+	    bob_account.auth_id,
+	    original_id,
+		chromia.IOriginal.description,
+		"test".to_gtv()
+	).sign(bob_account.keypair).run_must_fail();
+}
+
+// should set attribute implemented in prototype
+function test_meta_originals_4() {	
+	val admin_account = create_ft3_test_acc(admin_keypair());
+	init_originals_interfaces_op(admin_account.auth_id).sign(admin_account.keypair).run();
+	
+	var interface = "ITestDapp";
+	def_original_interface_op(
+	    admin_account.auth_id,
+	    interface,
+	    [:],
+	    [chromia.INonFungibleOriginal.interface]
+	).sign(admin_keypair()).run();
+	
+	
+	val prototype_def = "PrototypeName";
+	def_original_prototype_op(
+	    admin_account.auth_id,
+		interface,
+		[
+		    chromia.IOriginal.name: Text.T("Test Original"),
+			chromia.IOriginal.creator_id: ByteArray.T(admin_account.auth_id.account_id),
+			chromia.IOriginal.creator_name: Text.T("Admin"),
+			chromia.IOriginal.description: Text.T("This is a description")
+		],
+		prototype_def
+	).sign(admin_keypair()).run();
+	
+	val original_def = Minter.I(
+	    interface_name = interface,
+	    types=[:],
+	    prototype_name = prototype_def
+	);
+	
+	mint_non_fungible_original_op(
+	    admin_account.auth_id,
+	    original_def
+	).sign(admin_account.keypair).run();
+	val original_id = get_last_id();
+	
+	set_prototype_attribute_op(
+	    admin_account.auth_id,
+		prototype_def,
+		chromia.IOriginal.description,
+		"test".to_gtv()
+	).sign(admin_account.keypair).run();
+	
+	val desc = text.from_gtv(get_original_value_q(original_id, chromia.IOriginal.description)!!);
+	assert_equals(desc, "test");
+}

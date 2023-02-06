@@ -1,0 +1,25 @@
+@test module;
+
+import ^.external.*;
+import ^.external.dev.*;
+import ^^.ft3_helper.tests.*;
+
+function create_instance_() {
+	rell.test.tx()
+        .op(create_instance_op())
+        .nop()
+        .run();
+    return instance @ {(instance @* {} (@sort_desc .rowid) limit 1)[0]};
+}
+
+function get_last_instance() {
+	return (instance_dclass @* {.instance.is_prototype == false} (@omit @sort_desc .rowid, .instance) limit 1)[0];
+}
+
+function get_last_instances() {
+	return (instance_dclass @* {.instance.is_prototype == false} (@omit @sort .rowid, .instance));
+}
+
+function NOP() {
+	return rell.test.tx().nop();
+}

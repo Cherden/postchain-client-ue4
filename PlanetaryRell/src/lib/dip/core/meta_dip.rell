@@ -1,0 +1,267 @@
+import ^.util.*;
+
+namespace Meta {
+	struct I {
+		meta_key: text;
+		meta_value: byte_array;
+		category: text;
+	}	
+}
+
+namespace AttributeMeta {
+	enum category {
+		access_constraint,
+		value_constraint
+	}
+	
+	enum type {
+		public_mutable,
+		min,
+		max,
+		interface,
+		one_interface,
+		all_interface,
+		optional,
+		default_value
+	}
+	
+	entity attribute_meta {
+		index attribute, meta_key: text, category: text;
+		meta_value: byte_array;
+	}
+	
+	function add(attribute, meta: Meta.I) {
+		create attribute_meta(
+			attribute,
+			meta_key = meta.meta_key,
+			meta.meta_value,
+			category = meta.category
+		);
+	}
+	
+	function get(attribute, meta_key: text): gtv? {
+		var meta_value = attribute_meta @? {attribute, meta_key} .meta_value;
+		if(meta_value??) return gtv.from_bytes(meta_value); else return null;
+	}
+	
+	function get_all_by_attribute_and_category(attribute, category: text) {
+		return attribute_meta @* {attribute, category};
+	}
+	
+	function is_attribute_optional(attribute): boolean {
+		val res = get(attribute, type.optional.name);
+		if(res??) return boolean.from_gtv(res); else return false;
+	}
+	
+	function get_default_value(attribute): gtv? {
+		return get(attribute, type.default_value.name);
+	}
+}
+
+namespace InterfaceMeta {
+	enum type {
+	    owner
+	}
+	
+	entity dclass_meta {
+		index Interface.dclass, meta_key: text, meta_value: byte_array;
+	}
+	
+	function add(Interface.dclass, meta_key: text, meta_value: byte_array) {
+		create dclass_meta(dclass, meta_key, meta_value);
+	}
+	
+	function get(Interface.dclass, meta_key: text): gtv? {
+		var meta_value = dclass_meta @? {dclass, meta_key} .meta_value;
+		if(meta_value??) return gtv.from_bytes(meta_value); else return null;
+	}
+	
+	function get_all_by_dclass(Interface.dclass) {
+		return dclass_meta @* {dclass};
+	}
+	
+	function get_owner(Interface.dclass): byte_array? {
+	    val meta_value = get(dclass, type.owner.name);
+	    if(meta_value??) return byte_array.from_gtv(meta_value); else return null;
+	}
+}
+
+namespace Meta.Engine {	
+	struct access { ft3_a.account; }
+	
+	function execute_access(i: instance, attribute_name: Attribute.I, access) {
+		val attribute = Attribute.get(attribute_name);
+		var m_attrs = AttributeMeta.get_all_by_attribute_and_category(attribute, AttributeMeta.category.access_constraint.name);
+		var access_granted = false;
+		
+		for (m_attr in m_attrs) {
+			val meta_value_gtv = gtv.from_bytes(m_attr.meta_value);
+			if (not access_granted) access_granted = access_constraint(attribute, i, m_attr.meta_key, meta_value_gtv, access);
+		}
+		
+		require(access_granted, "Tried to change immutable attribute " + attribute.name);
+	}
+	
+	function execute_value(i: instance, attribute, value: gtv) {
+		var m_attrs = AttributeMeta.get_all_by_attribute_and_category(attribute, AttributeMeta.category.value_constraint.name);
+		
+		for (m_attr in m_attrs) {
+			val meta_value_gtv = gtv.from_bytes(m_attr.meta_value);
+			value_constraint(attribute, m_attr.meta_key, meta_value_gtv, value);
+		}
+	}
+	
+	@extendable function access_constraint(attribute, i: instance, m_k: text, m_v: gtv, access): boolean {
+		when (m_k) {
+			AttributeMeta.type.public_mutable.name -> return true;
+		}
+		
+		return false;
+	}
+	
+	@extendable function value_constraint(attribute, m_k: text, m_v: gtv, value: gtv) {
+		when (m_k) {
+			AttributeMeta.type.min.name -> check_range_constraint(attribute, value, _min = m_v);
+			AttributeMeta.type.max.name -> check_range_constraint(attribute, value, _max = m_v);
+			AttributeMeta.type.interface.name -> check_interface_constraint(attribute, value, m_v, true);
+			AttributeMeta.type.one_interface.name -> check_interface_constraint(attribute, value, m_v, false);
+			AttributeMeta.type.all_interface.name -> check_interface_constraint(attribute, value, m_v, true);
+		}
+	}
+	
+	function check_range_constraint(attribute, value: gtv, _min: gtv? = null, _max: gtv? = null) {
+		var min = if(_min??) integer.from_gtv(_min) else integer.MIN_VALUE;
+		var max = if(_max??) integer.from_gtv(_max) else integer.MAX_VALUE;
+		var is_valid = true;
+		
+		when (attribute.type) {
+			Attribute.type.decimal -> is_valid = decimal.from_gtv(value) >= min and decimal.from_gtv(value) <= max;
+			Attribute.type.integer -> is_valid = integer.from_gtv(value) >= min and integer.from_gtv(value) <= max;
+			Attribute.type.text -> is_valid = text.from_gtv(value).size() >= min and text.from_gtv(value).size() <= max;
+			Attribute.type.byte_array -> is_valid = byte_array.from_gtv(value).size() >= min and byte_array.from_gtv(value).size() <= max;
+		}
+		
+		require(is_valid,
+			"Range constraint violation on attribute " + attribute.name + 
+		" with value " + value +
+		" on range " + min + " - " + max
+		);
+	}
+	
+	function get_interface_values(value: gtv): set<instance> {
+		val peek = value.to_bytes()[0];
+		if (peek == x'a3'[0]) {
+			return set([instance.from_gtv(value)]);
+		} else if (peek == x'a5'[0]) {
+			return set<instance>.from_gtv(value);
+		}
+		
+		return set<instance>();
+	}
+	
+	function get_interface_meta_value(meta_value: gtv): set<text> {
+		val peek = meta_value.to_bytes()[0];
+		if (peek == x'a2'[0]) {
+			return set([text.from_gtv(meta_value)]);
+		} else if (peek == x'a5'[0]) {
+			return set<text>.from_gtv(meta_value);
+		}
+		
+		return set<text>();
+	}
+	
+	function check_interface_constraint(attribute, value: gtv, meta_value: gtv, implements_all: boolean) {
+		val instances = get_interface_values(value);
+		if (instances.size() > 0) {
+			val constraint_values = get_interface_meta_value(meta_value);
+			
+			for(instance in instances) {
+				val interfaces_from_instance = Interface.get_all_in_instance(instance) @* {}(.name);
+				
+				if (implements_all) {
+					require(
+						interfaces_from_instance.contains_all(constraint_values),
+						"Instance not implementing interface(s) " + constraint_values
+					);
+				} else {
+					require(
+						interfaces_from_instance @ {$ in constraint_values} (@sum 1) > 0,
+						"Instance not implementing interface(s) " + constraint_values
+					); 
+				}
+			}
+		}
+	}
+}
+
+function Owner(account_id: byte_array): Meta.I {
+    return Meta.I(
+    	meta_key = InterfaceMeta.type.owner.name,
+    	meta_value = account_id.to_gtv().to_bytes(),
+    	category = ""
+    );
+}
+
+function Default(value: byte_array): Meta.I {
+    return Meta.I(
+    	meta_key = AttributeMeta.type.default_value.name,
+    	meta_value = value,
+    	category = ""
+    );
+}
+
+function Mutable(): Meta.I {
+	return Meta.I(
+		meta_key = AttributeMeta.type.public_mutable.name,
+		meta_value = true.to_gtv().to_bytes(),
+    	category = AttributeMeta.category.access_constraint.name
+	);
+}
+
+function Optional(): Meta.I {
+	return Meta.I(
+		meta_key = AttributeMeta.type.optional.name,
+		meta_value = true.to_gtv().to_bytes(),
+    	category = ""
+	);
+}
+
+function Max(max: integer): Meta.I {
+	return Meta.I(
+		meta_key = AttributeMeta.type.max.name, 
+		meta_value = max.to_gtv().to_bytes(),
+    	category = AttributeMeta.category.value_constraint.name
+	);
+}
+
+function Min(min: integer): Meta.I {
+	return Meta.I(
+		meta_key = AttributeMeta.type.min.name,
+		meta_value = min.to_gtv().to_bytes(),
+    	category = AttributeMeta.category.value_constraint.name
+	);
+}
+
+function ImplementsInterface(interface: text): Meta.I {
+	return Meta.I(
+		meta_key = AttributeMeta.type.interface.name,
+		meta_value = interface.to_gtv().to_bytes(),
+    	category = AttributeMeta.category.value_constraint.name
+	);
+}
+
+function ImplementsAllInterfaces(interfaces: set<text>): Meta.I {
+	return Meta.I(
+		meta_key = AttributeMeta.type.all_interface.name,
+		meta_value = interfaces.to_gtv().to_bytes(),
+    	category = AttributeMeta.category.value_constraint.name
+	);
+}
+
+function ImplementsOneInterface(interfaces: set<text>): Meta.I {
+	return Meta.I(
+		meta_key = AttributeMeta.type.one_interface.name,
+		meta_value = interfaces.to_gtv().to_bytes(),
+    	category = AttributeMeta.category.value_constraint.name
+	);
+}

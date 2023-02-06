@@ -1,0 +1,83 @@
+
+query get_exploration_info(account_id: byte_array) {
+  return exploration @? { .account.id == account_id } (
+  	time_out_block = .time_out_block,
+  	account_id = .account.id,
+  	iteration = .iteration,
+  	out = .out,
+  	current_block = block@{}(@sort_desc .block_height) limit 1
+  );
+}
+
+query get_last_updated_ts(account_id: byte_array, attributes: list<name>) {
+  val original_ids = Ownership.find_all_original_ids_with_interface(
+    account_id,
+    IPlanet.get(),
+    100,
+    0
+  );
+
+  val attribute_names = attributes @* {} (Attribute.from_text($));
+
+  return original_ids @* {} (
+    Mapper.map_instance(Id.get_by_id($).instance, [
+      Mapper.map_attributes(attribute_names, Mapper.to_list("last_updated_ts_list"))
+    ])
+  );
+}
+
+query get_last_n_blocks(count: integer) {
+  return block @* {} ( .timestamp, @sort_desc .block_height) limit count;
+}
+
+query find_originals_by_owner(
+  owner_id: byte_array, 
+  interface: name,
+  meta: list<name>,
+  attributes: list<name>
+) {
+  val original_ids = Ownership.find_all_original_ids_with_interface(
+    owner_id, 
+    Interface.get(interface), 
+    100, 
+    0
+  );
+  
+  val attribute_names = attributes @* {} (Attribute.from_text($));
+  val meta_names = OMapper.type.values() @* { $.name in meta };
+  
+  return original_ids @* {} (
+    Mapper.map_instance(Id.get_by_id($).instance, [
+      Mapper.map_attributes(attribute_names),
+      OMapper.map_original_meta(meta_names)
+    ])
+  );
+}
+
+query get_last_n_minted_originals(account_id: byte_array, count: integer) {
+  val original_account_id = Ft3Helper.get_original_account_id(account_id);
+  val locked_account_id = Ft3Helper.get_locked_account_id(account_id);
+  
+  val originals = (a: Id.asset_instance, b: ft3.balance) @* {
+  	b.account.id in [original_account_id, locked_account_id],
+  	a.asset.id == b.asset.id,
+  	b.amount > 0
+  } (@omit @sort_desc a.instance.rowid, a.instance) limit count;
+  
+  return originals @* {} (
+    Mapper.map_instance($, [
+      Mapper.map_all_attributes(),
+      OMapper.map_original_meta([
+        OMapper.type.id, 
+        OMapper.type.interfaces
+      ])
+    ])
+  );		
+}
+
+query get_original(instance) {
+  return Mapper.map_instance(instance, [
+    Mapper.map_all_attributes(),
+    OMapper.map_original_meta([OMapper.type.id])
+  ]);
+}

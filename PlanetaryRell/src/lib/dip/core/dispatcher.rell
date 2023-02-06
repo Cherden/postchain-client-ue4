@@ -1,0 +1,258 @@
+import ^.util;
+
+namespace Attribute {
+	function create_value(i: instance, attribute_name: Attribute.I, value: gtv): attribute {
+		val attribute = Attribute.get(attribute_name);
+		when (attribute.type) {
+			type.boolean -> Boolean.create_value(i, attribute_name, boolean.from_gtv(value));
+			type.byte_array -> ByteArray.create_value(i, attribute_name, byte_array.from_gtv(value));
+			type.decimal -> Decimal.create_value(i, attribute_name, decimal.from_gtv(value));
+			type.instance -> Instance.create_value(i, attribute_name, instance.from_gtv(value));
+			type.integer -> Integer.create_value(i, attribute_name, integer.from_gtv(value));
+			type.text -> Text.create_value(i, attribute_name, text.from_gtv(value));
+			type.file -> File.create_value(i, attribute_name, File.data.from_gtv(value));
+			type.ordered_container -> List.create_elements(i, attribute_name, value);
+			type.unordered_container -> Set.create_elements(i, attribute_name, value);
+			type.addressable_container -> Map.create_elements(i, attribute_name, value);
+			else -> require(false, "Unimplemented path");
+		}
+		
+		return attribute;
+	}
+	
+	function add_value(i: instance, attribute_name: Attribute.I, value: gtv) {
+		val attribute = Attribute.get(attribute_name);
+		
+		when (attribute.type) {
+			type.boolean -> Boolean.add_value(i, attribute_name, boolean.from_gtv(value));
+			type.byte_array -> ByteArray.add_value(i, attribute_name, byte_array.from_gtv(value));
+			type.decimal -> Decimal.add_value(i, attribute_name, decimal.from_gtv(value));
+			type.instance -> Instance.add_value(i, attribute_name, instance.from_gtv(value));
+			type.integer -> Integer.add_value(i, attribute_name, integer.from_gtv(value));
+			type.text -> Text.add_value(i, attribute_name, text.from_gtv(value));
+			type.file -> File.add_value(i, attribute_name, File.data.from_gtv(value));
+			type.ordered_container -> List.add_elements(i, attribute_name, value);
+			type.unordered_container -> Set.add_elements(i, attribute_name, value);
+			type.addressable_container -> Map.add_elements(i, attribute_name, value);
+			else -> require(false, "Unimplemented path");
+		}
+	}	
+	
+	function update_value(i: instance, attribute_name: Attribute.I, value: gtv) {
+		val attribute = Attribute.get(attribute_name);
+		
+		when (attribute.type) {
+			type.boolean -> Boolean.update_value(i, attribute_name, boolean.from_gtv(value));
+			type.byte_array -> ByteArray.update_value(i, attribute_name, byte_array.from_gtv(value));
+			type.decimal -> Decimal.update_value(i, attribute_name, decimal.from_gtv(value));
+			type.instance -> Instance.update_value(i, attribute_name, instance.from_gtv(value));
+			type.integer -> Integer.update_value(i, attribute_name, integer.from_gtv(value));
+			type.text -> Text.update_value(i, attribute_name, text.from_gtv(value));
+			type.file -> File.update_value(i, attribute_name, File.data.from_gtv(value));
+			type.ordered_container -> List.update_elements(i, attribute_name, value);
+			type.unordered_container -> Set.update_elements(i, attribute_name, value);
+			type.addressable_container -> Map.update_elements(i, attribute_name, value);
+			else -> require(false, "Unimplemented path");
+		}
+	}
+	
+	function set_value(i: instance, attribute_name: Attribute.I, value: gtv) {
+		val attribute = Attribute.get(attribute_name);
+		
+		when (attribute.type) {
+			type.boolean -> Boolean.set_value(i, attribute_name, boolean.from_gtv(value));
+			type.byte_array -> ByteArray.set_value(i, attribute_name, byte_array.from_gtv(value));
+			type.decimal -> Decimal.set_value(i, attribute_name, decimal.from_gtv(value));
+			type.instance -> Instance.set_value(i, attribute_name, instance.from_gtv(value));
+			type.integer -> Integer.set_value(i, attribute_name, integer.from_gtv(value));
+			type.text -> Text.set_value(i, attribute_name, text.from_gtv(value));
+			type.file -> File.set_value(i, attribute_name, File.data.from_gtv(value));
+			type.ordered_container -> List.set_elements(i, attribute_name, value);
+			type.unordered_container -> Set.set_elements(i, attribute_name, value);
+			type.addressable_container -> Map.set_elements(i, attribute_name, value);
+			else -> require(false, "Unimplemented path");
+		}
+	}
+	
+	function remove_value(i: instance, attribute_name: Attribute.I): gtv {
+		val attribute = Attribute.get(attribute_name);
+		
+		when (attribute.type) {
+			type.boolean -> return Boolean.remove_value(i, attribute_name).to_gtv();
+			type.byte_array -> return ByteArray.remove_value(i, attribute_name).to_gtv();
+			type.decimal -> return Decimal.remove_value(i, attribute_name).to_gtv();
+			type.instance -> return Instance.remove_value(i, attribute_name).to_gtv();
+			type.integer -> return Integer.remove_value(i, attribute_name).to_gtv();
+			type.text -> return Text.remove_value(i, attribute_name).to_gtv();
+			type.file -> return File.remove_value(i, attribute_name).to_gtv();
+			type.ordered_container -> return List.remove_elements(i, attribute_name);
+			type.unordered_container -> return Set.remove_elements(i, attribute_name);
+			type.addressable_container -> return Map.remove_elements(i, attribute_name);
+			else -> {require(false, "Unimplemented path"); return null.to_gtv();}
+		}
+	}
+	
+	function add_container_element(i: instance, attribute_name: Attribute.I, value: gtv) {
+		val attribute = Attribute.get(attribute_name);
+		
+		when (attribute.type) {
+			type.ordered_container -> List.add_element(i, attribute_name, value);
+			type.unordered_container -> Set.add_element(i, attribute_name, value);
+			type.addressable_container -> Map.add_element(i, attribute_name, value);
+			else -> require(false, "Unimplemented path");
+		}
+	}
+	
+	function remove_container_element(i: instance, attribute_name: Attribute.I, value: gtv) {
+		val attribute = Attribute.get(attribute_name);
+		when (attribute.type) {
+			type.ordered_container -> List.remove_element(i, attribute_name, value);
+			type.unordered_container -> Set.remove_element(i, attribute_name, value);
+			type.addressable_container -> Map.remove_element(i, attribute_name, value);
+			else -> require(false, "Unimplemented path");
+		}
+	}
+	
+	function get_value(i: instance, attribute_name: Attribute.I): gtv? {
+		val attribute = Attribute.get(attribute_name);
+		
+		when (attribute.type) {
+			type.boolean -> return Boolean.get_value(i, attribute_name)?.to_gtv();
+			type.byte_array -> return ByteArray.get_value(i, attribute_name)?.to_gtv();
+			type.decimal -> return Decimal.get_value(i, attribute_name)?.to_gtv();
+			type.instance -> return Instance.get_value(i, attribute_name)?.to_gtv();
+			type.integer -> return Integer.get_value(i, attribute_name)?.to_gtv();
+			type.text -> return Text.get_value(i, attribute_name)?.to_gtv();
+			type.file -> return File.get_value(i, attribute_name)?.to_gtv_pretty();
+			type.ordered_container -> return List.unpack(i, attribute_name)?.values?.to_gtv();
+			type.unordered_container -> return Set.unpack(i, attribute_name)?.values?.to_gtv();
+			type.addressable_container -> return Map.unpack(i, attribute_name)?.values?.to_gtv();
+			else -> {require(false, "Unimplemented path"); return null;}
+		}
+	}
+	
+	function find_instances(attribute_name: Attribute.I, value: gtv, from: Filter.p_from, page_size: integer)
+	: (results: list<instance>, from: Filter.p_from) {
+		var out = list<instance>();
+		var cur_from = from;
+		val attribute = Attribute.get(attribute_name);
+		
+		while(true) {
+			val instances = when (attribute.type) {
+				type.boolean -> Boolean.fetch_range_from(attribute, boolean.from_gtv(value), cur_from.instance_rowid);
+				type.byte_array -> ByteArray.fetch_range_from(attribute, byte_array.from_gtv(value), cur_from.instance_rowid);
+				type.decimal -> Decimal.fetch_range_from(attribute, decimal.from_gtv(value), cur_from.instance_rowid);
+				type.instance -> Instance.fetch_range_from(attribute, instance.from_gtv(value), cur_from.instance_rowid);
+				type.integer -> Integer.fetch_range_from(attribute, integer.from_gtv(value), cur_from.instance_rowid);
+				type.text -> Text.fetch_range_from(attribute, text.from_gtv(value), cur_from.instance_rowid);
+				type.file -> File.fetch_range_from(attribute, byte_array.from_gtv(value),  cur_from.instance_rowid);
+				type.ordered_container -> List.fetch_range_from(attribute, value, cur_from.instance_rowid);
+				type.unordered_container -> Set.fetch_range_from(attribute, value, cur_from.instance_rowid);
+				type.addressable_container -> Map.fetch_range_from(attribute, value, cur_from.instance_rowid);
+				else -> list<instance>();
+			};
+			val unpacked = Prototype.unpack_instances(instances, cur_from, (page_size - out.size()));
+			out.add_all(unpacked.results);
+			cur_from = unpacked.from;
+			
+			if (out.size() >= page_size or instances.empty()) break;
+		}
+	
+		return (results = out, from = cur_from);
+	}
+}
+
+namespace Attribute.Unsafe {
+	function add_value(i: instance, attribute_name: Attribute.I, value: gtv) {
+		val attribute = Attribute.get(attribute_name);
+		
+		when (attribute.type) {
+			type.boolean -> Boolean.Unsafe.add_value(i, attribute_name, boolean.from_gtv(value));
+			type.byte_array -> ByteArray.Unsafe.add_value(i, attribute_name, byte_array.from_gtv(value));
+			type.decimal -> Decimal.Unsafe.add_value(i, attribute_name, decimal.from_gtv(value));
+			type.instance -> Instance.Unsafe.add_value(i, attribute_name, instance.from_gtv(value));
+			type.integer -> Integer.Unsafe.add_value(i, attribute_name, integer.from_gtv(value));
+			type.text -> Text.Unsafe.add_value(i, attribute_name, text.from_gtv(value));
+			type.file -> File.Unsafe.add_value(i, attribute_name, File.data.from_gtv(value));
+			type.ordered_container -> List.Unsafe.add_elements(i, attribute_name, value);
+			type.unordered_container -> Set.Unsafe.add_elements(i, attribute_name, value);
+			type.addressable_container -> Map.Unsafe.add_elements(i, attribute_name, value);
+			else -> require(false, "Unimplemented path");
+		}
+	}
+	
+	function update_value(i: instance, attribute_name: Attribute.I, value: gtv) {
+		val attribute = Attribute.get(attribute_name);
+		
+		when (attribute.type) {
+			type.boolean -> Boolean.Unsafe.update_value(i, attribute_name, boolean.from_gtv(value));
+			type.byte_array -> ByteArray.Unsafe.update_value(i, attribute_name, byte_array.from_gtv(value));
+			type.decimal -> Decimal.Unsafe.update_value(i, attribute_name, decimal.from_gtv(value));
+			type.instance -> Instance.Unsafe.update_value(i, attribute_name, instance.from_gtv(value));
+			type.integer -> Integer.Unsafe.update_value(i, attribute_name, integer.from_gtv(value));
+			type.text -> Text.Unsafe.update_value(i, attribute_name, text.from_gtv(value));
+			type.file -> File.Unsafe.update_value(i, attribute_name, File.data.from_gtv(value));
+			type.ordered_container -> List.Unsafe.update_elements(i, attribute_name, value);
+			type.unordered_container -> Set.Unsafe.update_elements(i, attribute_name, value);
+			type.addressable_container -> Map.Unsafe.update_elements(i, attribute_name, value);
+			else -> require(false, "Unimplemented path");
+		}
+	}
+	
+	function set_value(i: instance, attribute_name: Attribute.I, value: gtv) {
+		val attribute = Attribute.get(attribute_name);
+		
+		when (attribute.type) {
+			type.boolean -> Boolean.Unsafe.set_value(i, attribute_name, boolean.from_gtv(value));
+			type.byte_array -> ByteArray.Unsafe.set_value(i, attribute_name, byte_array.from_gtv(value));
+			type.decimal -> Decimal.Unsafe.set_value(i, attribute_name, decimal.from_gtv(value));
+			type.instance -> Instance.Unsafe.set_value(i, attribute_name, instance.from_gtv(value));
+			type.integer -> Integer.Unsafe.set_value(i, attribute_name, integer.from_gtv(value));
+			type.text -> Text.Unsafe.set_value(i, attribute_name, text.from_gtv(value));
+			type.file -> File.Unsafe.set_value(i, attribute_name, File.data.from_gtv(value));
+			type.ordered_container -> List.Unsafe.set_elements(i, attribute_name, value);
+			type.unordered_container -> Set.Unsafe.set_elements(i, attribute_name, value);
+			type.addressable_container -> Map.Unsafe.set_elements(i, attribute_name, value);
+			else -> require(false, "Unimplemented path");
+		}
+	}
+	
+	function remove_value(i: instance, attribute_name: Attribute.I): gtv {
+		val attribute = Attribute.get(attribute_name);
+		
+		when (attribute.type) {
+			type.boolean -> return Boolean.Unsafe.remove_value(i, attribute_name).to_gtv();
+			type.byte_array -> return ByteArray.Unsafe.remove_value(i, attribute_name).to_gtv();
+			type.decimal -> return Decimal.Unsafe.remove_value(i, attribute_name).to_gtv();
+			type.instance -> return Instance.Unsafe.remove_value(i, attribute_name).to_gtv();
+			type.integer -> return Integer.Unsafe.remove_value(i, attribute_name).to_gtv();
+			type.text -> return Text.Unsafe.remove_value(i, attribute_name).to_gtv();
+			type.file -> return File.Unsafe.remove_value(i, attribute_name).to_gtv();
+			type.ordered_container -> return List.Unsafe.remove_elements(i, attribute_name);
+			type.unordered_container -> return Set.Unsafe.remove_elements(i, attribute_name);
+			type.addressable_container -> return Map.Unsafe.remove_elements(i, attribute_name);
+			else -> {require(false, "Unimplemented path"); return null.to_gtv();}
+		}
+	}
+	
+	function add_container_element(i: instance, attribute_name: Attribute.I, value: gtv) {
+		val attribute = Attribute.get(attribute_name);
+		
+		when (attribute.type) {
+			type.ordered_container -> List.Unsafe.add_by_attribute(i, attribute, value);
+			type.unordered_container -> Set.Unsafe.add_by_attribute(i, attribute, value);
+			type.addressable_container -> Map.Unsafe.put_by_attribute(i, attribute, value);
+			else -> require(false, "Unimplemented path");
+		}
+	}
+	
+	function remove_container_element(i: instance, attribute_name: Attribute.I, value: gtv) {
+		val attribute = Attribute.get(attribute_name);
+		when (attribute.type) {
+			type.ordered_container -> List.Unsafe.remove_by_attribute(i, attribute, value);
+			type.unordered_container -> Set.Unsafe.remove_by_attribute(i, attribute, value);
+			type.addressable_container -> Map.Unsafe.remove_by_attribute(i, attribute, value);
+			else -> require(false, "Unimplemented path");
+		}
+	}
+}

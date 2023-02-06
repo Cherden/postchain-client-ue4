@@ -1,0 +1,1028 @@
+@test module;
+
+import ^^.tests.*;
+import ^^^.dip.tests.*;
+
+/********************
+ * 		HELPER		*
+ ********************/
+
+function create_default_nfo(auth_data): (byte_array, Dip.instance) {
+	init_originals_interfaces_op(auth_data.auth_id).sign(auth_data.keypair).run();
+	val original = Minter.I(
+		interface_name = chromia.INonFungibleOriginal.interface,
+		[
+		    chromia.IOriginal.name: Text.T("Test Original"),
+			chromia.IOriginal.creator_id: Dip.ByteArray.T(auth_data.auth_id.account_id),
+			chromia.IOriginal.creator_name: Dip.Text.T("Admin")
+		]
+	);
+	
+	mint_non_fungible_original_op(
+        auth_data.auth_id,
+        original
+    ).sign(auth_data.keypair).run();
+	
+	return get_last();
+}
+
+function create_default_fo(
+	auth_data,
+	initialize_chain: boolean = true
+): (byte_array, Dip.instance) {
+	if (initialize_chain) {
+		init_originals_interfaces_op(auth_data.auth_id).sign(auth_data.keypair).run();
+	}
+	
+	val original = Minter.I(
+		interface_name = chromia.IFungibleOriginal.interface,
+		[
+		    chromia.IOriginal.name: Text.T("Test Original"),
+			chromia.IOriginal.creator_id: Dip.ByteArray.T(auth_data.auth_id.account_id),
+			chromia.IOriginal.creator_name: Dip.Text.T("Admin"),
+			chromia.IFungibleOriginal.max_supply: Dip.Integer.T(100)
+		]
+	);
+	
+	create_fungible_original_op(
+	    auth_data.auth_id,
+	    original, 100
+	).sign(auth_data.keypair).run();
+	
+	return get_last();
+}
+
+function create_test_dapp(auth_data): name {
+	init_originals_interfaces_op(auth_data.auth_id).sign(auth_data.keypair).run();
+	
+	val dlcass_name = "ITestDapp";
+	def_original_interface_op(
+	    auth_data.auth_id,
+		dlcass_name,
+		[:],
+		[chromia.INonFungibleOriginal.interface]
+	).sign(auth_data.keypair).run();
+	
+	def_original_prototype_op(
+	    auth_data.auth_id,
+	    dlcass_name, [
+	        chromia.IOriginal.name: Text.T("Test Original"),
+    		chromia.IOriginal.creator_id: Dip.ByteArray.T(auth_data.auth_id.account_id),
+    		chromia.IOriginal.creator_name: Dip.Text.T("Admin")
+	], "TestDapp").sign(auth_data.keypair).run();
+	
+	return dlcass_name;
+}
+
+function create_sword_example(
+	auth_data,
+	sword_optional: boolean = true
+): (name, name) {
+	val test_dapp = create_test_dapp(auth_data);
+	
+	val meta = if (sword_optional) [Optional(), OwnerMutable()] else [OwnerMutable()];
+	def_original_interface_op(
+    	auth_data.auth_id,
+    	"ICharacter",
+		[
+			Dip.Attribute.def_I("ICharacter", "sword"): Dip.Type(Dip.Instance.T(), meta)
+		],
+		[test_dapp]
+	).sign(auth_data.keypair).run();
+
+	def_original_interface_op(
+    	auth_data.auth_id,
+    	"ISword",
+		[Dip.Attribute.def_I("ISword", "damage"): Type(Dip.Integer.T(100))],
+		[test_dapp]
+	).sign(auth_data.keypair).run();
+	
+	return (
+		"ICharacter",
+		"ISword"
+	);
+}
+
+function create_gem_example(
+	auth_data,
+	interface_constraint: boolean = false
+): (name, name, name?) {
+	val test_dapp = create_test_dapp(auth_data);
+	
+	val type = if (interface_constraint) 
+					Dip.Type(
+						Dip.Set.T(Dip.Attribute.type.instance, set<instance>().to_gtv()),
+						[OwnerMutable(), ImplementsInterface("IGem")]
+					)
+				else 
+					Dip.Type(Dip.Set.T(Dip.Attribute.type.instance), [OwnerMutable()])
+				;
+	def_original_interface_op(
+	   auth_data.auth_id,
+	   "ICharacter",
+	   [Dip.Attribute.def_I("ICharacter", "gems"): type],
+	   [test_dapp]
+	).sign(auth_data.keypair).run();
+	
+	def_original_interface_op(
+	   auth_data.auth_id,
+	   "IGem",
+       [Dip.Attribute.def_I("IGem", "power"): Type(Dip.Integer.T(100))],
+	   [test_dapp]
+	).sign(auth_data.keypair).run();
+	
+	if (interface_constraint) {
+		def_original_interface_op(
+    		auth_data.auth_id,
+    		"IGemFake", 
+			[Dip.Attribute.def_I("IGemFake", "power"): Type(Dip.Integer.T(100))], 
+			[test_dapp]
+		).sign(auth_data.keypair).run();
+		val gem_fake = Dip.Interface.get("IGemFake");
+	}
+	
+	return (
+		"ICharacter",
+		"IGem",
+		if (interface_constraint) "IGemFake" else null
+	);
+}
+
+/********************
+ * 		LINKING		*
+ ********************/
+
+function test_ownership_link() {
+	val admin_account = create_ft3_test_acc(admin_keypair());	
+	val (character, sword) = create_sword_example(admin_account);
+	
+	val character_type = Minter.I(
+	    interface_name = character,
+	    types = [:],
+	    prototype_name = "TestDapp"
+	);
+	val sword_type = Minter.I(
+	    interface_name = sword,
+	    types = [:],
+	    prototype_name = "TestDapp"
+	);
+	
+	mint_non_fungible_original_op(
+	    admin_account.auth_id,
+	    character_type
+	).sign(admin_account.keypair).run();
+	val (character_id, character_instance) = get_last();
+	
+	mint_non_fungible_original_op(
+	    admin_account.auth_id,
+	    sword_type
+	).sign(admin_account.keypair).run();
+	val (sword_id, sword_instance) = get_last();
+	
+	assert_equals(Ownership.get_locked_instances_from_owner(admin_account.auth_id.account_id, integer.MAX_VALUE, 0), list<instance>());
+	assert_equals(set(Ownership.get_unlocked_instances_from_owner(admin_account.auth_id.account_id, integer.MAX_VALUE, 0)), set([sword_instance, character_instance]));
+	
+	link_original_op(
+	    admin_account.auth_id,
+		Dip.Attribute.def_I("ICharacter", "sword"),
+		character_id,
+		sword_id
+	).sign(admin_account.keypair).run();
+	
+	assert_true(Ownership.is_linked(sword_instance));
+	assert_false(Ft3Helper.owns_original(admin_account.auth_id.account_id, sword_id));
+	assert_equals(Ownership.get_base_instance(sword_instance), character_instance);
+	
+	assert_equals(Ownership.get_locked_instances_from_owner(admin_account.auth_id.account_id, integer.MAX_VALUE, 0), [sword_instance]);
+	assert_equals(Ownership.get_unlocked_instances_from_owner(admin_account.auth_id.account_id, integer.MAX_VALUE, 0), [character_instance]);
+}
+
+function test_ownership_link_fail_cases() {
+	val admin_account = create_ft3_test_acc(admin_keypair());
+	val bob_account = create_ft3_test_acc(bob_keypair());
+	
+	val (character, sword) = create_sword_example(admin_account);
+	
+	val character_type = Minter.I(
+	    interface_name = character,
+	    types = [:],
+	    prototype_name = "TestDapp"
+	);
+	val sword_type = Minter.I(
+	    interface_name = sword,
+	    types = [:],
+	    prototype_name = "TestDapp"
+	);
+	
+	mint_non_fungible_original_op(
+	    admin_account.auth_id,
+	    character_type
+	).sign(admin_account.keypair).run();
+	val (character_id, character_instance) = get_last();
+	
+	mint_non_fungible_original_op(
+	    admin_account.auth_id,
+	    sword_type
+	).sign(admin_account.keypair).run();
+	val (sword_id, sword_instance) = get_last();
+	
+	// no/wrong signer/owner
+	link_original_op(
+	    bob_account.auth_id,
+		Dip.Attribute.def_I("ICharacter", "sword"),
+		character_id,
+		sword_id
+	).sign(bob_account.keypair).run_must_fail();
+	
+	link_original_op(
+	    admin_account.auth_id,
+		Dip.Attribute.def_I("ICharacter", "sword"),
+		character_id,
+		sword_id
+	).sign(bob_account.keypair).run_must_fail();
+	
+	link_original_op(
+	    admin_account.auth_id,
+		Dip.Attribute.def_I("ICharacter", "sword"),
+		character_id,
+		sword_id
+	).run_must_fail();
+	
+	link_original_op(
+	    admin_account.auth_id,
+		Dip.Attribute.def_I("ICharacter", "sword"),
+		character_id,
+		sword_id
+	).sign(admin_account.keypair).run();
+	
+	// relinking
+	link_original_op(
+	    admin_account.auth_id,
+		Dip.Attribute.def_I("ICharacter", "sword"),
+		character_id,
+		sword_id
+	).sign(admin_account.keypair).run_must_fail();
+}
+
+
+function test_ownership_unlink() {
+	val admin_account = create_ft3_test_acc(admin_keypair());
+	val (character, sword) = create_sword_example(admin_account);
+	
+	val character_type = Minter.I(
+	    interface_name = character,
+	    types = [:],
+	    prototype_name = "TestDapp"
+	);
+	
+	val sword_type = Minter.I(
+	    interface_name = sword,
+        types = [:],
+        prototype_name = "TestDapp"
+	);
+	
+	mint_non_fungible_original_op(
+	    admin_account.auth_id,
+	    character_type
+	).sign(admin_account.keypair).run();
+	val (character_id, character_instance) = get_last();
+	
+	mint_non_fungible_original_op(
+	    admin_account.auth_id,
+	    sword_type
+	).sign(admin_account.keypair).run();
+	val (sword_id, sword_instance) = get_last();
+	
+	link_original_op(
+	    admin_account.auth_id,
+		Dip.Attribute.def_I("ICharacter", "sword"),
+		character_id,
+		sword_id
+	).sign(admin_account.keypair).run();
+	
+	unlink_original_op(
+	    admin_account.auth_id,
+		Dip.Attribute.def_I("ICharacter", "sword"),
+		character_id
+	).sign(admin_account.keypair).run();
+	
+	assert_false(Ownership.is_linked(sword_instance));
+	assert_true(Ft3Helper.owns_original(admin_account.auth_id.account_id, sword_id));
+	
+	assert_equals(Ownership.get_locked_instances_from_owner(admin_account.auth_id.account_id, integer.MAX_VALUE, 0), list<instance>());
+	assert_equals(set(Ownership.get_unlocked_instances_from_owner(admin_account.auth_id.account_id, integer.MAX_VALUE, 0)), set([sword_instance, character_instance]));
+}
+
+function test_ownership_unlink_fail_cases() {
+	val admin_account = create_ft3_test_acc(admin_keypair());
+	val bob_account = create_ft3_test_acc(bob_keypair());	
+	val (character, sword) = create_sword_example(admin_account);
+	
+	val character_type = Minter.I(
+	    interface_name = character,
+	    types = [:],
+	    prototype_name = "TestDapp"
+	);
+	
+	val sword_type = Minter.I(
+	    interface_name = sword,
+	    types = [:],
+	    prototype_name = "TestDapp"
+	);
+	
+	mint_non_fungible_original_op(
+	    admin_account.auth_id,
+	    character_type
+	).sign(admin_account.keypair).run();
+	val (character_id, character_instance) = get_last();
+	
+	mint_non_fungible_original_op(
+	    admin_account.auth_id,
+	    sword_type
+	).sign(admin_account.keypair).run();
+	val (sword_id, sword_instance) = get_last();
+	
+	link_original_op(
+	    admin_account.auth_id,
+		Dip.Attribute.def_I("ICharacter", "sword"),
+		character_id,
+		sword_id
+	).sign(admin_account.keypair).run();
+	
+	// wrong/no owner/signer
+	unlink_original_op(
+	    bob_account.auth_id,
+		Dip.Attribute.def_I("ICharacter", "sword"),
+		character_id
+	).sign(bob_account.keypair).run_must_fail();
+	
+	unlink_original_op(
+	    admin_account.auth_id,
+		Dip.Attribute.def_I("ICharacter", "sword"),
+		character_id
+	).sign(bob_account.keypair).run_must_fail();
+	
+	unlink_original_op(
+	    admin_account.auth_id,
+		Dip.Attribute.def_I("ICharacter", "sword"),
+		character_id
+	).run_must_fail();
+	
+	unlink_original_op(
+	    admin_account.auth_id,
+		Dip.Attribute.def_I("ICharacter", "sword"),
+		character_id,
+		x"affe"
+	).run_must_fail();
+	
+	unlink_original_op(
+	    admin_account.auth_id,
+		Dip.Attribute.def_I("ICharacter", "sword"),
+		character_id
+	).sign(admin_account.keypair).run();
+	
+	// already unlinked
+	unlink_original_op(
+	    admin_account.auth_id,
+		Dip.Attribute.def_I("ICharacter", "sword"),
+		character_id
+	).sign(admin_account.keypair).run_must_fail();
+}
+
+function test_ownership_link_at_mint() {
+	val admin_account = create_ft3_test_acc(admin_keypair());
+	
+	val (character, sword) = create_sword_example(admin_account);
+	
+	val sword_type = Minter.I(
+	    interface_name = sword,
+	    types = [:],
+	    prototype_name = "TestDapp"
+	);	
+	mint_non_fungible_original_op(
+	    admin_account.auth_id,
+	    sword_type
+	).sign(admin_account.keypair).run();
+	val (sword_id, sword_instance) = get_last();
+	
+	val character_type = Minter.I(
+		interface_name = character,
+		types = [
+			Dip.Attribute.def_I("ICharacter", "sword"): Id.T(sword_id)
+		],
+		prototype_name = "TestDapp"
+	);	
+	
+	mint_non_fungible_original_op(
+	    admin_account.auth_id,
+	    character_type
+	).sign(admin_account.keypair).run();
+	val (character_id, character_instance) = get_last();
+	
+	assert_true(Ownership.is_linked(sword_instance));
+	assert_false(Ft3Helper.owns_original(admin_account.auth_id.account_id, sword_id));
+	assert_equals(Ownership.get_base_instance(sword_instance), character_instance);
+}
+
+function test_ownership_link_swap() {
+	val admin_account = create_ft3_test_acc(admin_keypair());
+	
+	// The sword attribute in character is non optional to test if it updates
+	// instead of deleting and adding.
+	val (character, sword) = create_sword_example(admin_account, sword_optional = false);
+	
+	val sword_type = Minter.I(
+	    interface_name = sword,
+	    types = [:],
+	    prototype_name = "TestDapp"
+	);	
+	mint_non_fungible_original_op(
+	    admin_account.auth_id,
+	    sword_type
+	).sign(admin_account.keypair).run();
+	val (sword1_id, sword1_instance) = get_last();
+	
+	val character_type = Minter.I(
+		interface_name = character,
+		types = [
+			Dip.Attribute.def_I("ICharacter", "sword"): Id.T(sword1_id)
+		],
+		prototype_name = "TestDapp"
+	);	
+	mint_non_fungible_original_op(
+	    admin_account.auth_id,
+	    character_type
+	).sign(admin_account.keypair).run();
+	val (character_id, character_instance) = get_last();
+	
+	NOP().op(mint_non_fungible_original_op(
+	    admin_account.auth_id,
+	    sword_type
+	)).sign(admin_account.keypair).run();
+	val (sword2_id, sword2_instance) = get_last();
+	
+	assert_true(Ownership.is_linked(sword1_instance));
+	assert_false(Ownership.is_linked(sword2_instance));
+	assert_equals(Ownership.get_base_instance(sword1_instance), character_instance);
+	
+	link_original_op(
+	    admin_account.auth_id,
+		Dip.Attribute.def_I("ICharacter", "sword"),
+		character_id,
+		sword2_id
+	).sign(admin_account.keypair).run();
+	
+	assert_false(Ownership.is_linked(sword1_instance));
+	assert_true(Ownership.is_linked(sword2_instance));
+	assert_equals(Ownership.get_base_instance(sword2_instance), character_instance);
+}
+
+function test_ownership_link_and_unlink_to_set() {
+	val admin_account = create_ft3_test_acc(admin_keypair());
+	val (character, gem, _) = create_gem_example(admin_account);
+	
+	val gem_type = Minter.I(
+	    interface_name = gem,
+	    types = [:],
+	    prototype_name = "TestDapp"
+	);	
+	mint_non_fungible_original_batch_op(
+	    admin_account.auth_id,
+	    gem_type, 5
+	).sign(admin_account.keypair).run();
+	val gem_interface = Dip.Interface.get(gem);
+	val gem_instances = Ownership.find_all_originals_with_interface(admin_account.auth_id.account_id, gem_interface, integer.MAX_VALUE, 0);
+	val gem_ids = gem_instances @* {} (Id.get_id($));
+	
+	val character_type = Minter.I(
+		interface_name = character,
+		types = [
+			Dip.Attribute.def_I("ICharacter", "gems"): Dip.Set.T(Dip.Attribute.type.id, value=set<byte_array>().to_gtv())
+		],
+		prototype_name = "TestDapp"
+	);	
+	mint_non_fungible_original_op(
+	    admin_account.auth_id,
+	    character_type
+	).sign(admin_account.keypair).run();
+	val (character_id, character_instance) = get_last();
+	
+	for (gem_id in gem_ids) {
+		link_original_op(
+		    admin_account.auth_id,
+			Dip.Attribute.def_I("ICharacter", "gems"),
+			character_id,
+			gem_id
+		).sign(admin_account.keypair).run();
+	}
+	
+	assert_equals(set(Ownership.get_locked_instances_from_owner(admin_account.auth_id.account_id, integer.MAX_VALUE, 0)), set(gem_instances));
+	
+	unlink_original_op(
+	    admin_account.auth_id,
+		Dip.Attribute.def_I("ICharacter", "gems"),
+		character_id,
+		gem_ids[1]
+	).sign(admin_account.keypair).run();
+	
+	assert_equals(set(Ownership.get_locked_instances_from_owner(admin_account.auth_id.account_id, integer.MAX_VALUE, 0)), set(gem_instances @* {gem_instances.index_of($) != 1}));
+	assert_equals(set(Ownership.get_unlocked_instances_from_owner(admin_account.auth_id.account_id, integer.MAX_VALUE, 0)), set([character_instance, gem_instances[1]]));
+}
+
+function test_ownership_link_and_unlink_to_set_at_mint() {
+	val admin_account = create_ft3_test_acc(admin_keypair());
+	val (character, gem, _) = create_gem_example(admin_account);
+	
+	val gem_type = Minter.I(
+	    interface_name = gem,
+	    types = [:],
+	    prototype_name = "TestDapp"
+	);	
+	mint_non_fungible_original_batch_op(
+	    admin_account.auth_id,
+	    gem_type,
+	    5
+	).sign(admin_account.keypair).run();
+	val gem_interface = Dip.Interface.get(gem);
+	val gem_instances = Ownership.find_all_originals_with_interface(admin_account.auth_id.account_id, gem_interface, integer.MAX_VALUE, 0);
+	val gem_ids = gem_instances @* {} (Id.get_id($));
+	
+	val character_type = Minter.I(
+		interface_name = character,
+		types = [
+			Dip.Attribute.def_I("ICharacter", "gems"): Dip.Set.T(Dip.Attribute.type.id, value = set(gem_ids).to_gtv())
+		],
+		prototype_name = "TestDapp"
+	);	
+	mint_non_fungible_original_op(
+	    admin_account.auth_id,
+	    character_type
+	).sign(admin_account.keypair).run();
+	val (character_id, character_instance) = get_last();
+	
+	assert_equals(set(Ownership.get_locked_instances_from_owner(admin_account.auth_id.account_id, integer.MAX_VALUE, 0)), set(gem_instances));
+	
+	unlink_original_op(
+	    admin_account.auth_id,
+		Dip.Attribute.def_I("ICharacter", "gems"),
+		character_id,
+		gem_ids[1]
+	).sign(admin_account.keypair).run();
+	
+	assert_equals(set(Ownership.get_locked_instances_from_owner(admin_account.auth_id.account_id, integer.MAX_VALUE, 0)), set(gem_instances @* {gem_instances.index_of($) != 1}));
+	assert_equals(set(Ownership.get_unlocked_instances_from_owner(admin_account.auth_id.account_id, integer.MAX_VALUE, 0)), set([character_instance, gem_instances[1]]));
+}
+
+function test_ownership_link_and_unlink_to_set_of_wrong_interface() {
+	val admin_account = create_ft3_test_acc(admin_keypair());
+	val (character, gem, gem_fake) = create_gem_example(admin_account, interface_constraint = true);
+	
+	val gem_type = Minter.I(
+	    interface_name = gem,
+	    types = [:],
+	    prototype_name = "TestDapp"
+	);	
+	mint_non_fungible_original_batch_op(
+	    admin_account.auth_id,
+	    gem_type,
+	    5
+	).sign(admin_account.keypair).run();
+	val gem_interface = Dip.Interface.get(gem);
+	val gem_instances = Ownership.find_all_originals_with_interface(admin_account.auth_id.account_id, gem_interface, integer.MAX_VALUE, 0);
+	val gem_ids = gem_instances @* {} (Id.get_id($));
+	
+	val fake_gem_type = Minter.I(
+	    interface_name = gem_fake!!,
+        types = [:],
+        prototype_name = "TestDapp"
+	);	
+	mint_non_fungible_original_op(
+	    admin_account.auth_id,
+	    fake_gem_type
+	).sign(admin_account.keypair).run();
+	val fake_gem_id = get_last_id();
+	
+	val character_type = Minter.I(
+	    interface_name = character,
+	    types = [:],
+	    prototype_name = "TestDapp"
+	);	
+	mint_non_fungible_original_op(
+	    admin_account.auth_id,
+	    character_type
+	).sign(admin_account.keypair).run();
+	val character_id = get_last_id();
+	
+	val attribute_name = Dip.Attribute.def_I("ICharacter", "gems");
+	link_original_op(
+	    admin_account.auth_id,
+		attribute_name,
+		character_id,
+		fake_gem_id
+	).sign(admin_account.keypair).run_must_fail();
+	
+	link_original_op(
+	    admin_account.auth_id,
+		attribute_name,
+		character_id,
+		gem_ids[0]
+	).sign(admin_account.keypair).run();
+	
+	unlink_original_op(
+	    admin_account.auth_id,
+		attribute_name,
+		character_id,
+		fake_gem_id
+	).sign(admin_account.keypair).run_must_fail();
+	
+	unlink_original_op(
+	    admin_account.auth_id,
+		attribute_name,
+		character_id,
+		gem_ids[0]
+	).sign(admin_account.keypair).run();
+}
+
+function test_ownership_link_with_non_original_instance() {
+	val admin_account = create_ft3_test_acc(admin_keypair());
+	
+	val (character, sword) = create_sword_example(admin_account);
+	
+	val character_type = Minter.I(
+	    interface_name = character,
+	    types = [:],
+        prototype_name = "TestDapp"
+	);
+	
+	mint_non_fungible_original_op(
+	    admin_account.auth_id,
+	    character_type
+	).sign(admin_account.keypair).run();
+	val (character_id, character_instance) = get_last();
+	
+	val attr = Dip.Attribute.def_I("IDummy", "char");
+	def_interface_op(
+	   admin_account.auth_id,
+	   "IDummy", [
+		attr: Dip.Type(Dip.Instance.T(), [Dip.Optional(), Dip.Mutable()])
+	]).sign(admin_account.keypair).run();
+	
+	def_instance_op(
+	    admin_account.auth_id,
+	    "IDummy", [:]
+	).sign(admin_account.keypair).run();
+	val dummy = get_last_instance();
+	
+	link_original_direct_op(
+	    admin_account.auth_id,
+		attr,
+		dummy,
+		character_instance
+	).sign(admin_account.keypair).run_must_fail();
+	
+	link_original_direct_op(
+	    admin_account.auth_id,
+		Dip.Attribute.def_I("ICharacter", "sword"),
+		character_instance,
+		dummy
+	).sign(admin_account.keypair).run_must_fail();
+}
+
+/********************
+ * 		TRANSFER	*
+ ********************/
+
+function test_ownership_transfer_nfo() {
+	val admin_account = create_ft3_test_acc(admin_keypair());
+	val bob_account = create_ft3_test_acc(bob_keypair());
+	
+	assert_equals(Ownership.get_all_instances_from_owner(admin_account.auth_id.account_id, integer.MAX_VALUE, 0), list<instance>());
+	
+	val (id, instance) = create_default_nfo(admin_account);
+	assert_true(Ft3Helper.owns_original(admin_account.auth_id.account_id, id));
+	
+	assert_equals(Ownership.get_all_instances_from_owner(admin_account.auth_id.account_id, integer.MAX_VALUE, 0), [instance]);
+	assert_equals(Ownership.find_last_original_with_interface(admin_account.auth_id.account_id, chromia.INonFungibleOriginal.get()), instance);
+	assert_equals(Ownership.get_all_instances_from_owner(bob_account.auth_id.account_id, integer.MAX_VALUE, 0), list<instance>());
+	
+	transfer_original_op(
+	    admin_account.auth_id,
+	    id,
+		bob_account.auth_id.account_id
+	).sign(admin_account.keypair).run();
+	
+	assert_false(Ft3Helper.owns_original(admin_account.auth_id.account_id, id));
+	assert_true(Ft3Helper.owns_original(bob_account.auth_id.account_id, id));
+	
+	assert_equals(Ownership.get_all_instances_from_owner(bob_account.auth_id.account_id, integer.MAX_VALUE, 0), [instance]);
+	assert_equals(Ownership.find_last_original_with_interface(bob_account.auth_id.account_id, chromia.INonFungibleOriginal.get()), instance);
+	assert_equals(Ownership.get_all_instances_from_owner(admin_account.auth_id.account_id, integer.MAX_VALUE, 0), list<instance>());
+}
+
+function test_ownership_transfer_nfo_fail_cases() {
+	val admin_account = create_ft3_test_acc(admin_keypair());
+	val bob_account = create_ft3_test_acc(bob_keypair());
+	
+	val (id, instance) = create_default_nfo(admin_account);
+	assert_true(Ft3Helper.owns_original(admin_account.auth_id.account_id, id));
+	
+	// wrong quantity for NFO
+	transfer_original_op(
+	    admin_account.auth_id,
+	    id,
+		bob_account.auth_id.account_id, 2
+	).sign(admin_account.keypair).run_must_fail();
+	
+	// negative quantity
+	transfer_original_op(
+	    admin_account.auth_id,
+	    id,
+		bob_account.auth_id.account_id, -1
+	).sign(admin_account.keypair).run_must_fail();
+	
+	// not owner
+	transfer_original_op(
+	    bob_account.auth_id,
+	    id, 
+		admin_account.auth_id.account_id
+	).sign(bob_account.keypair).run_must_fail();
+	
+	// wrong key signer
+	transfer_original_op(
+	    bob_account.auth_id,
+	    id,
+		bob_account.auth_id.account_id
+	).sign(bob_account.keypair).run_must_fail();
+}
+
+function test_ownership_fo() {
+	val admin_account = create_ft3_test_acc(admin_keypair());
+	val bob_account = create_ft3_test_acc(bob_keypair());
+	
+	val (id, instance) = create_default_fo(admin_account);
+	assert_equals(Ownership.amount_owned_of_original(admin_account.auth_id.account_id, instance), 100);
+	
+	transfer_original_op(
+	    admin_account.auth_id,
+	    id,
+		bob_account.auth_id.account_id,
+		50
+	).sign(admin_account.keypair).run();
+	
+	assert_equals(Ownership.amount_owned_of_original(admin_account.auth_id.account_id, instance), 50);
+	assert_equals(Ownership.amount_owned_of_original(bob_account.auth_id.account_id, instance), 50);
+	
+	NOP().op(transfer_original_op(
+	    admin_account.auth_id,
+	    id,
+		bob_account.auth_id.account_id,
+		50
+	)).sign(admin_account.keypair).run();
+	
+	assert_equals(Ownership.amount_owned_of_original(admin_account.auth_id.account_id, instance), 0);
+	assert_equals(Ownership.amount_owned_of_original(bob_account.auth_id.account_id, instance), 100);
+	
+	// should fail because admin does not own any anymore
+	NOP().op(transfer_original_op(
+	    admin_account.auth_id,
+	    id,
+		bob_account.auth_id.account_id, 1
+	)).sign(admin_account.keypair).run_must_fail();
+}
+
+function test_ownership_transfer_linked_originals() {
+	val admin_account = create_ft3_test_acc(admin_keypair());
+	val bob_account = create_ft3_test_acc(bob_keypair());
+	val test_dapp = create_test_dapp(admin_account);
+	
+	def_original_interface_op(
+	    admin_account.auth_id,
+		"ICharacter",
+		[
+			Dip.Attribute.def_I("ICharacter", "sword"): Type(Dip.Instance.T(), [Optional(), OwnerMutable()])
+		],
+		[test_dapp]
+	).sign(admin_keypair()).run();
+	
+	def_original_interface_op(
+	    admin_account.auth_id,
+		"ISword",
+		[
+			Dip.Attribute.def_I("ISword", "gem"): Type(Dip.Instance.T(), [Optional(), OwnerMutable()])
+		],
+		[test_dapp]
+	).sign(admin_keypair()).run();
+	
+	def_original_interface_op(
+	    admin_account.auth_id,
+		"IGem",
+		[
+			Dip.Attribute.def_I("IGem", "damage"): Type(Dip.Integer.T(100))
+		],
+		[test_dapp]
+	).sign(admin_keypair()).run();
+	val character = "ICharacter";
+	val sword = "ISword";
+	val gem = "IGem";
+	
+	val gem_type = Minter.I(
+	    interface_name = gem,
+	    types = [:],
+	    prototype_name = "TestDapp"
+	);	
+	mint_non_fungible_original_op(
+	    admin_account.auth_id,
+	    gem_type
+	).sign(admin_account.keypair).run();
+	val (gem_id, gem_instance) = get_last();
+	
+	val sword_type = Minter.I(
+		interface_name = sword,
+		types = [
+			Dip.Attribute.def_I("ISword", "gem"): Id.T(gem_id)
+		],
+		prototype_name = "TestDapp"
+	);	
+	mint_non_fungible_original_op(
+	    admin_account.auth_id,
+	    sword_type
+	).sign(admin_account.keypair).run();
+	val (sword_id, sword_instance) = get_last();
+	
+	val character_type = Minter.I(
+		interface_name = character,
+		types = [
+			Dip.Attribute.def_I("ICharacter", "sword"): Id.T(sword_id)
+		],
+		prototype_name = "TestDapp"
+	);	
+	mint_non_fungible_original_op(
+	    admin_account.auth_id,
+	    character_type
+	).sign(admin_account.keypair).run();
+	val (character_id, character_instance) = get_last();
+	
+	assert_true(Ft3Helper.owns_original(admin_account.auth_id.account_id, character_id));
+	assert_false(Ft3Helper.owns_original(admin_account.auth_id.account_id, sword_id));
+	assert_false(Ft3Helper.owns_original(admin_account.auth_id.account_id, gem_id));
+	assert_true(Ft3Helper.is_asset_locked(admin_account.auth_id.account_id, sword_id));
+	assert_true(Ft3Helper.is_asset_locked(admin_account.auth_id.account_id, gem_id));
+	
+	// try transfer locked original (should fail)
+	transfer_original_op(
+	    admin_account.auth_id,
+	    sword_id,
+		bob_account.auth_id.account_id
+	).sign(admin_account.keypair).run_must_fail();
+	
+	transfer_original_op(
+	    admin_account.auth_id,
+	    character_id,
+		bob_account.auth_id.account_id
+	).sign(admin_account.keypair).run();
+	
+	assert_false(Ft3Helper.owns_original(admin_account.auth_id.account_id, character_id));
+	assert_false(Ft3Helper.is_asset_locked(admin_account.auth_id.account_id, sword_id));
+	assert_false(Ft3Helper.is_asset_locked(admin_account.auth_id.account_id, gem_id));
+	
+	assert_true(Ft3Helper.owns_original(bob_account.auth_id.account_id, character_id));
+	assert_false(Ft3Helper.owns_original(bob_account.auth_id.account_id, sword_id));
+	assert_false(Ft3Helper.owns_original(bob_account.auth_id.account_id, gem_id));
+	assert_true(Ft3Helper.is_asset_locked(bob_account.auth_id.account_id, sword_id));
+	assert_true(Ft3Helper.is_asset_locked(bob_account.auth_id.account_id, gem_id));
+}
+
+/********************
+ * 	FRACTIONLIZE	*
+ ********************/
+
+function fractional_type() = Minter.I(
+	interface_name = chromia.IFractionalizedOriginal.interface,
+	types = [:]
+);
+
+function test_ownership_fractionalize_nfo() {
+	val admin_account = create_ft3_test_acc(admin_keypair());
+	val alice_account = create_ft3_test_acc(alice_keypair());
+	val bob_account = create_ft3_test_acc(bob_keypair());
+	
+	val (id, instance) = create_default_nfo(admin_account);
+	fractionalize_non_fungible_original_op(
+	    admin_account.auth_id,
+	    id,
+	    fractional_type(),
+	    100
+	).sign(admin_account.keypair).run();
+	val (fractionalized_id, fractionalized_instance) = get_last();
+	
+	assert_false(Ft3Helper.owns_original(admin_account.auth_id.account_id, id));
+	assert_equals(Ownership.amount_owned_of_original(admin_account.auth_id.account_id, fractionalized_instance), 100);
+	
+	// should fail because no quantity is defined
+	transfer_original_op(
+	    admin_account.auth_id,
+	    id,
+		alice_account.auth_id.account_id
+	).sign(admin_account.keypair).run_must_fail();
+	
+	transfer_original_op(
+	    admin_account.auth_id,
+	    fractionalized_id,
+		bob_account.auth_id.account_id, 50
+	).sign(admin_account.keypair).run();
+	
+	assert_equals(Ownership.amount_owned_of_original(admin_account.auth_id.account_id, fractionalized_instance), 50);
+	assert_equals(Ownership.amount_owned_of_original(bob_account.auth_id.account_id, fractionalized_instance), 50);
+}
+
+function test_ownership_fractionalize_nfo_fail_cases() {
+	val admin_account = create_ft3_test_acc(admin_keypair());
+	val alice_acc = create_ft3_test_acc(alice_keypair());
+	val bob_account = create_ft3_test_acc(bob_keypair());
+	
+	val (id, instance) = create_default_nfo(admin_account);
+	// wrong owner
+	fractionalize_non_fungible_original_op(
+	    bob_account.auth_id,
+	    id,
+	    fractional_type(),
+	    100
+	).sign(bob_account.keypair).run_must_fail();
+	
+	// wrong amount of fractions
+	fractionalize_non_fungible_original_op(
+	    admin_account.auth_id,
+	    id,
+	    fractional_type(),
+	    0
+	).sign(admin_account.keypair).run_must_fail();
+	fractionalize_non_fungible_original_op(
+	    admin_account.auth_id,
+	    id,
+	    fractional_type(),
+	    -1
+	).sign(admin_account.keypair).run_must_fail();
+	
+	// wrong/no signer
+	fractionalize_non_fungible_original_op(
+	    admin_account.auth_id,
+	    id,
+	    fractional_type(),
+	    100
+	).sign(bob_account.keypair).run_must_fail();
+	fractionalize_non_fungible_original_op(
+	    admin_account.auth_id,
+	    id,
+	    fractional_type(),
+	    100
+	).run_must_fail();
+		
+	// fractionalize_non_fungible_original_op with no NFO
+	val (fun_id, fun_instance) = create_default_fo(admin_account, initialize_chain = false);
+	fractionalize_non_fungible_original_op(
+	    admin_account.auth_id,
+	    fun_id,
+	    fractional_type(),
+	    100
+	).sign(admin_account.keypair).run_must_fail();
+}
+
+/********************
+ * 	PROTOTYPE		*
+ ********************/
+
+function test_ownership_only_creator_can_mint() {
+	val admin_account = create_ft3_test_acc(admin_keypair());
+	val bob_account = create_ft3_test_acc(bob_keypair());
+	val test_dapp = create_test_dapp(admin_account);
+
+	def_original_interface_op(
+	    admin_account.auth_id,
+		"ITest",
+		[
+			Dip.Attribute.def_I("ITest", "name"): Type(Dip.Text.T())
+		],
+		[test_dapp]
+	).sign(admin_keypair()).run();
+	val test = "ITest";
+	
+	def_original_prototype_op(
+	    admin_account.auth_id,
+		test,
+		[
+			Dip.Attribute.def_I("ITest", "name"): Dip.Text.T("peter")
+		],
+		"TestDapp"
+	).sign(admin_keypair()).run();
+	
+	val test_type = Minter.I(
+	    interface_name = test,
+	    types = [:],
+	    prototype_name = "TestDapp"
+	);
+	mint_non_fungible_original_op(
+	    bob_account.auth_id,
+	    test_type
+	).sign(bob_account.keypair).run_must_fail();
+}
+

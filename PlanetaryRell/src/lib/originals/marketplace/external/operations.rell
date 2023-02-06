@@ -1,0 +1,35 @@
+
+operation list_original_op(
+    auth_id,
+	original_id: byte_array,
+	asset_id: byte_array,
+	price: integer
+) {
+    val account = do_auth(auth_id, ["T"]);
+	Listing.list_original(account, original_id, asset_id, price);
+}
+
+operation change_original_price_op(
+    auth_id,
+	original_id: byte_array, 
+	price: integer
+) {
+    val account = do_auth(auth_id, ["T"]);
+	Listing.change_price(account, original_id, price);
+}
+
+operation unlist_original_op(
+    auth_id,
+	original_id: byte_array
+) {
+    val account = do_auth(auth_id, ["T"]);
+	Listing.unlist_original(account, original_id);
+}
+
+operation buy_original_op(
+    auth_id,
+	original_id: byte_array
+) {
+    val account = do_auth(auth_id, ["T"]);
+	Listing.buy_original(account, original_id);
+}

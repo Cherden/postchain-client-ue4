@@ -1,0 +1,349 @@
+@test module;
+import ^^^.tests.*;
+
+function INTSET() {
+	return set([
+			integer(1).to_gtv(),
+			integer(2).to_gtv()
+		]);
+}
+
+function INTSET2() {
+	return [
+			integer(2).to_gtv(),
+			integer(3).to_gtv(),
+			integer(4).to_gtv(),
+			integer(5).to_gtv()			
+		];
+}
+
+function TEXTSET() {
+	return set([
+			"Hello".to_gtv(),
+			"Test".to_gtv()
+		]);
+}
+
+// should create set attribute
+function test_set_1() {
+    val admin_account = create_ft3_test_acc(admin_keypair());
+    
+	val set_def = Attribute.def_I("ITest", "set");
+	def_interface_op(admin_account.auth_id, "ITest", [set_def: Type(Set.T(Attribute.type.integer))]).sign(admin_account.keypair).run();
+}
+
+// should create instance implementing set type
+function test_set_2() {
+    val admin_account = create_ft3_test_acc(admin_keypair());
+    
+	val set_def = Attribute.def_I("ITest", "set");
+	def_interface_op(admin_account.auth_id, "ITest", [set_def: Type(Set.T(Attribute.type.integer))]).sign(admin_account.keypair).run();
+	
+	def_instance_op(admin_account.auth_id, "ITest", [set_def: Set.T(Attribute.type.integer, INTSET().to_gtv())]).sign(admin_account.keypair).run();
+	val instance = get_last_instance();
+	
+	
+	val values = Set.unpack(instance, set_def)!!.values;
+	assert_true( set<gtv>.from_gtv(values).contains_all(INTSET()) );
+}
+
+// should fail if set is implemented twice
+function test_set_3() {
+    val admin_account = create_ft3_test_acc(admin_keypair());
+    
+	val set_def = Attribute.def_I("ITest", "set");
+	val prototype_def = "PrototypeName";
+	
+	def_interface_op(admin_account.auth_id, "ITest", [set_def: Type(Set.T(Attribute.type.integer))]).sign(admin_account.keypair).run();
+	
+	def_prototype_op(admin_account.auth_id, "ITest", [set_def: Set.T(Attribute.type.integer, INTSET().to_gtv())], "PrototypeName").sign(admin_account.keypair).run();
+	def_instance_op(admin_account.auth_id, "ITest", [set_def: Set.T(Attribute.type.integer, INTSET().to_gtv())], prototype_def).sign(admin_account.keypair).run_must_fail();
+}
+
+// should fail if wrong inner type is provided
+// should fail if wrong type values are provided
+function test_set_4() {
+    val admin_account = create_ft3_test_acc(admin_keypair());
+    
+	val set_def = Attribute.def_I("ITest", "set");
+	def_interface_op(admin_account.auth_id, "ITest", [set_def: Type(Set.T(Attribute.type.integer))]).sign(admin_account.keypair).run();
+	def_instance_op(admin_account.auth_id, "ITest", [set_def: Set.T(Attribute.type.integer, TEXTSET().to_gtv())]).sign(admin_account.keypair).run_must_fail();
+	def_instance_op(admin_account.auth_id, "ITest", [set_def: Set.T(Attribute.type.text, TEXTSET().to_gtv())]).sign(admin_account.keypair).run_must_fail();
+}
+
+// should add item 
+function test_set_5() {
+    val admin_account = create_ft3_test_acc(admin_keypair());
+    
+	val set_def = Attribute.def_I("ITest", "set");
+	val prototype_def = "PrototypeName";
+	
+	def_interface_op(admin_account.auth_id, "ITest", [set_def: Type(Set.T(Attribute.type.integer))]).sign(admin_account.keypair).run();
+	val empty_list = list<gtv>();
+	def_prototype_op(admin_account.auth_id, "ITest", [set_def: Set.T(Attribute.type.integer, empty_list.to_gtv())], "PrototypeName").sign(admin_account.keypair).run();
+	
+	val prototype = Prototype.get(prototype_def);
+	
+	assert_true(Set.is_empty(prototype, set_def));
+	add_container_element_op(prototype, set_def, integer(3).to_gtv()).sign(admin_account.keypair).run();
+	
+	val values = Set.unpack(prototype, set_def)!!.values;
+	assert_true( set<gtv>.from_gtv(values).contains_all( [integer(3).to_gtv()] ));
+}
+
+// should fail if item with wrong value type is added
+function test_set_6() {
+    val admin_account = create_ft3_test_acc(admin_keypair());
+    
+	val set_def = Attribute.def_I("ITest", "set");
+	val prototype_def = "PrototypeName";
+	
+	def_interface_op(admin_account.auth_id, "ITest", [set_def: Type(Set.T(Attribute.type.integer))]).sign(admin_account.keypair).run();
+	def_prototype_op(admin_account.auth_id, "ITest", [set_def: Set.T(Attribute.type.integer, list<gtv>().to_gtv())], "PrototypeName").sign(admin_account.keypair).run();
+	
+	val prototype = Prototype.get(prototype_def);
+	
+	add_container_element_op(prototype, set_def, "Wrong".to_gtv()).sign(admin_account.keypair).run_must_fail();
+}
+
+// should add all items
+function test_set_7() {
+    val admin_account = create_ft3_test_acc(admin_keypair());
+    
+	val set_def = Attribute.def_I("ITest", "set");
+	val prototype_def = "PrototypeName";
+	
+	def_interface_op(admin_account.auth_id, "ITest", [set_def: Type(Set.T(Attribute.type.integer))]).sign(admin_account.keypair).run();
+	def_prototype_op(admin_account.auth_id, "ITest", [set_def: Set.T(Attribute.type.integer, list<gtv>().to_gtv())], "PrototypeName").sign(admin_account.keypair).run();
+	
+	val prototype = Prototype.get(prototype_def);
+	
+	assert_true(Set.is_empty(prototype, set_def));
+	
+	set_add_all_op(prototype, set_def, INTSET().to_gtv()).sign(admin_account.keypair).run();
+	
+	val values = Set.unpack(prototype, set_def)!!.values;
+	assert_true( set<gtv>.from_gtv(values).contains_all( INTSET() ));
+}
+
+// should add same values without error but get values without doubles
+function test_set_8() {
+    val admin_account = create_ft3_test_acc(admin_keypair());
+    
+	val set_def = Attribute.def_I("ITest", "set");
+	
+	def_interface_op(admin_account.auth_id, "ITest", [set_def: Type(Set.T(Attribute.type.integer))]).sign(admin_account.keypair).run();
+	def_instance_op(admin_account.auth_id, "ITest", [set_def: Set.T(Attribute.type.integer, INTSET().to_gtv())]).sign(admin_account.keypair).run();
+	
+	val instance = get_last_instance();
+	add_container_element_op(instance, set_def, integer(1).to_gtv()).sign(admin_account.keypair).run();
+	
+	val values = Set.unpack(instance, set_def)!!.values;
+	assert_true( set<gtv>.from_gtv(values).contains_all(INTSET()) );
+}
+
+// should remove item
+function test_set_9() {
+    val admin_account = create_ft3_test_acc(admin_keypair());
+    
+	val set_def = Attribute.def_I("ITest", "set");
+	def_interface_op(admin_account.auth_id, "ITest", [set_def: Type(Set.T(Attribute.type.integer))]).sign(admin_account.keypair).run();
+	def_instance_op(admin_account.auth_id, "ITest", [set_def: Set.T(Attribute.type.integer, INTSET().to_gtv())]).sign(admin_account.keypair).run();
+	
+	val instance = get_last_instance();
+	remove_container_element_op(instance, set_def, integer(1).to_gtv()).sign(admin_account.keypair).run();
+	
+	val values = Set.unpack(instance, set_def)!!.values;
+	assert_true( set<gtv>.from_gtv(values).contains_all( [integer(2).to_gtv()] ));
+}
+
+// should remove all
+function test_set_10() {
+    val admin_account = create_ft3_test_acc(admin_keypair());
+    
+	val set_def = Attribute.def_I("ITest", "set");
+	def_interface_op(admin_account.auth_id, "ITest", [set_def: Type(Set.T(Attribute.type.integer))]).sign(admin_account.keypair).run();
+	def_instance_op(admin_account.auth_id, "ITest", [set_def: Set.T(Attribute.type.integer, INTSET().to_gtv())]).sign(admin_account.keypair).run();
+	
+	val instance = get_last_instance();
+	
+	set_remove_all_op(instance, set_def, INTSET().to_gtv()).sign(admin_account.keypair).run();
+	assert_true(Set.is_empty(instance, set_def));
+}
+
+// should clear whole set
+function test_set_11() {
+    val admin_account = create_ft3_test_acc(admin_keypair());
+    
+	val set_def = Attribute.def_I("ITest", "set");
+	def_interface_op(admin_account.auth_id, "ITest", [set_def: Type(Set.T(Attribute.type.integer))]).sign(admin_account.keypair).run();
+	def_instance_op(admin_account.auth_id, "ITest", [set_def: Set.T(Attribute.type.integer, INTSET().to_gtv())]).sign(admin_account.keypair).run();
+	
+	val instance = get_last_instance();
+	
+	set_clear_op(instance, set_def).sign(admin_account.keypair).run();
+	assert_true(Set.is_empty(instance, set_def));
+}
+
+// should get set size
+function test_set_12() {
+    val admin_account = create_ft3_test_acc(admin_keypair());
+    
+	val set_def = Attribute.def_I("ITest", "set");
+	def_interface_op(admin_account.auth_id, "ITest", [set_def: Type(Set.T(Attribute.type.integer))]).sign(admin_account.keypair).run();
+	def_instance_op(admin_account.auth_id, "ITest", [set_def: Set.T(Attribute.type.integer, INTSET().to_gtv())]).sign(admin_account.keypair).run();
+	
+	val instance = get_last_instance();
+	
+	assert_equals(Set.size(instance, set_def), 2);
+}
+
+// should check if set contains item
+function test_set_13() {
+    val admin_account = create_ft3_test_acc(admin_keypair());
+    
+	val set_def = Attribute.def_I("ITest", "set");
+	def_interface_op(admin_account.auth_id, "ITest", [set_def: Type(Set.T(Attribute.type.integer))]).sign(admin_account.keypair).run();
+	def_instance_op(admin_account.auth_id, "ITest", [set_def: Set.T(Attribute.type.integer, INTSET().to_gtv())]).sign(admin_account.keypair).run();
+	
+	val instance = get_last_instance();
+	
+	assert_true(Set.contains(instance, set_def, integer(1).to_gtv()));
+	assert_false(Set.contains(instance, set_def, integer(3).to_gtv()));
+}
+
+// should set empty set as default value
+// should add item on empty set
+function test_set_14() {
+    val admin_account = create_ft3_test_acc(admin_keypair());
+    
+	val set_def = Attribute.def_I("ITest", "set");
+	def_interface_op(admin_account.auth_id, "ITest", [set_def: Type(Set.T(Attribute.type.integer, set<integer>().to_gtv()))]).sign(admin_account.keypair).run();
+	def_instance_op(admin_account.auth_id, "ITest", [:]).sign(admin_account.keypair).run();
+	
+	val instance = get_last_instance();
+	
+	assert_true(Set.is_empty(instance, set_def));
+	add_container_element_op(instance, set_def, integer(3).to_gtv()).sign(admin_account.keypair).run();
+	assert_true(Set.contains(instance, set_def, integer(3).to_gtv()));
+}
+
+// should check if set is empty
+// should add item on empty set
+function test_set_15() {
+    val admin_account = create_ft3_test_acc(admin_keypair());
+    
+	val set_def = Attribute.def_I("ITest", "set");
+	def_interface_op(admin_account.auth_id, "ITest", [set_def: Type(Set.T(Attribute.type.integer))]).sign(admin_account.keypair).run();
+	def_instance_op(admin_account.auth_id, "ITest", [set_def: Set.T(Attribute.type.integer, set<integer>().to_gtv())]).sign(admin_account.keypair).run();
+	
+	val instance = get_last_instance();
+	
+	assert_true(Set.is_empty(instance, set_def));
+	add_container_element_op(instance, set_def, integer(3).to_gtv()).sign(admin_account.keypair).run();
+	assert_true(Set.contains(instance, set_def, integer(3).to_gtv()));
+}
+
+// should check if set contains multiple items
+function test_set_16() {
+    val admin_account = create_ft3_test_acc(admin_keypair());
+    
+	val set_def = Attribute.def_I("ITest", "set");
+	def_interface_op(admin_account.auth_id, "ITest", [set_def: Type(Set.T(Attribute.type.integer))]).sign(admin_account.keypair).run();
+	def_instance_op(admin_account.auth_id, "ITest", [set_def: Set.T(Attribute.type.integer, INTSET().to_gtv())]).sign(admin_account.keypair).run();
+	
+	val instance = get_last_instance();
+	
+	assert_true(Set.contains_all(instance, set_def, INTSET().to_gtv()));
+	assert_false(Set.contains_all(instance, set_def, [integer(3).to_gtv()].to_gtv()));
+}
+
+// should unpack whole set into gtv values
+function test_set_17() {
+    val admin_account = create_ft3_test_acc(admin_keypair());
+    
+	val set_def = Attribute.def_I("ITest", "set");
+	val prototype_def = "PrototypeName";
+	
+	def_interface_op(admin_account.auth_id, "ITest", [set_def: Type(Set.T(Attribute.type.integer))]).sign(admin_account.keypair).run();
+	def_prototype_op(admin_account.auth_id, "ITest", [set_def: Set.T(Attribute.type.integer, INTSET().to_gtv())], "PrototypeName").sign(admin_account.keypair).run();
+	def_instance_op(admin_account.auth_id, "ITest", [:], prototype_def).sign(admin_account.keypair).run();
+	
+	val instance = get_last_instance();
+	val prototype = Prototype.get(prototype_def);
+	
+	var values = Set.unpack(instance, set_def)!!.values;
+	assert_true( set<gtv>.from_gtv(values).contains_all(INTSET()) );
+	
+	values = Set.unpack(prototype, set_def)!!.values;
+	assert_true( set<gtv>.from_gtv(values).contains_all(INTSET()) );
+}
+
+// should find instances via set items
+function test_set_18() {
+    val admin_account = create_ft3_test_acc(admin_keypair());
+    
+	val set_def = Attribute.def_I("ITest", "set");
+	val prototype_def = "PrototypeName";
+	
+	def_interface_op(admin_account.auth_id, "ITest", [set_def: Type(Set.T(Attribute.type.integer))]).sign(admin_account.keypair).run();
+	def_prototype_op(admin_account.auth_id, "ITest", [set_def: Set.T(Attribute.type.integer, INTSET().to_gtv())], "PrototypeName").sign(admin_account.keypair).run();
+	
+	for(i in range(5)) {
+		NOP().op(def_instance_op(admin_account.auth_id, "ITest", [:], prototype_def)).sign(admin_account.keypair).run();
+	}
+	val instances = get_last_instances();
+	assert_true(Attribute.find_instances(set_def, integer(1).to_gtv(), Filter.p_from(), integer.MAX_VALUE).results.contains_all( instances ));
+}
+
+// should find instances paginated
+function test_set_19() {
+    val admin_account = create_ft3_test_acc(admin_keypair());
+    
+	val set_def = Attribute.def_I("ITest", "set");
+	val prototype_def = "PrototypeName";
+	
+	def_interface_op(admin_account.auth_id, "ITest", [set_def: Type(Set.T(Attribute.type.integer))]).sign(admin_account.keypair).run();
+	def_prototype_op(admin_account.auth_id, "ITest", [set_def: Set.T(Attribute.type.integer, INTSET().to_gtv())], "PrototypeName").sign(admin_account.keypair).run();
+	
+	for(i in range(0, 5)) {
+		NOP().op(def_instance_op(admin_account.auth_id, "ITest", [:], prototype_def)).sign(admin_account.keypair).run();
+	}
+	
+	val instances = get_last_instances();
+	
+	
+	var res = Attribute.find_instances(set_def, integer(1).to_gtv(), Filter.p_from(), 5);
+	assert_true( res.results.contains_all( instances ) );
+	
+	res = Attribute.find_instances(set_def, integer(1).to_gtv(), res.from, 2);
+	assert_true( res.results.contains_all( instances.sub(0, 2) ) );
+	
+	res = Attribute.find_instances(set_def, integer(1).to_gtv(), res.from, 2 );
+	assert_true( res.results.contains_all( instances.sub(2, 4) ) );
+	
+	res = Attribute.find_instances(set_def, integer(1).to_gtv(), res.from, 2);
+	assert_true( res.results.contains_all( instances.sub(4, 5) ) );
+}
+
+// should set set
+// should remove set
+function test_set_20() {
+    val admin_account = create_ft3_test_acc(admin_keypair());
+    
+	val set_def = Attribute.def_I("ITest", "set");
+	def_interface_op(admin_account.auth_id, "ITest", [set_def: Type(Set.T(Attribute.type.integer))]).sign(admin_account.keypair).run();
+	def_instance_op(admin_account.auth_id, "ITest", [set_def: Set.T(Attribute.type.integer, INTSET().to_gtv())]).sign(admin_account.keypair).run();
+	
+	val instance = get_last_instance();
+	
+	
+	set_type_attribute_op(instance, set_def, TEXTSET().to_gtv()).sign(admin_account.keypair).run_must_fail();
+	set_type_attribute_op(instance, set_def, INTSET2().to_gtv()).sign(admin_account.keypair).run();
+	
+	assert_equals(Set.size(instance, set_def), 4 );
+	assert_true(Set.contains_all(instance, set_def, [2,3,4,5].to_gtv()) );
+	
+	remove_type_attribute_op(instance, set_def).sign(admin_account.keypair).run();
+	assert_false(util.is_implemented(instance, Attribute.get(set_def)));
+}

@@ -1,0 +1,10 @@
+module;
+
+import ^^.core.*;
+import ^.*;
+
+val ALLOW_DEV_OPS = true;
+
+function require_dev() {
+    require(ALLOW_DEV_OPS);
+}

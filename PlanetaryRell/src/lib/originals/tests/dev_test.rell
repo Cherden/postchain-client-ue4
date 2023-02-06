@@ -1,0 +1,148 @@
+@test module;
+import ^^.tests.*;
+import ^^^.dip.tests.*;
+
+// should return all values by original
+function test_dev_1() {
+	val admin_account = create_ft3_test_acc(admin_keypair());
+	init_originals_interfaces_op(admin_account.auth_id).sign(admin_account.keypair).run();
+	
+	var interface = "ICat";
+	val cat_fur = Dip.Attribute.def_I(interface, "fur_color");
+	val cat_age = Dip.Attribute.def_I(interface, "age");
+	val cat_parent = Dip.Attribute.def_I(interface, "parent");
+	def_original_interface_op(
+	    admin_account.auth_id,
+		interface,
+		[
+			cat_fur: Type(Text.T("black")),
+			cat_age: Type(Integer.T(0)),
+			cat_parent: Type(Instance.T(), [Optional(), OwnerMutable()])
+		],
+		[chromia.INonFungibleOriginal.interface]
+	).sign(admin_keypair()).run();
+	
+	val prototype_def = "CatDapp";
+	def_original_prototype_op(
+	    admin_account.auth_id,
+		interface,
+		[
+		    chromia.IOriginal.name: Text.T("Test Original"),
+			chromia.IOriginal.creator_id: ByteArray.T(admin_account.auth_id.account_id),
+			chromia.IOriginal.creator_name: Text.T("Admin")
+		],
+		prototype_def
+	).sign(admin_keypair()).run();
+	
+	val prototype_cat_fur_green = "green_cat_fur";
+	def_original_prototype_op(
+	    admin_account.auth_id,
+		interface,
+		[
+			cat_fur: Text.T("green")
+		],
+		prototype_cat_fur_green,
+		prototype_def
+	).sign(admin_keypair()).run();
+	
+	val prototype_cat_fur_yellow = "yellow_cat_fur";
+	def_original_prototype_op(
+	    admin_account.auth_id,
+		interface,
+		[
+			cat_fur: Text.T("yellow")
+		],
+		prototype_cat_fur_yellow,
+		prototype_def
+	).sign(admin_keypair()).run();
+	
+	
+	val cat1_type = Minter.I(
+	    interface_name = interface,
+	    types = [cat_age: Integer.T(10)],
+	    prototype_name = prototype_cat_fur_green
+	);	
+	mint_non_fungible_original_op(admin_account.auth_id, cat1_type).sign(admin_account.keypair).run();
+	val cat1 = get_last_id();
+	
+	val cat2_type = Minter.I(
+	    interface_name = interface, 
+	    types = [cat_age: Integer.T(2)], 
+	    prototype_name = prototype_cat_fur_yellow
+	);	
+	mint_non_fungible_original_op(admin_account.auth_id,cat2_type).sign(admin_account.keypair).run();
+	val cat2 = get_last_id();
+	
+	link_original_op(admin_account.auth_id,cat_parent, cat2, cat1).sign(admin_account.keypair).run();
+}
+
+// should find all originals by given interface
+function test_dev_2() {
+	val admin_account = create_ft3_test_acc(admin_keypair());
+	val bob_account = create_ft3_test_acc(bob_keypair());
+	init_originals_interfaces_op(admin_account.auth_id).sign(admin_account.keypair).run();
+	
+	var interface = "ITestDapp";
+	def_original_interface_op(
+	    admin_account.auth_id,
+	    interface,
+	    [:],
+	    [chromia.INonFungibleOriginal.interface],
+	    is_open = true
+	).sign(admin_keypair()).run();
+	
+	val prototype_def = "TestDapp";
+	
+	def_original_prototype_op(
+	    admin_account.auth_id,
+		interface,
+		[
+		    chromia.IOriginal.name: Text.T("Test Original"),
+			chromia.IOriginal.creator_id: ByteArray.T(admin_account.auth_id.account_id),
+			chromia.IOriginal.creator_name: Text.T("Admin")
+		],
+		prototype_def
+	).sign(admin_keypair()).run();
+		
+	var orig_interface = "IOrig1";
+	def_original_interface_op(
+	    admin_account.auth_id,
+	    orig_interface,
+	    [:],
+	    [interface],
+	    is_open = true
+	).sign(admin_keypair()).run();
+	
+	var orig2_interface = "IOrig2";
+	def_original_interface_op(
+	    admin_account.auth_id,
+	    orig2_interface,
+	    [:],
+	    [interface],
+	    is_open = true
+	).sign(admin_keypair()).run();
+	
+	val orig1_type = Minter.I(
+	    interface_name = orig_interface,
+	    types = [:], 
+	    prototype_name = prototype_def
+	);	
+	mint_non_fungible_original_batch_op(admin_account.auth_id, orig1_type, 5).sign(admin_account.keypair).run();
+	mint_non_fungible_original_batch_op(bob_account.auth_id, orig1_type, 5).sign(bob_account.keypair).run();
+	val orig1_instances = Ownership.find_all_originals_with_interface(admin_account.auth_id.account_id, Dip.Interface.get(orig_interface), integer.MAX_VALUE, 0);
+	
+	val orig2_type = Minter.I(
+	    interface_name = orig2_interface, 
+	    types = [:], 
+	    prototype_name = prototype_def
+	);	
+	mint_non_fungible_original_batch_op(admin_account.auth_id, orig2_type, 15).sign(admin_account.keypair).run();
+	mint_non_fungible_original_batch_op(bob_account.auth_id, orig2_type, 15).sign(bob_account.keypair).run();
+	val orig2_instances = Ownership.find_all_originals_with_interface(admin_account.auth_id.account_id, Dip.Interface.get(orig2_interface), integer.MAX_VALUE, 0);
+	
+	assert_equals(orig1_instances.size(), 5);
+	assert_equals(orig2_instances.size(), 15);
+	
+	val latest = Ownership.find_last_original_with_interface(admin_account.auth_id.account_id, Dip.Interface.get(orig2_interface))!!;
+	assert_equals(orig2_instances[14], latest);
+}

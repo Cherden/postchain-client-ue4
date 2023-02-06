@@ -1,0 +1,186 @@
+
+namespace IHeadAccessory {
+  val interface = "com.chromia.planetary.IHeadAccessory";
+  
+  function dependencies() = [
+    chromia.INonFungibleOriginal.get(),
+    chromia.ITradable.get()
+  ];
+  
+  val skin = Attribute.I(interface, name="skin");
+  
+  function register(ft3.account) {
+    InterfaceFactory.new(interface,
+      [
+        skin: Type(ByteArray.T())
+      ],
+      dependencies(),
+      [
+        Marketplace.Meta.Category("Head Accessories")    
+      ],
+      account = account
+    );
+  }
+  
+  function get() = Interface.get(interface);
+}
+
+namespace IBodyAccessory {
+  val interface = "com.chromia.planetary.IBodyAccessory";
+  
+  function dependencies() = [
+    chromia.INonFungibleOriginal.get(),
+    chromia.ITradable.get()
+  ];
+  
+  val skin = Attribute.I(interface, name="skin");
+  val color = Attribute.I(interface, name="color");
+  
+  function register(ft3.account) {
+    InterfaceFactory.new(interface,
+      [
+        skin: Type(ByteArray.T()),
+        color: Type(Text.T())
+      ],
+      dependencies(),
+      [
+        Marketplace.Meta.Category("Body Accessories")    
+      ],            
+      account = account
+    );
+  }
+  
+  function get() = Interface.get(interface);
+}
+
+namespace ITShirt {
+  val interface = "com.chromia.planetary.ITShirt";
+  
+  function dependencies() = [
+    chromia.INonFungibleOriginal.get(),
+    chromia.ITradable.get()
+  ];
+  
+  val skin = Attribute.I(interface, name="skin");
+  val color = Attribute.I(interface, name="color");
+  
+  function register(ft3.account) {
+    InterfaceFactory.new(interface,
+      [
+        skin: Type(ByteArray.T()),
+        color: Type(Text.T())
+      ],
+      dependencies(),
+      [
+        Marketplace.Meta.Category("T-Shirts")    
+      ],            
+      account = account
+    );
+  }
+  
+  function get() = Interface.get(interface);
+}
+
+namespace IFace {
+  val interface = "com.chromia.planetary.IFace";
+  
+  function dependencies() = [
+    chromia.INonFungibleOriginal.get(),
+    chromia.ITradable.get()
+  ];
+  
+  val skin = Attribute.I(interface, name="skin");
+  
+  function register(ft3.account) {
+    InterfaceFactory.new(interface,
+      [
+        skin: Type(ByteArray.T())
+      ],
+      dependencies(),
+      [
+      Marketplace.Meta.Category("Faces")    
+      ],            
+      account = account
+    );
+  }
+  
+  function get() = Interface.get(interface);
+}
+
+namespace IPlanet {
+  val interface = "com.chromia.planetary.IPlanet";
+  val max_ts_offset = 60 * 1000;
+  val min_ts_offset = 2 * 1000;
+
+  enum mood {
+    clean_ts,
+    feed_ts,
+    fun_ts
+  }
+
+  function dependencies() = [
+    chromia.INonFungibleOriginal.get(),
+    chromia.ITradable.get()
+  ];
+
+  val face           = Attribute.I(interface, name="face");
+  val t_shirt        = Attribute.I(interface, name="t_shirt");
+  val body_accessory = Attribute.I(interface, name="body_accessory");
+  val head_accessory = Attribute.I(interface, name="head_accessory");
+  val skin           = Attribute.I(interface, name="skin");
+  val color          = Attribute.I(interface, name="color");
+  val type           = Attribute.I(interface, name="type");
+  val clean_ts       = Attribute.I(interface, name="clean_ts");
+  val feed_ts        = Attribute.I(interface, name="feed_ts");
+  val fun_ts         = Attribute.I(interface, name="fun_ts");
+
+  function register(ft3.account) {
+    InterfaceFactory.new(interface,
+      [
+        face:            Type(Instance.T(), [ImplementsInterface(IFace.interface), OwnerMutable()]),
+        t_shirt:         Type(Instance.T(), [ImplementsInterface(ITShirt.interface), OwnerMutable(), Optional()]),
+        body_accessory:  Type(Instance.T(), [ImplementsInterface(IBodyAccessory.interface), OwnerMutable(), Optional()]),
+        head_accessory:  Type(Instance.T(), [ImplementsInterface(IHeadAccessory.interface), OwnerMutable(), Optional()]),
+        skin:            Type(ByteArray.T()),
+        color:           Type(Text.T()),
+        type:            Type(Text.T()),
+        clean_ts:        Type(Integer.T()),
+        feed_ts:         Type(Integer.T()),
+        fun_ts:          Type(Integer.T())
+      ],
+      dependencies(),     
+      [
+        Marketplace.Meta.Category("Celestial Bodies")    
+      ],             
+      account = account
+    );
+  }
+
+  function get() = Interface.get(interface);
+
+  function get_min_ts_offset() = min_ts_offset;
+
+  function get_max_ts_offset() = max_ts_offset;
+
+  function get_clean_ts(instance) = Integer.get_value(instance, clean_ts);
+
+  function set_clean_ts(instance, integer) = Integer.set_value(instance, clean_ts, integer);
+
+  function get_feed_ts(instance) = Integer.get_value(instance, feed_ts);
+
+  function set_feed_ts(instance, integer) = Integer.set_value(instance, feed_ts, integer);
+
+  function get_fun_ts(instance) = Integer.get_value(instance, fun_ts);
+
+  function set_fun_ts(instance, integer) = Integer.set_value(instance, fun_ts, integer);
+}
+
+function initialize_interfaces(ft3.acc.account) {
+  initialize_original_interfaces(account);
+
+  IHeadAccessory.register(account);
+  IBodyAccessory.register(account);
+  ITShirt.register(account);
+  IFace.register(account);
+  IPlanet.register(account);
+}

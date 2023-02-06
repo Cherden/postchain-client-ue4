@@ -1,0 +1,10 @@
+@mount('dip')
+module;
+
+namespace Dip {
+	import ^.attributes.*;
+	import ^.core.*;
+	import ^.external;
+	
+    import ^.external.dev;
+}

@@ -1,0 +1,645 @@
+@test module;
+import ^^^.tests.*;
+
+// boolean attribute can be created
+// instance can be found by attribute
+// attribute can be updated
+// attribute can be removed
+function test_attribute_simple_1() {
+    val admin_account = create_ft3_test_acc(admin_keypair());
+    
+	val type = Attribute.def_I("ITest", "type");
+	
+	def_interface_op(admin_account.auth_id, "ITest", [type: Type(Boolean.T())]).sign(admin_account.keypair).run();
+	def_instance_op(admin_account.auth_id, "ITest", [type: Boolean.T(true)]).sign(admin_account.keypair).run();
+	
+	val i = get_last_instance();
+	assert_equals(Boolean.get_value(i, type), true);
+	
+	set_type_attribute_op(i, type, false.to_gtv()).sign(admin_account.keypair).run();
+	assert_equals(Boolean.get_value(i, type), false);
+	
+	remove_type_attribute_op(i, type).sign(admin_account.keypair).run();
+	assert_null(Boolean.get_value(i, type));
+}
+
+// byte_array attribute can be created
+// instance can be found by attribute
+// attribute can be updated
+// attribute can be removed
+function test_attribute_simple_2() {
+    val admin_account = create_ft3_test_acc(admin_keypair());
+    
+	val type = Attribute.def_I("ITest", "type");
+	
+	def_interface_op(admin_account.auth_id, "ITest", [type: Type(ByteArray.T())]).sign(admin_account.keypair).run();
+	def_instance_op(admin_account.auth_id, "ITest", [type: ByteArray.T(x'affe')]).sign(admin_account.keypair).run();
+	
+	val i = get_last_instance();
+	assert_equals(ByteArray.get_value(i, type), x'affe');
+	
+	set_type_attribute_op(i, type, x'dead'.to_gtv()).sign(admin_account.keypair).run();
+	assert_equals(ByteArray.get_value(i, type), x'dead');
+	
+	remove_type_attribute_op(i, type).sign(admin_account.keypair).run();
+	assert_null(ByteArray.get_value(i, type));
+}
+
+// decimal attribute can be created
+// instance can be found by attribute
+// attribute can be updated
+// attribute can be removed
+function test_attribute_simple_3() {
+    val admin_account = create_ft3_test_acc(admin_keypair());
+    
+	val type = Attribute.def_I("ITest", "type");
+	
+	def_interface_op(admin_account.auth_id, "ITest", [type: Type(Decimal.T())]).sign(admin_account.keypair).run();
+	def_instance_op(admin_account.auth_id, "ITest", [type: Decimal.T(0.5)]).sign(admin_account.keypair).run();
+	
+	val i = get_last_instance();
+	assert_equals(Decimal.get_value(i, type), 0.5);
+	
+	set_type_attribute_op(i, type, 0.25.to_gtv()).sign(admin_account.keypair).run();
+	assert_equals(Decimal.get_value(i, type), 0.25);
+	
+	remove_type_attribute_op(i, type).sign(admin_account.keypair).run();
+	assert_null(Decimal.get_value(i, type));
+}
+
+// instance attribute can be created
+// instance can be found by attribute
+// attribute can be updated
+// attribute can be removed
+function test_attribute_simple_4() {
+    val admin_account = create_ft3_test_acc(admin_keypair());
+    
+	val type = Attribute.def_I("ITest", "type");
+	
+	var inst = create_instance_();
+	def_interface_op(admin_account.auth_id, "ITest", [type: Type(Instance.T())]).sign(admin_account.keypair).run();
+	def_instance_op(admin_account.auth_id, "ITest", [type: Instance.T(inst)]).sign(admin_account.keypair).run();
+	
+	val i = get_last_instance();
+	assert_equals(Instance.get_value(i, type), inst);
+	
+	inst = create_instance_();
+	set_type_attribute_op(i, type, inst.to_gtv()).sign(admin_account.keypair).run();
+	assert_equals(Instance.get_value(i, type), inst);
+	
+	remove_type_attribute_op(i, type).sign(admin_account.keypair).run();
+	assert_null(Instance.get_value(i, type));
+}
+
+// integer attribute can be created
+// instance can be found by attribute
+// attribute can be updated
+// attribute can be removed
+function test_attribute_simple_5() {
+    val admin_account = create_ft3_test_acc(admin_keypair());
+    
+	val type = Attribute.def_I("ITest", "type");
+	
+	def_interface_op(admin_account.auth_id, "ITest", [type: Type(Integer.T())]).sign(admin_account.keypair).run();
+	def_instance_op(admin_account.auth_id, "ITest", [type: Integer.T(5)]).sign(admin_account.keypair).run();
+	
+	val i = get_last_instance();
+	assert_equals(Integer.get_value(i, type), 5);
+	
+	set_type_attribute_op(i, type, integer(25).to_gtv()).sign(admin_account.keypair).run();
+	assert_equals(Integer.get_value(i, type), 25);
+	
+	remove_type_attribute_op(i, type).sign(admin_account.keypair).run();
+	assert_null(Integer.get_value(i, type));
+}
+
+// text attribute can be created
+// instance can be found by attribute
+// attribute can be updated
+// attribute can be removed
+function test_attribute_simple_6() {
+    val admin_account = create_ft3_test_acc(admin_keypair());
+    
+	val type = Attribute.def_I("ITest", "type");
+	
+	def_interface_op(admin_account.auth_id, "ITest", [type: Type(Text.T())]).sign(admin_account.keypair).run();
+	def_instance_op(admin_account.auth_id, "ITest", [type: Text.T("Hello")]).sign(admin_account.keypair).run();
+	
+	val i = get_last_instance();
+	assert_equals(Text.get_value(i, type), "Hello");
+	
+	set_type_attribute_op(i, type, "World".to_gtv()).sign(admin_account.keypair).run();
+	assert_equals(Text.get_value(i, type), "World");
+	
+	remove_type_attribute_op(i, type).sign(admin_account.keypair).run();
+	assert_null(Text.get_value(i, type));
+}
+
+// should create attribute in prototype
+// should find prototype instance with attribute
+function test_attribute_simple_7() {
+    val admin_account = create_ft3_test_acc(admin_keypair());
+    
+	val id = Attribute.def_I("ITest", "id");
+	val prototype_def = "PrototypeName";
+	
+	val expected_value = 42;
+	def_interface_op(admin_account.auth_id, "ITest", [id: Type(Integer.T())]).sign(admin_account.keypair).run();
+	
+	def_prototype_op(admin_account.auth_id, 
+		"ITest",
+		[id: Integer.T(expected_value)],
+		"PrototypeName"
+	).sign(admin_account.keypair).run();
+	
+	val prototype = Prototype.get(prototype_def);
+	
+	assert_equals( Integer.get_value(prototype, id), expected_value );
+}
+
+// should fail if prototype and instance implementing same attribute
+function test_attribute_simple_8() {
+    val admin_account = create_ft3_test_acc(admin_keypair());
+    
+	val id = Attribute.def_I("ITest", "id");
+	val prototype_def = "PrototypeName";
+	
+	def_interface_op(admin_account.auth_id, "ITest", [id: Type(Integer.T())]).sign(admin_account.keypair).run();
+	
+	def_prototype_op(admin_account.auth_id, 
+		"ITest",
+		[id: Integer.T(42)],
+		"PrototypeName"
+	).sign(admin_account.keypair).run();
+	
+	def_instance_op(admin_account.auth_id, 
+		"ITest",
+		[id: Integer.T(1)],
+		prototype_def
+	).sign(admin_account.keypair).run_must_fail();
+}
+
+// should fail if attribute already implemented
+function test_attribute_simple_9() {
+    val admin_account = create_ft3_test_acc(admin_keypair());
+    
+	val id = Attribute.def_I("ITest", "id");
+	val prototype_def =  "PrototypeName";
+	
+	def_interface_op(admin_account.auth_id, "ITest", [id: Type(Integer.T())]).sign(admin_account.keypair).run();
+	
+	def_prototype_op(admin_account.auth_id, 
+		"ITest",
+		[id: Integer.T(42)],
+		"PrototypeName"
+	).sign(admin_account.keypair).run();
+	
+	def_instance_op(admin_account.auth_id, 
+		"ITest",
+		[:],
+		prototype_def
+	).sign(admin_account.keypair).run();
+	
+	val instance = get_last_instance();
+	add_type_attribute_meta_op(admin_account.auth_id, instance, id, integer(1).to_gtv()).sign(admin_account.keypair).run_must_fail();
+}
+
+// attribute should be updated by implementing instance
+function test_attribute_simple_10() {
+    val admin_account = create_ft3_test_acc(admin_keypair());
+    
+	val id = Attribute.def_I("ITest", "id");
+	val prototype_def = "PrototypeName";
+	
+	var expected_value = 42;
+	def_interface_op(admin_account.auth_id, "ITest", [id: Type(Integer.T())]).sign(admin_account.keypair).run();
+	
+	def_prototype_op(admin_account.auth_id, 
+		"ITest",
+		[id: Integer.T(expected_value)],
+		"PrototypeName"
+	).sign(admin_account.keypair).run();
+	
+	val prototype = Prototype.get(prototype_def);
+	
+	assert_equals( Integer.get_value(prototype, id), expected_value );
+	expected_value = 125;
+	set_type_attribute_op(prototype, id, expected_value.to_gtv()).sign(admin_account.keypair).run();
+	assert_equals( Integer.get_value(prototype, id), expected_value );
+}
+
+// attribute update should fail if child instance provided
+function test_attribute_simple_11() {
+    val admin_account = create_ft3_test_acc(admin_keypair());
+    
+	val id = Attribute.def_I("ITest", "id");
+	val prototype_def = "PrototypeName";
+	
+	var expected_value = 42;
+	def_interface_op(admin_account.auth_id, "ITest", [id: Type(Integer.T())]).sign(admin_account.keypair).run();
+	
+	def_prototype_op(admin_account.auth_id, 
+		"ITest",
+		[id: Integer.T(expected_value)],
+		"PrototypeName"
+	).sign(admin_account.keypair).run();
+	
+	def_instance_op(admin_account.auth_id, 
+		"ITest",
+		[:],
+		prototype_def
+	).sign(admin_account.keypair).run();
+	
+	val instance = get_last_instance();
+	expected_value = 125;
+	update_type_attribute_op(instance, id, expected_value.to_gtv()).sign(admin_account.keypair).run_must_fail();
+}
+
+// value should be found in instance
+// value should not be found in prototype
+function test_attribute_simple_12() {
+    val admin_account = create_ft3_test_acc(admin_keypair());
+    
+	val id = Attribute.def_I("ITest", "id");
+	val prototype_def = "PrototypeName";
+	
+	var expected_value = 42;
+	def_interface_op(admin_account.auth_id, "ITest", [id: Type(Integer.T())]).sign(admin_account.keypair).run();
+	
+	def_prototype_op(admin_account.auth_id, 
+		"ITest",
+		[:],
+		"PrototypeName"
+	).sign(admin_account.keypair).run();
+	val prototype = Prototype.get(prototype_def);
+	
+	def_instance_op(admin_account.auth_id, 
+		"ITest",
+		[id: Integer.T(expected_value)],
+		prototype_def
+	).sign(admin_account.keypair).run();
+	
+	val instance = get_last_instance();
+	
+	assert_equals( Integer.get_value(instance, id), expected_value );
+	assert_null( Integer.get_value(prototype, id) );
+}
+
+// value should be found in instance
+// value should be found in prototype
+function test_attribute_simple_13() {
+    val admin_account = create_ft3_test_acc(admin_keypair());
+    
+	val id = Attribute.def_I("ITest", "id");
+	val prototype_def = "PrototypeName";
+	
+	var expected_value = 42;
+	def_interface_op(admin_account.auth_id, "ITest", [id: Type(Integer.T())]).sign(admin_account.keypair).run();
+	
+	def_prototype_op(admin_account.auth_id, 
+		"ITest",
+		[id: Integer.T(expected_value)],
+		"PrototypeName"
+	).sign(admin_account.keypair).run();
+	val prototype = Prototype.get(prototype_def);
+	
+	def_instance_op(admin_account.auth_id, 
+		"ITest",
+		[:],
+		prototype_def
+	).sign(admin_account.keypair).run();
+	val instance = get_last_instance();
+	
+	assert_equals( Integer.get_value(prototype, id), expected_value );
+	assert_equals( Integer.get_value(instance, id), expected_value );
+}
+
+// instance should be found
+function test_attribute_simple_14() {
+    val admin_account = create_ft3_test_acc(admin_keypair());
+    
+	val id = Attribute.def_I("ITest", "id");
+	
+	var expected_value = 42;
+	def_interface_op(admin_account.auth_id, "ITest", [id: Type(Integer.T())]).sign(admin_account.keypair).run();
+	
+	def_instance_op(admin_account.auth_id, 
+		"ITest",
+		[id: Integer.T(expected_value)]
+	).sign(admin_account.keypair).run();
+	val instance = get_last_instance();
+	
+	assert_true( Attribute.find_instances(id, expected_value.to_gtv(), Filter.p_from(), integer.MAX_VALUE).results.contains_all( [instance] ) );
+}
+
+// instances should be found
+function test_attribute_simple_15() {
+    val admin_account = create_ft3_test_acc(admin_keypair());
+    
+	val id = Attribute.def_I("ITest", "id");
+	
+	var expected_value = 42;
+	def_interface_op(admin_account.auth_id, "ITest", [id: Type(Integer.T())]).sign(admin_account.keypair).run();
+	
+	def_instance_op(admin_account.auth_id, 
+		"ITest",
+		[id: Integer.T(expected_value)]
+	).sign(admin_account.keypair).run();
+	val instance1 = get_last_instance();
+	
+	NOP().op(def_instance_op(admin_account.auth_id, 
+		"ITest",
+		[id: Integer.T(expected_value)]
+	)).sign(admin_account.keypair).run();
+	val instance2 = get_last_instance();
+	
+	assert_true( Attribute.find_instances(id, (42).to_gtv(), Filter.p_from(), integer.MAX_VALUE).results.contains_all([instance1, instance2]) );
+}
+
+// instance should be found when prototype is implementing attribute
+function test_attribute_simple_16() {
+    val admin_account = create_ft3_test_acc(admin_keypair());
+    
+	val id = Attribute.def_I("ITest", "id");
+	val prototype_def = "PrototypeName";
+	
+	var expected_value = 42;
+	def_interface_op(admin_account.auth_id, "ITest", [id: Type(Integer.T())]).sign(admin_account.keypair).run();
+	
+	def_prototype_op(admin_account.auth_id, 
+		"ITest",
+		[id: Integer.T(expected_value)],
+		"PrototypeName"
+	).sign(admin_account.keypair).run();
+	
+	def_instance_op(admin_account.auth_id, 
+		"ITest",
+		[:],
+		prototype_def
+	).sign(admin_account.keypair).run();
+	val instance = get_last_instance();
+	
+	assert_true( Attribute.find_instances(id, expected_value.to_gtv(), Filter.p_from(), integer.MAX_VALUE).results.contains_all([instance]) );
+}
+
+// instances should be found when prototype is implementing attribute
+function test_attribute_simple_17() {
+    val admin_account = create_ft3_test_acc(admin_keypair());
+    
+	val id = Attribute.def_I("ITest", "id");
+	val prototype_def = "PrototypeName";
+	
+	var expected_value = 42;
+	def_interface_op(admin_account.auth_id, "ITest", [id: Type(Integer.T())]).sign(admin_account.keypair).run();
+	
+	def_prototype_op(admin_account.auth_id, 
+		"ITest",
+		[id: Integer.T(expected_value)],
+		"PrototypeName"
+	).sign(admin_account.keypair).run();
+	
+	def_instance_op(admin_account.auth_id, 
+		"ITest",
+		[:],
+		prototype_def
+	).sign(admin_account.keypair).run();
+	
+	NOP().op(def_instance_op(admin_account.auth_id, 
+		"ITest",
+		[:],
+		prototype_def
+	)).sign(admin_account.keypair).run();
+	
+	NOP().op(def_instance_op(admin_account.auth_id, 
+		"ITest",
+		[:],
+		prototype_def
+	)).sign(admin_account.keypair).run();
+	
+	val instances = get_last_instances();
+	
+	assert_true( Attribute.find_instances(id, (42).to_gtv(), Filter.p_from(), integer.MAX_VALUE).results.contains_all(instances) );
+}
+
+// instances should be found when prototype is implementing attribute paginated
+function test_attribute_simple_18() {
+    val admin_account = create_ft3_test_acc(admin_keypair());
+    
+	val id = Attribute.def_I("ITest", "id");
+	val prototype_def = "PrototypeName";
+	
+	var expected_value = 42;
+	def_interface_op(admin_account.auth_id, "ITest", [id: Type(Integer.T())]).sign(admin_account.keypair).run();
+	
+	def_prototype_op(admin_account.auth_id, 
+		"ITest",
+		[id: Integer.T(expected_value)],
+		"PrototypeName"
+	).sign(admin_account.keypair).run();
+	
+	
+	for(i in range(0, 5)) {
+		NOP().op(def_instance_op(admin_account.auth_id, 
+			"ITest",
+			[:],
+			prototype_def
+		)).sign(admin_account.keypair).run();
+	}
+	
+	val instances = get_last_instances();
+	
+	
+	var res = Attribute.find_instances(id, expected_value.to_gtv(), Filter.p_from(), 5);
+	assert_true( res.results.contains_all( instances ) );
+	
+	res = Attribute.find_instances(id, expected_value.to_gtv(), res.from, 2);
+	assert_true( res.results.contains_all( instances.sub(0, 2) ) );
+	
+	res = Attribute.find_instances(id, expected_value.to_gtv(), res.from, 2 );
+	assert_true( res.results.contains_all( instances.sub(2, 4) ) );
+	
+	res = Attribute.find_instances(id, expected_value.to_gtv(), res.from, 2);
+	assert_true( res.results.contains_all( instances.sub(4, 5) ) );
+}
+
+// instances should be found mixed
+function test_attribute_simple_19() {
+    val admin_account = create_ft3_test_acc(admin_keypair());
+    
+	val id = Attribute.def_I("ITest", "id");
+	val prototype1_def = "PrototypeName1";
+	val prototype2_def = "PrototypeName2";
+	val prototype3_def = "PrototypeName3";
+	
+	var expected_value = 42;
+	def_interface_op(admin_account.auth_id, "ITest", [id: Type(Integer.T())]).sign(admin_account.keypair).run();
+	
+	def_prototype_op(admin_account.auth_id, 
+		"ITest",
+		[id: Integer.T(expected_value)],
+		"PrototypeName1"
+	).sign(admin_account.keypair).run();
+	
+	def_prototype_op(admin_account.auth_id, 
+		"ITest",
+		[id: Integer.T(expected_value)],
+		"PrototypeName2"
+	).sign(admin_account.keypair).run();
+	
+	def_prototype_op(admin_account.auth_id, 
+		"ITest",
+		[:],
+		"PrototypeName3"
+	).sign(admin_account.keypair).run();
+	
+	def_instance_op(admin_account.auth_id, 
+		"ITest",
+		[:],
+		prototype1_def
+	).sign(admin_account.keypair).run();
+	
+	def_instance_op(admin_account.auth_id, 
+		"ITest",
+		[:],
+		prototype2_def
+	).sign(admin_account.keypair).run();
+	
+	def_instance_op(admin_account.auth_id, 
+		"ITest",
+		[id: Integer.T(expected_value)],
+		prototype3_def
+	).sign(admin_account.keypair).run();
+	
+	val instances = get_last_instances();
+	
+	assert_true( Attribute.find_instances(id, expected_value.to_gtv(), Filter.p_from(), integer.MAX_VALUE).results.contains_all(instances) );
+}
+
+
+namespace ITest1 {
+    val interface = "ITest1";
+    
+    val foo = Attribute.I(interface, name = "foo");
+    
+    function register(auth_data) {
+        def_interface_op(auth_data.auth_id, interface, [
+            foo: Type(Text.T())
+        ]).sign(auth_data.keypair).run();
+    }
+    
+    function get() = Interface.get(interface);
+}
+
+namespace ITest2 {
+    val interface = "ITest2";
+    
+    val _integer = Attribute.I(interface, name = "integer");
+    val _text = Attribute.I(interface, name = "text");
+    val _byte_array = Attribute.I(interface, name = "byte_array");
+    val _boolean = Attribute.I(interface, name = "boolean");
+    val _decimal = Attribute.I(interface, name = "decimal");
+    val _file = Attribute.I(interface, name = "file");
+    val _map = Attribute.I(interface, name = "map");
+    val _list = Attribute.I(interface, name = "list");
+    val _set = Attribute.I(interface, name = "set");
+    
+    function register(auth_data) {
+        def_interface_op(auth_data.auth_id, interface, [
+            _integer: Type(Integer.T()),
+            _text: Type(Text.T()),
+            _byte_array: Type(ByteArray.T()),
+            _boolean: Type(Boolean.T()),
+            _decimal: Type(Decimal.T()),
+            _file: Type(File.T(File.data(
+                hash = x"abcdef",
+                hub_brid = x"012345",
+                hub_location = "hub_location"
+            ))),
+            _map: Type(Map.T(Map.types(K = Attribute.type.text, V= Attribute.type.integer))),
+            _list: Type(List.T(Attribute.type.text)),
+            _set: Type(Set.T(Attribute.type.text))
+        ]).sign(auth_data.keypair).run();
+    }
+    
+    function get() = Interface.get(interface);
+}
+
+function test_instance_creation_fails_if_attribute_interface_is_not_implemented() {
+    val admin_account = create_ft3_test_acc(admin_keypair());
+    ITest1.register(admin_account);
+    ITest2.register(admin_account);
+    
+    val attributes = [
+        ITest2._integer: Integer.T(10),
+        ITest2._text: Text.T("some other text"),
+        ITest2._byte_array: ByteArray.T(x"012345"),
+        ITest2._boolean: Boolean.T(false),
+        ITest2._decimal: Decimal.T(123.45),
+        ITest2._file: File.T(File.data(
+            hash = x"abcdef",
+            hub_brid = x"012345",
+            hub_location = "hub_location"
+        )),
+        ITest2._map: Map.T(Map.types(K = Attribute.type.text, V= Attribute.type.integer), ["foo".to_gtv(): (1).to_gtv()]),
+        ITest2._list: List.T(Attribute.type.text, ["foo", "bar"].to_gtv()),
+        ITest2._set: Set.T(Attribute.type.text, ["foo", "bar"].to_gtv())
+    ];
+    
+    // Make sure to test all interface attributes 
+    require(attributes.size() == Attribute.get_all(ITest2.get()).size());    
+    
+    // Added to make sure foo initialization works, so we don't have false positives
+    def_instance_op(admin_account.auth_id, ITest1.interface,
+        [
+            ITest1.foo: Text.T("some text")
+        ]
+    ).sign(admin_account.keypair).run();
+
+    
+    for((attribute, value) in attributes) {
+        def_instance_op(admin_account.auth_id, ITest1.interface,
+            [
+                ITest1.foo: Text.T("some text"),
+                attribute: value
+            ]
+        ).sign(admin_account.keypair).run_must_fail();
+    } 
+}
+
+function test_adding_value_fails_if_attribute_interface_is_not_implemented() {
+    val admin_account = create_ft3_test_acc(admin_keypair());
+    ITest1.register(admin_account);
+    ITest2.register(admin_account);
+    
+    val attributes = [
+        ITest2._integer: (10).to_gtv(),
+        ITest2._text: "some other text".to_gtv(),
+        ITest2._byte_array: x"012345".to_gtv(),
+        ITest2._boolean: false.to_gtv(),
+        ITest2._decimal: (123.45).to_gtv(),
+        ITest2._file: File.data(
+            hash = x"abcdef",
+            hub_brid = x"012345",
+            hub_location = "hub_location"
+        ).to_gtv(),
+        ITest2._map: ["foo".to_gtv(), (1).to_gtv()].to_gtv(),
+        ITest2._list: ["foo", "bar"].to_gtv(),
+        ITest2._set: ["foo", "bar"].to_gtv()
+    ];
+    
+    // Make sure to test all interface attributes
+    require(attributes.size() == Attribute.get_all(ITest2.get()).size());    
+    
+    def_instance_op(admin_account.auth_id, ITest1.interface,
+        [
+            ITest1.foo: Text.T("some text")
+        ]
+    ).sign(admin_account.keypair).run();
+    
+    val instance = get_last_instance();
+    
+    for((attribute, value) in attributes) {
+        add_type_attribute_meta_op(admin_account.auth_id, instance, attribute, value).sign(admin_account.keypair).run_must_fail();
+    }
+}
+

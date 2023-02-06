@@ -1,0 +1,118 @@
+
+operation def_interface_op(
+    auth_id,
+    name,
+    attribute_def_list: map<Attribute.I, attribute_def>,
+    depends: list<text> = list(),
+    meta: list<Meta.I> = list(),
+    is_open: boolean = false
+) {
+    val account = do_auth(auth_id, ["T"]);
+	val dclasses = Interface.require_accesses(depends, account);
+    InterfaceFactory.new(name, attribute_def_list, dclasses, meta, account, is_open);
+}
+
+operation def_prototype_op(
+    auth_id,
+    interface_name: text,
+    attribute_impl_list: map<Attribute.I, attribute_type>,
+    name,
+    prototype_name: text? = null
+ ) {
+    val account = do_auth(auth_id, ["T"]);
+    val dclass = Interface.require_access(interface_name, account);
+    
+    if (prototype_name??)
+        Prototype.require_access(prototype_name, account);
+    
+    PrototypeFactory.new(dclass, attribute_impl_list, name, prototype_name);
+}
+
+operation def_instance_op(
+    auth_id,
+    interface_name: text,
+    attribute_impl_list: map<Attribute.I, attribute_type>,
+    prototype_name: text? = null
+ ) {
+    val account = do_auth(auth_id, ["T"]);
+    val dclass = Interface.require_access(interface_name, account);
+    
+    InstanceFactory.new(dclass, attribute_impl_list, prototype_name);
+}
+
+operation add_type_attribute_meta_op(
+    auth_id,
+    instance,
+    attribute_name: Attribute.I,
+    value: gtv
+) {
+    val account = do_auth(auth_id, ["T"]);
+    
+    Meta.Engine.execute_access(instance, attribute_name, Meta.Engine.access(account));
+    
+    Attribute.add_value(instance, attribute_name, value);
+}
+
+operation update_type_attribute_meta_op(
+    auth_id,
+    instance,
+    attribute_name: Attribute.I,
+    value: gtv
+) {
+    val account = do_auth(auth_id, ["T"]);
+    
+    Meta.Engine.execute_access(instance, attribute_name, Meta.Engine.access(account));
+    
+    Attribute.update_value(instance, attribute_name, value);
+}
+
+operation set_type_attribute_meta_op(
+    auth_id,
+    instance,
+    attribute_name: Attribute.I,
+    value: gtv
+) {
+    val account = do_auth(auth_id, ["T"]);
+    
+    Meta.Engine.execute_access(instance, attribute_name, Meta.Engine.access(account));
+    
+    Attribute.set_value(instance, attribute_name, value);
+}
+
+operation remove_type_attribute_meta_op(
+    auth_id,
+    instance,
+    attribute_name: Attribute.I
+) {
+    val account = do_auth(auth_id, ["T"]);
+    
+    Meta.Engine.execute_access(instance, attribute_name, Meta.Engine.access(account));
+    
+    Attribute.remove_value(instance, attribute_name);
+}
+
+operation add_container_element_meta_op(
+    auth_id,
+    instance,
+    attribute_name: Attribute.I,
+    value: gtv
+) {
+    val account = do_auth(auth_id, ["T"]);
+    
+    Meta.Engine.execute_access(instance, attribute_name, Meta.Engine.access(account));
+    
+    Attribute.add_container_element(instance, attribute_name, value);
+}
+
+operation remove_container_element_meta_op(
+    auth_id,
+    instance,
+    attribute_name: Attribute.I,
+    value: gtv
+) {
+    val account = do_auth(auth_id, ["T"]);
+    
+    Meta.Engine.execute_access(instance, attribute_name, Meta.Engine.access(account));
+    
+    Attribute.remove_container_element(instance, attribute_name, value);
+}

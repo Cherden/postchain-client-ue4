@@ -1,0 +1,179 @@
+
+namespace chromia.IOriginal {
+	val interface = "chromia.IOriginal";
+	
+	function dependencies(): list<text> {return [];}
+	
+	val name = Dip.Attribute.I(interface, name = "name");
+	val description = Dip.Attribute.I(interface, name = "description");
+	// later web of trust identifier
+	val creator_id = Dip.Attribute.I(interface, name = "creator_id");
+	val creator_name = Dip.Attribute.I(interface, name = "creator_name");
+	
+	function register(account: ft3.acc.account) {
+		Dip.InterfaceFactory.new(interface,
+			[
+			    name: Dip.Type(Dip.Text.T()),
+				creator_id: Dip.Type(Dip.ByteArray.T()),
+				creator_name: Dip.Type(Dip.Text.T()),
+				description: Dip.Type(Dip.Text.T(), [Dip.Optional(), CreatorMutable()])
+			],
+			dependencies() @* {} (Dip.Interface.get($)),
+			account = account,
+			is_open = true
+		);
+	}
+	
+	function get() = Dip.Interface.get(interface);
+	function has(Dip.instance) = Dip.Interface.is_a(instance, get());
+}
+
+namespace chromia.INonFungibleOriginal {
+	val interface = "chromia.INonFungibleOriginal";
+	
+	function dependencies(): list<text> {return [IOriginal.interface];}
+	
+	function register(account: ft3.acc.account) {
+		Dip.InterfaceFactory.new(interface,
+			[:],
+			dependencies() @* {} (Dip.Interface.get($)),
+            account = account,
+            is_open = true
+		);
+	}
+	
+	function get() = Dip.Interface.get(interface);
+	function has(Dip.instance) = Dip.Interface.is_a(instance, get());
+}
+
+namespace chromia.IFungibleOriginal {
+	val interface = "chromia.IFungibleOriginal";
+	
+	function dependencies(): list<text> {return [IOriginal.interface];}
+	
+	val max_supply = Dip.Attribute.I(interface, name = "max_supply");
+	
+	function register(account: ft3.acc.account) {
+		Dip.InterfaceFactory.new(interface,
+			[
+				max_supply: Dip.Type(Dip.Integer.T())
+			],
+			dependencies() @* {} (Dip.Interface.get($)),
+            account = account,
+            is_open = true
+		);
+	}
+	
+	function get() = Dip.Interface.get(interface);
+	function has(Dip.instance) = Dip.Interface.is_a(instance, get());
+}
+
+namespace chromia.IFractionalizedOriginal {
+	val interface = "chromia.IFractionalizedOriginal";
+	
+	function dependencies(): list<text> {return [IFungibleOriginal.interface];}
+	
+	val original = Dip.Attribute.I(interface, name = "original");
+	
+	function register(account: ft3.acc.account) {
+		Dip.InterfaceFactory.new(interface,
+			[
+				original: Dip.Type(
+					Dip.Instance.T(),
+					[Dip.ImplementsInterface(INonFungibleOriginal.interface)]
+				)
+			],
+			dependencies() @* {} (Dip.Interface.get($)),
+            account = account,
+            is_open = true
+		);
+	}
+	
+	function get() = Dip.Interface.get(interface);
+	function has(Dip.instance) = Dip.Interface.is_a(instance, get());
+}
+
+namespace chromia.ITradable {
+	val interface = "chromia.ITradable";
+	
+	function dependencies(): list<text> {return [];}
+	
+	val image = Dip.Attribute.I(interface, name = "image");
+	
+	function register(account: ft3.acc.account) {
+		Dip.InterfaceFactory.new(interface,
+			[
+				image: Dip.Type(Dip.File.T())
+			],
+			dependencies() @* {} (Dip.Interface.get($)),
+            account = account,
+            is_open = true
+		);
+	}
+	
+	function get() = Dip.Interface.get(interface);
+	function has(Dip.instance) = Dip.Interface.is_a(instance, get());
+}
+
+namespace chromia.IHasBadges {
+	val interface = "chromia.IHasBadges";
+	
+	function dependencies(): list<text> {return [];}
+	
+	val badges = Dip.Attribute.I(interface, name = "badges");
+	
+	function register(account: ft3.acc.account) {
+		Dip.InterfaceFactory.new(interface,
+			[
+				badges: Dip.Type(
+					Dip.Set.T(Dip.Attribute.type.instance),
+					[Dip.ImplementsInterface(IBadge.interface), Dip.Optional()]
+				)
+			],
+			dependencies() @* {} (Dip.Interface.get($)),
+            account = account,
+            is_open = true
+		);
+	}
+	
+	function get() = Dip.Interface.get(interface);
+	function has(Dip.instance) = Dip.Interface.is_a(instance, get());
+}
+
+namespace chromia.IBadge {
+	val interface = "chromia.IBadge";
+	
+	function dependencies(): list<text> {return [];}
+	
+	val name = Dip.Attribute.I(interface, name = "name");
+	val display_name = Dip.Attribute.I(interface, name = "display_name");
+	val description = Dip.Attribute.I(interface, name = "description");
+	val image = Dip.Attribute.I(interface, name = "image");
+	
+	function register(account: ft3.acc.account) {
+		Dip.InterfaceFactory.new(interface,
+			[
+				name: Dip.Type(Dip.Text.T()),
+				display_name: Dip.Type(Dip.Text.T()),
+				description: Dip.Type(Dip.Text.T()),
+				image: Dip.Type(Dip.Text.T())
+			],
+			dependencies() @* {} (Dip.Interface.get($)),
+            account = account,
+            is_open = true
+		);
+	}
+	
+	function get() = Dip.Interface.get(interface);
+	function has(Dip.instance) = Dip.Interface.is_a(instance, get());
+}
+
+function initialize_original_interfaces(account: ft3.acc.account) {
+	chromia.IOriginal.register(account);
+	chromia.INonFungibleOriginal.register(account);
+	chromia.IFungibleOriginal.register(account);
+	chromia.IFractionalizedOriginal.register(account);
+	chromia.IHasBadges.register(account);
+	chromia.IBadge.register(account);
+	chromia.ITradable.register(account);
+}

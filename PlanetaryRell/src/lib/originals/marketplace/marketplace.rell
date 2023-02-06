@@ -1,0 +1,73 @@
+
+namespace Listing {
+	entity original_listing {
+		key original: Originals.Id.asset_instance;
+		owner: ft3.acc.account;
+		asset: ft3.asset;
+		mutable price: integer;
+	}
+	
+	function get(original_id: byte_array): original_listing {
+		return require(
+			original_listing @? {.original.asset.id == original_id},
+			"Original with id " + original_id + " not listed."
+		);
+	}
+	
+	function list_original(
+	    account: ft3.acc.account,
+		original_id: byte_array,
+		asset_id: byte_array,
+		price: integer
+	) {
+		require(price > 0, "Price has to be positive");
+		val original_asset_instance = Originals.Id.get_by_id(original_id);
+		require(
+			Originals.chromia.ITradable.has(original_asset_instance.instance),
+			"Original does not implement '" + Originals.chromia.ITradable.interface + "' interface"
+		);
+		
+		Ft3Helper.lock_asset(account.id, original_id, Ft3Helper.LISTED);
+		create original_listing (original_asset_instance, account, Ft3Helper.get_asset(asset_id), price);
+	}
+	
+	function change_price(
+	    account: ft3.acc.account,
+		original_id: byte_array,
+		price: integer
+	) {
+		require(price > 0, "Price has to be positive");
+		val listing = original_listing @ {.original.asset.id == original_id};
+		require(listing.owner == account, "Only owner can change the price.");
+		listing.price = price;		
+	}
+	
+	function unlist_original(
+	    account: ft3.acc.account,
+		original_id: byte_array
+	) {
+		Ft3Helper.unlock_asset(account.id, original_id, Ft3Helper.LISTED);
+		delete original_listing @ {.original.asset.id == original_id};
+	}
+	
+	function buy_original(
+	    account: ft3.acc.account,
+		original_id: byte_array
+	) {
+		val listing = get(original_id);
+		transfer_asset(account, listing.owner, listing.asset, listing.price);
+		Ft3Helper.transfer_listed_asset(listing.owner, account, original_id);
+		
+		val original = Originals.Id.get_instance(original_id);
+		val transferred_ids = Originals.Ownership.transfer_linked_originals(listing.owner, account, original);
+		
+		val log = History.log_buy_event(listing.original, listing.owner, account, listing.asset, listing.price);
+		for (id in transferred_ids) {
+			History.log_indirect_buy(Originals.Id.get_by_id(id), log);
+		}
+		
+		delete listing;
+	}
+} 
+
+

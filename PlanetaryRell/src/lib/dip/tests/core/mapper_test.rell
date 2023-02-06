@@ -1,0 +1,276 @@
+@test
+module;
+
+import ^^^.tests.*;
+
+namespace TestInterface {
+    val interface = "TestInterface";
+    
+    val foo = Attribute.I(interface, name = "foo");
+    val bar = Attribute.I(interface, name = "bar");
+    val attr = Attribute.I(interface, name = "attr");
+    
+    function register(auth_data) {
+        def_interface_op(auth_data.auth_id, interface, [
+            foo: Type(Text.T()),
+            bar: Type(Integer.T()),
+            attr: Type(Integer.T())
+        ]).sign(auth_data.keypair).run();
+    }
+    
+    function get() = Interface.get(interface);
+}
+
+namespace IPlayer {
+    val interface = "IPlayer";
+    
+    val name = Attribute.I(interface, name = "name");
+    val age = Attribute.I(interface, name = "age");
+    
+    function register(auth_data) {
+        def_interface_op(auth_data.auth_id, interface, [
+            name: Type(Text.T()),
+            age: Type(Integer.T())
+        ]).sign(auth_data.keypair).run();
+    }
+    
+    function get() = Interface.get(interface);
+}
+
+namespace IGame {
+    val interface = "IGame";
+    
+    val player1 = Attribute.I(interface, name = "player1");
+    val player2 = Attribute.I(interface, name = "player2");
+    val count = Attribute.I(interface, name = "count");
+    
+    
+    function register(auth_data) {
+        def_interface_op(auth_data.auth_id, interface, [
+            player1: Type(Instance.T(), [ImplementsInterface(IPlayer.interface)]),
+            player2: Type(Instance.T(), [ImplementsInterface(IPlayer.interface)]),
+            count: Type(Integer.T())
+        ]).sign(auth_data.keypair).run();
+    }
+    
+    function get() = Interface.get(interface);
+}
+
+namespace TestPlayer {
+    val interface = "TestPlayer";
+    
+    function dependencies() = [TestInterface.interface, IPlayer.interface];
+    
+    function register(auth_data) {        
+        def_interface_op(auth_data.auth_id, interface, 
+            [:], 
+            dependencies()
+        ).sign(auth_data.keypair).run();
+    }
+    
+    function get() = Interface.get(interface);
+} 
+
+function create_mock_instance(): instance {
+    val admin_account = create_ft3_test_acc(admin_keypair());
+    TestInterface.register(admin_account);
+    IPlayer.register(admin_account);
+    TestPlayer.register(admin_account);
+    
+    def_instance_op(admin_account.auth_id, TestPlayer.interface, [
+    	TestInterface.foo: Text.T("some string"),
+    	TestInterface.bar: Integer.T(100),
+    	TestInterface.attr: Integer.T(500),
+    	IPlayer.name: Text.T("John"),
+    	IPlayer.age: Integer.T(30)
+    ]).sign(admin_account.keypair).run();
+    
+    return get_last_instance();
+}
+
+function create_mock_instance_with_children(): instance {
+    val admin_account = create_ft3_test_acc(admin_keypair());
+	IPlayer.register(admin_account);
+	IGame.register(admin_account);
+	
+	
+	def_instance_op(admin_account.auth_id, IPlayer.interface, [
+		IPlayer.name: Text.T("Player1"),
+		IPlayer.age: Integer.T(20)
+	]).sign(admin_account.keypair).run();
+	
+	val player1 = get_last_instance();
+	
+	def_instance_op(admin_account.auth_id, IPlayer.interface, [
+		IPlayer.name: Text.T("Player2"),
+		IPlayer.age: Integer.T(30)
+	]).sign(admin_account.keypair).run();
+	
+	val player2 = get_last_instance();
+	
+	def_instance_op(admin_account.auth_id, IGame.interface, [
+		IGame.player1: Instance.T(player1),
+		IGame.player2: Instance.T(player2),
+		IGame.count: Integer.T(0)
+	]).sign(admin_account.keypair).run();
+	
+	return get_last_instance();
+}
+
+function test_instance_can_be_mapped_by_attribute_list() {
+	val instance = create_mock_instance();
+	
+	val instance_map = Mapper.map_instance(instance, [
+		Mapper.map_attributes([TestInterface.foo, TestInterface.bar])
+	]);
+	
+	assert_equals(instance_map, map<name, gtv?>([
+		"TestInterface.foo": "some string".to_gtv(),
+		"TestInterface.bar": (100).to_gtv()
+	]));
+}
+
+function test_instance_attributes_can_be_mapped_to_list() {
+	val instance = create_mock_instance();
+	
+	val instance_map = Mapper.map_instance(instance, [
+		Mapper.map_attributes([TestInterface.foo, TestInterface.bar], Mapper.to_list("some_list"))
+	]);
+	
+	assert_equals(instance_map, map<name, gtv?>([
+		"some_list": ["some string".to_gtv(), (100).to_gtv()].to_gtv()
+	]));
+}
+
+function test_instance_attributes_can_be_mapped_to_map() {
+	val instance = create_mock_instance();
+	
+	val instance_map = Mapper.map_instance(instance, [
+		Mapper.map_attributes([TestInterface.foo, TestInterface.bar], Mapper.to_map("some_map"))
+	]);
+	
+	assert_equals(instance_map, map<name, gtv?>([
+		"some_map": [
+			"TestInterface.foo": "some string".to_gtv(),
+			"TestInterface.bar": (100).to_gtv()
+		].to_gtv()
+	]));
+}
+
+function test_instance_attribute_can_be_mapped_by_interface() {
+	val instance = create_mock_instance();
+	
+	val instance_map = Mapper.map_instance(instance, [
+		Mapper.map_attributes_of_interfaces([TestInterface.get()])
+	]);
+	
+	assert_equals(instance_map, map<name, gtv?>([
+		"TestInterface.foo": "some string".to_gtv(),
+		"TestInterface.bar": (100).to_gtv(),
+		"TestInterface.attr": (500).to_gtv()
+	]));
+}
+
+function test_instance_attributes_can_be_mapped_by_multiple_interfaces() {
+	val instance = create_mock_instance();
+	
+	val instance_map = Mapper.map_instance(instance, [
+		Mapper.map_attributes_of_interfaces([TestInterface.get(), IPlayer.get()])
+	]);
+	
+	assert_equals(instance_map, map<name, gtv?>([
+		"TestInterface.foo": "some string".to_gtv(),
+		"TestInterface.bar": (100).to_gtv(),
+		"TestInterface.attr": (500).to_gtv(),
+		"IPlayer.name": "John".to_gtv(),
+		"IPlayer.age": (30).to_gtv()
+	]));
+}
+
+function test_instance_attributes_can_be_mapped_by_multiple_rules() {
+	val instance = create_mock_instance();
+	
+	val instance_map = Mapper.map_instance(instance, [
+		Mapper.map_attributes_of_interfaces([TestInterface.get()]),
+		Mapper.map_attributes([IPlayer.name, IPlayer.age])
+	]);
+	
+	assert_equals(instance_map, map<name, gtv?>([
+		"TestInterface.foo": "some string".to_gtv(),
+		"TestInterface.bar": (100).to_gtv(),
+		"TestInterface.attr": (500).to_gtv(),
+		"IPlayer.name": "John".to_gtv(),
+		"IPlayer.age": (30).to_gtv()
+	]));
+}
+
+function test_all_instance_attributes_can_be_mapped() {
+	val instance = create_mock_instance();
+	
+	val instance_map = Mapper.map_instance(instance, [
+		Mapper.map_all_attributes()
+	]);
+
+	assert_equals(instance_map, map<name, gtv?>([
+		"TestInterface.foo": "some string".to_gtv(),
+		"TestInterface.bar": (100).to_gtv(),
+		"TestInterface.attr": (500).to_gtv(),
+		"IPlayer.name": "John".to_gtv(),
+		"IPlayer.age": (30).to_gtv()
+	]));
+}
+
+function test_instance_attributes_implementing_interface_can_be_mapped() {
+	val instance = create_mock_instance_with_children();
+	
+	val instance_map = Mapper.map_instance(instance, [
+		Mapper.map_attributes_implementing_interface([IPlayer.get()], mapper = Mapper.to_list("players"))
+	]);
+	
+	assert_equals(instance_map, map<name, gtv?>([
+		"players": [
+			[
+				"IPlayer.name": "Player1".to_gtv(),
+				"IPlayer.age": (20).to_gtv()
+			],
+			[
+				"IPlayer.name": "Player2".to_gtv(),
+				"IPlayer.age": (30).to_gtv()
+			]
+		].to_gtv()
+	]));
+}
+
+function test_mapping_rules_can_be_defined_for_child_instances() {
+	val instance = create_mock_instance_with_children();
+	
+	val instance_map = Mapper.map_instance(instance, [
+		Mapper.map_attributes_implementing_interface([IPlayer.get()], [
+			Mapper.map_attributes([IPlayer.name])
+		])
+	]);
+	
+	assert_equals(instance_map, map<name, gtv?>([
+		"IGame.player1": [
+			"IPlayer.name": "Player1"
+		].to_gtv(),
+		"IGame.player2": [
+			"IPlayer.name": "Player2"
+		].to_gtv()
+	]));
+}
+
+function test_attributes_can_be_manually_added_to_instance_map() {
+	val instance = create_mock_instance();
+	
+	val instance_map = Mapper.map_instance(instance, [
+		Mapper.map_attributes_of_interfaces([IPlayer.get()]),
+		Mapper.add_attributes(["id": x"012345".to_gtv()])
+	]);
+	
+	assert_equals(instance_map, map<name, gtv?>([
+		"IPlayer.name": "John".to_gtv(),
+		"IPlayer.age": (30).to_gtv(),
+		"id": x"012345".to_gtv()
+	]));
+}

@@ -1,0 +1,158 @@
+entity instance {
+	is_prototype: boolean = false;
+}
+
+// one entity might have more than one dclass
+entity instance_dclass {
+	index Interface.dclass;
+	key instance, dclass;
+	direct: boolean;
+}
+	
+entity attribute {
+	key Interface.dclass, name;
+    Attribute.type;
+}
+
+namespace Attribute {
+	enum type {
+	    boolean,
+	    byte_array,
+	    decimal,
+	    id,
+		instance,
+		integer,
+		text,
+		unordered_container,   // set
+		ordered_container,	   // list
+		addressable_container, // map
+		file
+	}
+	
+	struct I {
+	    interface: name;
+	    name;
+	}
+	
+	function def_I(interface: text, name) {
+		return I(interface, name);
+	}
+
+	function get(I): attribute {
+        return require(
+            attribute @? {.dclass.name == I.interface, I.name},
+            "Attribute '" + get_name(I) + "' not found"
+        );
+	}
+	
+	function get_all(Interface.dclass) = attribute @* { dclass };
+	
+	function get_all_in_dclasses(interfaces: list<Interface.dclass>) = attribute @* { .dclass in interfaces };
+	
+	function get_name(I) = I.interface + "." + I.name;
+	
+	function get_name_from_attribute(attribute) = attribute.dclass.name + "." + attribute.name; 
+	
+	function from_text(name): I {
+	    val i = name.last_index_of(".");
+        return I(
+            interface = name.sub(0, i),
+            name = name.sub(i+1)  
+        );
+    }
+}
+
+namespace Interface {
+	entity dclass {
+		key name;
+	}
+	
+	entity dclass_dependency {
+		key dclass, parent: dclass;
+		direct: boolean;
+	}
+	
+	function new_dependency(child: dclass, parents_in: list<dclass>) {
+		val parents = list(parents_in);
+		val gparents = dclass_dependency @* {.dclass in parents} .parent;
+		parents.add_all(gparents);
+		
+		require(child not in parents, "Child inherits itself");
+		require(parents.size() == set(parents).size(), "Duplicate inheritance violation");
+		
+		for (parent in parents) {
+			create dclass_dependency(dclass = child, parent, parent in parents_in);
+		}
+	}
+    
+    function require_access(interface_name: text, account: ft3.acc.account): dclass {
+        val dclass = Interface.get(interface_name);
+        val owner_id = InterfaceMeta.get_owner(dclass);
+        require(
+            owner_id == null or owner_id == account.id,
+            "Account " + account.id + " is not allowed to use interface "
+            + dclass.name + "from " + owner_id
+        );
+        
+        return dclass;
+    }
+    
+    function require_accesses(interface_names: list<text>, account: ft3.acc.account): list<dclass> {
+        val dclasses = list<Interface.dclass>();
+        for(interface_name in interface_names) {
+            val dclass = Interface.require_access(interface_name, account);
+            dclasses.add(dclass);
+        }
+        
+        return dclasses;
+    }
+    
+    function is_a(instance, dclass): boolean {
+    	return get_all_in_instance(instance).contains(dclass);
+    }
+    
+	function get(name) {
+		val dclass = dclass @? { name };
+	    require(
+	        dclass,
+	        "Interface '" + name + "' not found"
+	    );
+	    
+    	return dclass;
+    }
+    
+    function get_all(dclass) {
+        val interfaces = get_dependencies(dclass);
+        interfaces.add(dclass);
+        
+        return interfaces;
+    }
+    
+    function get_all_by_name(name) {        
+        return get_all(get(name));
+    }
+		
+	function get_dependencies(dclass): list<dclass> {
+	    return dclass_dependency @* {.dclass == dclass}.parent;
+	}
+		
+	function get_dependencies_by_name(name): list<dclass> {
+		return get_dependencies(get(name));
+	}
+	
+	function get_all_in_instance(instance): list<dclass> {
+		return instance_dclass @* {instance} .dclass;
+	}
+	
+	function get_all_in_prototype_chain(instance): list<dclass> {
+		val interfaces = set<dclass>();
+		val prototypes = Prototype.get_all(instance);
+		prototypes.add(instance);
+		
+		for (p in prototypes) {
+ 			interfaces.add_all(get_all_in_instance(p));
+ 		}		
+		
+		return list(interfaces);
+	}
+}

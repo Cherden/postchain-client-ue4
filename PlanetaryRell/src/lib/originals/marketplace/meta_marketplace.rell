@@ -1,0 +1,88 @@
+
+namespace Meta {
+	enum category {
+		marketplace
+	}
+	
+    enum tag {
+        marketplace_description,
+        marketplace_label,
+        marketplace_category,
+        marketplace_name,
+        marketplace_filter
+    }
+    
+    function Category(name): Dip.Meta.I {
+    	return Dip.Meta.I(
+    		meta_key = tag.marketplace_category.name,
+    		meta_value = name.to_gtv().to_bytes(),
+    		category = category.marketplace.name
+    	);
+    }
+    
+    function Name(name): Dip.Meta.I {
+    	return Dip.Meta.I(
+    		meta_key = tag.marketplace_name.name,
+    		meta_value = name.to_gtv().to_bytes(),
+    		category = category.marketplace.name
+    	);
+    }
+    
+    function Description(text): Dip.Meta.I {
+    	return Dip.Meta.I(
+    		meta_key = tag.marketplace_description.name,
+    		meta_value = text.to_gtv().to_bytes(),
+    		category = category.marketplace.name
+    	);
+    }
+    
+    function Label(name): Dip.Meta.I {
+        return Dip.Meta.I(
+        	meta_key = tag.marketplace_label.name,
+        	meta_value = name.to_gtv().to_bytes(),
+    		category = category.marketplace.name
+        );
+    }
+    
+    function Filter(name): Dip.Meta.I {
+    	return Dip.Meta.I(
+    		meta_key = tag.marketplace_filter.name,
+    		meta_value = name.to_gtv().to_bytes(),
+    		category = category.marketplace.name
+    	);
+    }
+    
+    /***************************************************************************************
+     *                                 Interface meta helper
+     ***************************************************************************************/
+    
+    function get_category_values(): list<(name: text, interface: text)> {
+        val tradable_interface = Originals.chromia.ITradable.interface;
+        return (m: Dip.InterfaceMeta.dclass_meta, d: Dip.Interface.dclass_dependency) @* {
+            m.meta_key == tag.marketplace_category.name,
+            d.parent.name == tradable_interface,
+            m.dclass == d.dclass
+        } (name = text.from_gtv(gtv.from_bytes(m.meta_value)), interface = m.dclass.name);
+    }
+    
+    function get_interface_by_category(name): Dip.Interface.dclass? {
+        return Dip.InterfaceMeta.dclass_meta @? {
+            .meta_key == tag.marketplace_category.name,
+            .meta_value == name.to_bytes()
+        } (.dclass);
+    }
+    
+    /***************************************************************************************
+     *                                 Attribute meta helper
+     ***************************************************************************************/
+     
+     function find_interface_attributes_by_meta_tag(name, tag):
+        list<(attribute: Dip.attribute, tag_value: text)> {
+            
+        val interfaces = Dip.Interface.get_all(Dip.Interface.get(name));
+            
+        return (m: Dip.AttributeMeta.attribute_meta) @* {
+            m.meta_key == tag.name, m.attribute.dclass in interfaces
+        } (attribute = m.attribute, tag_value = text.from_gtv(gtv.from_bytes(m.meta_value)));
+    }
+}

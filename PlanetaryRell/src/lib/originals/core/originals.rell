@@ -1,0 +1,42 @@
+namespace Id {
+	entity asset_instance {
+		key ft3.asset, Dip.instance;
+	}
+	
+	function new(ft3.asset, Dip.instance) {
+		create asset_instance (asset, instance);
+	}
+	
+	function generate() {
+		val last_id = ft3.asset @? {} (@sort_desc .rowid) limit 1;
+		return (chain_context.blockchain_rid, last_id).hash();
+	}
+	
+	function get_instance(id: byte_array): Dip.instance {
+		return asset_instance @ {.asset.id == id} .instance;
+	}
+	
+	function get_id(Dip.instance): byte_array {
+		return asset_instance @ {instance} .asset.id;
+	}
+	
+	function T(value: byte_array? = null): Dip.attribute_type {
+		return Dip.attribute_type(type = Dip.Attribute.type.id, value = value?.to_gtv());
+	}
+	
+	function is_original(Dip.instance): boolean {
+		return asset_instance @? {instance}??;
+	}
+
+	function get_by_id(id: byte_array) {
+		return asset_instance @ {.asset.id == id};
+	}
+	
+	function get_by_instance(Dip.instance) {
+		return asset_instance @ {instance};
+	}
+	
+	function does_original_exist(id: byte_array): boolean {
+		return asset_instance @? {.asset.id == id}??;
+	}
+}

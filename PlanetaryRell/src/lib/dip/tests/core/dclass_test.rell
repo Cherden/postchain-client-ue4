@@ -1,0 +1,225 @@
+@test module;
+import ^^^.tests.*;
+
+// should create interface dependency for child
+function test_dclass_1() {
+    val admin_account = create_ft3_test_acc(admin_keypair());
+    
+	val (child, parent) = ("IChild", "IParent");
+	def_interface_op(admin_account.auth_id, parent, [:]).sign(admin_account.keypair).run();
+	def_interface_op(admin_account.auth_id, child, [:], [parent]).sign(admin_account.keypair).run();
+	
+	assert_equals(Interface.get_dependencies_by_name(child), list(Interface.dclass @* {.name in [parent]}));
+}
+
+// should fail if it inherits itself
+function test_dclass_2() {
+    val admin_account = create_ft3_test_acc(admin_keypair());
+    
+	val (child, parent) = ("IChild", "IChild");
+	def_interface_op(admin_account.auth_id, parent, [:]).sign(admin_account.keypair).run();
+	def_interface_op(admin_account.auth_id, child, [:], [parent]).sign(admin_account.keypair).run_must_fail();
+}
+
+// should extend interfaces linear
+function test_dclass_3() {
+    val admin_account = create_ft3_test_acc(admin_keypair());
+    
+	val (child, parent, gparent) = ("IChild", "IParent", "IGParent");
+	
+	def_interface_op(admin_account.auth_id, gparent, [:]).sign(admin_account.keypair).run();
+	def_interface_op(admin_account.auth_id, parent, [:], [gparent]).sign(admin_account.keypair).run();
+	def_interface_op(admin_account.auth_id, child, [:], [parent]).sign(admin_account.keypair).run();
+	
+	assert_equals(Interface.get_dependencies_by_name(gparent), list<Interface.dclass>());
+	assert_equals(Interface.get_dependencies_by_name(parent), list(Interface.dclass @* {.name in [gparent]}));
+	assert_true(Interface.get_dependencies_by_name(child).contains_all(list(Interface.dclass @* {.name in [parent, gparent]})));
+}
+
+// should extend multiple interfaces
+function test_dclass_4() {
+    val admin_account = create_ft3_test_acc(admin_keypair());
+    
+	val (child, mother, father) = ("IChild", "IMother", "IFather");
+	
+	def_interface_op(admin_account.auth_id, mother, [:]).sign(admin_account.keypair).run();
+	def_interface_op(admin_account.auth_id, father, [:]).sign(admin_account.keypair).run();
+	def_interface_op(admin_account.auth_id, child, [:], [mother, father]).sign(admin_account.keypair).run();
+	
+	assert_equals(Interface.get_dependencies_by_name(mother), list<Interface.dclass>());
+	assert_equals(Interface.get_dependencies_by_name(father), list<Interface.dclass>());
+	assert_true(Interface.get_dependencies_by_name(child).contains_all(list(Interface.dclass @* {.name in [mother, father]})));
+}
+
+// should fail if the same interface is in the structure
+function test_dclass_5() {
+    val admin_account = create_ft3_test_acc(admin_keypair());
+    
+	val (child, mother, father, gparent) = ("IChild", "IMother", "IFather", "IGParent");
+	
+	def_interface_op(admin_account.auth_id, gparent, [:]).sign(admin_account.keypair).run();
+	def_interface_op(admin_account.auth_id, mother, [:], [gparent]).sign(admin_account.keypair).run();
+	def_interface_op(admin_account.auth_id, father, [:], [gparent]).sign(admin_account.keypair).run();
+	def_interface_op(admin_account.auth_id, child, [:], [mother, father]).sign(admin_account.keypair).run_must_fail();
+}
+
+/** dclass tests in combination with prototypes */
+
+// instance should fail cause prototype implements another interface 
+function test_dclass_6() {
+    val admin_account = create_ft3_test_acc(admin_keypair());
+    
+	val (child, parent, prototype) = ("IChild", "IParent", "IPrototype");
+	
+	def_interface_op(admin_account.auth_id, parent, [:]).sign(admin_account.keypair).run();
+	def_interface_op(admin_account.auth_id, child, [:], [parent]).sign(admin_account.keypair).run();
+	def_interface_op(admin_account.auth_id, prototype, [:]).sign(admin_account.keypair).run();
+	
+	def_prototype_op(
+	    admin_account.auth_id, 
+		prototype,
+		[:],
+		"PrototypeName"
+	).sign(admin_account.keypair).run();
+	
+	val protoype_def = "PrototypeName";
+	val prot = Prototype.get(protoype_def);
+	
+	var implemented_dclasses = instance_dclass @* {prot} .dclass.name;
+	assert_true(implemented_dclasses.contains_all([prototype]));
+	
+	def_instance_op(
+	    admin_account.auth_id, 
+		child,
+		[:],
+		protoype_def
+	).sign(admin_account.keypair).run_must_fail();
+}
+
+// interfaces can be specified several times in an instance or prototype
+// instance should implement interface only once 
+function test_dclass_8() {
+    val admin_account = create_ft3_test_acc(admin_keypair());
+    
+	val (prototype, gprototype) = ("IPrototype", "IGPrototype");
+	val protoype_def = "PrototypeName";
+	val gprototype_def = "GPrototypeName";
+	
+	def_interface_op(admin_account.auth_id, prototype, [:]).sign(admin_account.keypair).run();
+	def_interface_op(admin_account.auth_id, gprototype, [:], [prototype]).sign(admin_account.keypair).run();
+	
+	def_prototype_op(
+	    admin_account.auth_id, 
+		prototype,
+		[:],
+		"PrototypeName"
+	).sign(admin_account.keypair).run();
+	
+	def_prototype_op(
+	    admin_account.auth_id, 
+		gprototype,
+		[:],
+		"GPrototypeName",
+		protoype_def
+	).sign(admin_account.keypair).run();
+	
+	def_instance_op(
+	    admin_account.auth_id, 
+		gprototype,
+		[:],
+		gprototype_def
+	).sign(admin_account.keypair).run();
+	
+	val instance = get_last_instance();
+	var implemented_dclasses = Interface.get_all_in_instance(instance) @* {}(.name);
+	assert_true(implemented_dclasses.contains_all([prototype, gprototype]));
+}
+
+/*
+ * 
+ * 
+ */
+namespace ITestAuto {
+    val interface = "ITestAuto";
+    
+    function register(auth_data) {
+        def_interface_op(auth_data.auth_id, interface,
+            [:]
+        ).sign(auth_data.keypair).run();
+    }
+    
+    function get() = Interface.get(interface);
+}
+
+namespace ITestOther {
+    val interface = "ITestOther";
+    
+    function register(auth_data, owner_id: byte_array) {
+        def_interface_op(auth_data.auth_id, interface,
+            [:],
+            meta = [
+                Owner(owner_id)
+            ]
+        ).sign(auth_data.keypair).run();
+    }
+    
+    function get() = Interface.get(interface);
+}
+
+namespace ITestOpen {
+    val interface = "ITestOpen";
+    
+    function register(auth_data) {
+        def_interface_op(auth_data.auth_id, interface,
+            [:],
+            is_open = true
+        ).sign(auth_data.keypair).run();
+    }
+    
+    function get() = Interface.get(interface);
+}
+
+namespace ITestWithDep {
+    val interface = "ITestWithDep";
+    
+    function register(auth_data, dependencies: list<text>) {
+        return def_interface_op(auth_data.auth_id, interface,
+            [:],
+            dependencies
+        );
+    }
+    
+    function get() = Interface.get(interface);
+}
+
+function test_can_create_interface_ownership_auto() {
+    val admin_account = create_ft3_test_acc(admin_keypair());
+    
+    ITestAuto.register(admin_account);
+    ITestWithDep.register(admin_account, [ITestAuto.interface]).sign(admin_account.keypair).run();
+}
+
+function test_can_create_interface_ownership_for_other_account() {
+    val admin_account = create_ft3_test_acc(admin_keypair());
+    val alice_account = create_ft3_test_acc(alice_keypair());
+    
+    ITestOther.register(admin_account, alice_account.auth_id.account_id);
+    ITestWithDep.register(alice_account, [ITestOther.interface]).sign(alice_account.keypair).run();
+}
+
+function test_can_create_open_interface() {
+    val admin_account = create_ft3_test_acc(admin_keypair());
+    val alice_account = create_ft3_test_acc(alice_keypair());
+    
+    ITestOpen.register(admin_account);
+    ITestWithDep.register(alice_account, [ITestOpen.interface]).sign(alice_account.keypair).run();
+}
+
+function test_must_fail_if_account_is_not_owner() {
+    val admin_account = create_ft3_test_acc(admin_keypair());
+    val alice_account = create_ft3_test_acc(alice_keypair());
+    
+    ITestAuto.register(admin_account);
+    ITestWithDep.register(alice_account, [ITestAuto.interface]).sign(alice_account.keypair).run_must_fail();
+}
+

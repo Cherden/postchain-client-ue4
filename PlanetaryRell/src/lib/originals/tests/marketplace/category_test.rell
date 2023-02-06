@@ -1,0 +1,113 @@
+@test module;
+import ^^^.tests.*;
+import ^^^^.dip.tests.*;
+import ^^^.marketplace.*;
+
+namespace CategoryInterface1 {
+	val interface = "category_interface1";
+	
+	function register(auth_data) {
+        def_original_interface_op(
+            auth_data.auth_id,
+			interface,
+			[:],
+			[chromia.ITradable.interface],
+			[
+				Marketplace.Meta.Category("Category 1")
+			]
+		).sign(auth_data.keypair).run();
+    }
+}
+
+namespace CategoryInterface2 {
+	val interface = "category_interface2";
+	
+	function register(auth_data) {
+        def_original_interface_op(
+            auth_data.auth_id,
+			interface,
+			[:],
+			[chromia.ITradable.interface],
+			[
+				Marketplace.Meta.Category("Category 2")
+			]
+		).sign(auth_data.keypair).run();
+    }
+}
+
+namespace CategoryInterface3 {
+	val interface = "category_interface3";
+	
+	function register(auth_data) {
+        def_original_interface_op(
+            auth_data.auth_id,
+			interface,
+			[:],
+			[chromia.ITradable.interface],
+			[
+				Marketplace.Meta.Category("Category 3")
+			]
+		).sign(auth_data.keypair).run();
+    }
+}
+
+namespace CategoryInterface4 {
+	val interface = "category_interface4";
+	
+	function register(auth_data) {
+        def_original_interface_op(
+            auth_data.auth_id,
+			interface,
+			[:],
+			[],
+			[
+				Marketplace.Meta.Category("Category 4")
+			]
+		).sign(auth_data.keypair).run();
+    }
+}
+
+namespace CategoryInterface5 {
+	val interface = "category_interface5";
+	
+	function dependencies(): list<text> {return [CategoryInterface3.interface];}
+	
+	function register(auth_data) {
+        def_original_interface_op(
+            auth_data.auth_id,
+			interface,
+			[:],
+			dependencies(),
+			[
+				Marketplace.Meta.Category("Category 5")
+			]
+		).sign(auth_data.keypair).run();
+    }
+}
+
+function register(auth_data) {
+	init_originals_interfaces_op(auth_data.auth_id).sign(auth_data.keypair).run();
+	
+	CategoryInterface1.register(auth_data);
+	CategoryInterface2.register(auth_data);
+	CategoryInterface3.register(auth_data);
+	CategoryInterface4.register(auth_data);
+	CategoryInterface5.register(auth_data);
+}
+
+function test_marketplace_can_define_categories() {
+	val admin_acc = create_ft3_test_acc(admin_keypair());
+	register(admin_acc);
+	
+	val categories = Category.get_all();
+	assert_equals(categories, [
+		Category.node(name="Category 1", interfaces=[CategoryInterface1.interface], list<Category.node>()),
+		Category.node(name="Category 2", interfaces=[CategoryInterface2.interface], list<Category.node>()),
+		Category.node(name="Category 3", interfaces=[CategoryInterface3.interface], [
+			Category.node(name="Category 5", interfaces=[CategoryInterface5.interface], list<Category.node>())
+		])
+	]);
+}
+
+
+

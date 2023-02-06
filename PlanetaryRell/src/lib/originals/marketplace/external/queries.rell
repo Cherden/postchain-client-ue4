@@ -1,0 +1,84 @@
+
+query find_distinct_original_names_by_interface_q(interface_name: name) {
+    return find_distinct_original_names_by_interface(interface_name);
+}
+
+query find_listed_originals_by_interface_q(
+    interface_name: name,
+    Dip.Filter.p_from, 
+    page_size: integer
+) {
+    return find_listed_originals_by_interface(interface_name, p_from, page_size);
+}
+
+query find_listed_originals_by_interface_price_range_q(
+    interface_name: name,
+    min: integer,
+    max: integer,
+    Dip.Filter.p_from,
+    page_size: integer
+) {
+    return find_listed_originals_by_interface_price_range(interface_name, min, max, p_from, page_size);
+}
+
+query find_original_by_id_q(id: byte_array) {
+    return find_original_by_id(id);
+}
+
+query find_original_instances_by_owner_id_q(
+    owner_id: byte_array, 
+    Dip.Filter.p_from, 
+    page_size: integer
+) {
+    return find_original_instances_by_owner_id(owner_id, p_from, page_size);
+}
+
+query find_original_instances_by_owner_id_and_status_q(
+    owner_id: byte_array,
+    listed_state: boolean,
+    Dip.Filter.p_from, 
+    page_size: integer
+) {
+    return find_original_instances_by_owner_id_and_status(owner_id, listed_state, p_from, page_size);
+}
+
+query find_original_instance_trade_history_page_q(
+    original_id: byte_array, 
+    before_rowid: rowid,
+    page_size: integer
+) {
+    return History.find_original_trade_events_page(Originals.Id.get_instance(original_id), before_rowid, page_size);
+}
+
+query get_interface_filters_q(interface: name) {
+    return Filter.get_by_interface(interface);
+}
+
+query get_categories_q() {
+	return Category.get_all().to_gtv_pretty();
+}
+
+query find_originals_by_creator_id_q(
+    creator_id: byte_array,
+    Dip.Filter.p_from, 
+    page_size: integer
+) {
+    return find_originals_by_creator_id(creator_id, p_from, page_size);
+}
+
+query search_q(
+    text
+): (type: text, hit: gtv)? {
+    return search(text);
+}
+
+query get_category_attributes_q(name) {
+	val dclass = Meta.get_interface_by_category(name);
+	require(dclass, "Category with name " + name + " not found.");
+	
+	return Dip.Attribute.get_all(dclass) @* {} (Dip.Attribute.get_name_from_attribute($));
+}
+
+query get_grouped_interfaces_q(): map<name, list<map<name, gtv>>> {
+	return get_grouped_interfaces();
+}

@@ -1,0 +1,27 @@
+<run wipe-db="true">
+    <nodes>
+        <config src="node-config.properties" add-signers="true" />
+        <test-config src="node-config-test.properties"/>
+    </nodes>
+    <chains>
+        <chain name="planetary" iid="0">
+            <config height="0">
+                <app module="planetary">
+                    <args module="planetary">
+                        <arg key="asset_name"><string>CHROMA</string></arg>
+                        <arg key="admin_pubkey"><string>02897FAC9964FBDF97E6B83ECCBDE4A8D28729E0FB27059487D1B6B29F70B48767</string></arg>
+                    </args>
+       		        <args module="lib.ft3.core">
+                        <arg key="my_blockchain_name"><string>test</string></arg>
+                        <arg key="my_blockchain_website"><string>test_website</string></arg>
+                        <arg key="my_blockchain_description"><string>test_description</string></arg>
+                        <arg key="rate_limit_active"><int>0</int></arg>
+                        <arg key="rate_limit_max_points"><int>10</int></arg>
+                        <arg key="rate_limit_recovery_time"><int>5000</int></arg>
+                        <arg key="rate_limit_points_at_account_creation"><int>1</int></arg>
+                    </args>
+                </app>
+            </config>
+        </chain>
+    </chains>
+</run>

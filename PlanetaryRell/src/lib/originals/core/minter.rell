@@ -1,0 +1,196 @@
+
+namespace Minter {
+	struct I {
+		interface_name: name;
+		mutable types: map<Dip.Attribute.I, Dip.attribute_type>;
+		prototype_name: text? = null;
+	}
+	
+	function mint_non_fungible_original(
+	    account: ft3.acc.account,
+	    original_type: I
+	): Dip.instance {
+		_require_interface(chromia.INonFungibleOriginal.interface, original_type);
+		return Unsafe._mint(account, original_type, 1);
+	}
+	
+	function mint_non_fungible_original_batch(
+	    account: ft3.acc.account,
+	    original_type: I,
+		quantity: integer
+	): list<Dip.instance> {
+		require(quantity > 0, "Quantity has to be greater than 0");
+		_require_interface(chromia.INonFungibleOriginal.interface, original_type);
+		
+		val ids = list<Dip.instance>();
+		for (i in range(quantity)) {
+			ids.add(Unsafe._mint(account, original_type, 1));
+		}
+		
+		return ids;
+	}
+	
+	function mint_non_fungible_original_to_account(
+	    account: ft3.acc.account,
+	    original_type: I,
+		to_account_id: byte_array
+	): Dip.instance {
+		val id = mint_non_fungible_original(account, original_type);
+		
+		Ownership.transfer(account, id, to_account_id, 1);
+		
+		return id;
+	}
+	
+	function mint_non_fungible_original_to_account_batch(
+	    account: ft3.acc.account,
+	    original_type: I,
+		to_account_id: byte_array,
+		quantity: integer
+	): list<Dip.instance> {
+		require(quantity > 0, "Quantity has to be greater than 0");
+		_require_interface(chromia.INonFungibleOriginal.interface, original_type);
+		
+		val ids = list<Dip.instance>();
+		for (i in range(quantity)) {
+			val id = mint_non_fungible_original(account, original_type);
+			Ownership.transfer(account, id, to_account_id, 1);
+			ids.add(id);
+		}
+		
+		return ids;
+	}
+	
+	function create_fungible_original(
+	    account: ft3.acc.account,
+	    original_type: I,
+	    quantity: integer = 1
+	): Dip.instance {
+		require(quantity > 0, "Quantity has to be greater than 0");
+		_require_interface(chromia.IFungibleOriginal.interface, original_type);
+		
+		return Unsafe._mint(account, original_type, quantity);
+	}
+	
+	function create_fungible_original_to_account(
+	    account: ft3.acc.account,
+	    original_type: I,
+		to_account_id: byte_array,
+		quantity: integer = 1
+	): Dip.instance {
+		val id = create_fungible_original(account, original_type, quantity);
+		Ownership.transfer(account, id,to_account_id, quantity);
+		
+		return id;
+	}
+	
+	function mint_fungible_original_to_account(
+	    account: ft3.acc.account,
+	    fungible_id: byte_array,
+		to_account_id: byte_array,
+		quantity: integer = 1
+	): Dip.instance {
+		val instance = mint_fungible_original(account, fungible_id, quantity);
+		Ownership.transfer(account, instance, to_account_id, quantity);
+		
+		return instance;
+	}
+	
+	function mint_fungible_original(
+	    account: ft3.acc.account,
+	    fungible_id: byte_array, 
+		quantity: integer = 1
+	): Dip.instance {
+		val instance = Id.get_instance(fungible_id);
+		val creator_id =  Dip.ByteArray.get_value(instance, chromia.IOriginal.creator_id);
+		require(creator_id, "No creator value found from instance");
+        require(creator_id == account.id, "Only creator can mint new originals");
+		
+        return Unsafe.mint_fungible_original(account, fungible_id, quantity);
+	}	
+	
+	function _require_interface(interface: text, original_type: I) {
+		val type_interface = Dip.Interface.get(original_type.interface_name);
+		val interfaces = Dip.Interface.get_all(type_interface);
+		val has_interface = interface in interfaces @* {} .name;
+		
+		require(has_interface, "Type not implementing interface " + interface);
+	}
+	
+	function _convert_id_type_to_instance(
+		types: map<Dip.Attribute.I, Dip.attribute_type>
+	): (v: map<Dip.Attribute.I, Dip.attribute_type>, i: list<byte_array>) {
+		val instance_ids = list<byte_array>();
+		val local_types = map<Dip.Attribute.I, Dip.attribute_type>(types);
+		
+		for ((k, v) in types) {
+			when (v.type) {
+				Dip.Attribute.type.id -> {
+					if (v.value??) {
+						instance_ids.add(byte_array.from_gtv(v.value!!));
+						
+						val converted = Dip.attribute_type(
+							Dip.Attribute.type.instance,
+							value = Id.get_instance(byte_array.from_gtv(v.value!!)).to_gtv()
+						);
+						local_types[k] = converted;
+					}
+				}
+				Dip.Attribute.type.unordered_container -> {
+					if (v.value??) {
+						if (v.inner_type?? and Dip.Attribute.type.from_gtv(v.inner_type!!) == Dip.Attribute.type.id) {
+							val ids = set<byte_array>.from_gtv(v.value!!);
+							instance_ids.add_all(ids);
+							
+							val converted = Dip.attribute_type(
+								Dip.Attribute.type.instance,
+								value = set(ids @* {} (Id.get_instance($))).to_gtv()
+							);
+							
+							local_types[k] = converted;
+						}
+					}
+				}
+				Dip.Attribute.type.instance -> require(false, "Use ID type to link originals after minting.");
+			}
+		}
+		
+		return (v = local_types, i = instance_ids);
+	}
+}
+
+namespace Minter.Unsafe {
+	function _mint(ft3.acc.account, original_type: I, quantity: integer): Dip.instance {
+		val (types, instance_ids) = _convert_id_type_to_instance(original_type.types);
+		
+		val asset = Ft3Helper.create_and_mint_asset(Id.generate(), account.id, quantity);
+		val interface = Dip.Interface.get(original_type.interface_name);
+		val instance = Dip.InstanceFactory.new(interface, types, original_type.prototype_name);
+		
+		Id.new(asset, instance);
+		
+		for (id in instance_ids) {
+			Ft3Helper.lock_asset(account.id, id, Ft3Helper.SPECIAL);
+		}
+		
+		return instance;
+	}
+	
+	function mint_fungible_original(
+	    ft3.acc.account,
+		fungible_id: byte_array,
+		quantity: integer = 1
+	): Dip.instance {
+		require(quantity > 0, "Quantity has to be greater than 0");
+		
+		val instance = Id.get_instance(fungible_id);		
+		val max_supply = Dip.Integer.get_value(instance, chromia.IFungibleOriginal.max_supply);
+				
+		val total_supply = Ft3Helper.get_asset_supply(fungible_id);
+		require(total_supply + quantity <= max_supply!!, "Total supply exceeds max supply");
+		
+		Ft3Helper.mint_existing_asset(fungible_id, account.id, quantity);
+		
+		return instance;
+	}
+}

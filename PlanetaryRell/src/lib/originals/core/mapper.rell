@@ -1,0 +1,184 @@
+import Marketplace: ^.marketplace;
+
+namespace OMapper {
+    enum type {
+        id,
+        owner,
+        prototype,
+        interfaces
+    }
+    
+    function map_original_meta(
+        original_meta_list: list<type>, 
+        mapper: (map<name, gtv?>, map<name, gtv?>) -> unit = Dip.Mapper.direct()
+    ): (Dip.instance, map<name, gtv?>) -> unit {
+        return _map_original_meta(*, *, original_meta_list, mapper);
+    }
+    
+    function _map_original_meta(     
+        Dip.instance, 
+        instance_map: map<name, gtv?>, 
+        original_meta_list: list<type>, 
+        mapper: (map<name, gtv?>, map<name, gtv?>) -> unit
+    ) {
+        val values = map<name, gtv?>();
+        
+        for (meta in original_meta_list) {
+            when (meta) {
+                type.id -> 
+                    values[type.id.name] = Id.get_id(instance).to_gtv();
+                 
+                // TODO: investigate what to send when original instance has multiple owners
+                // - owner count
+                // - owners page
+                // - list of all owners
+                // - special account that represents all owners
+                // - special id `0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF`
+                // - original id
+                type.owner -> 
+                    values[type.owner.name] = Ownership.get_owner_if_one_by_original_instance(instance)?.to_gtv();
+                type.prototype -> 
+                    values[type.prototype.name] = Dip.Prototype.get_first_prototype_name(instance)?.to_gtv();
+                type.interfaces ->
+                    values[type.interfaces.name] = (Dip.Interface.get_all_in_instance(instance) @* {} (.name)).to_gtv();
+            }
+        }
+        
+        mapper(instance_map, values); 
+    }
+    
+    /*
+     *  Reads all instance marketplace listing values 
+     */
+    
+    function map_marketplace_listing(
+        mapper: (map<name, gtv?>, map<name, gtv?>) -> unit = Dip.Mapper.direct()
+    ): (Dip.instance, map<name, gtv?>) -> unit {
+        return _map_marketplace_listing(*, *, mapper);
+    }
+    
+    function _map_marketplace_listing(     
+        Dip.instance, 
+        instance_map: map<name, gtv?>,
+        mapper: (map<name, gtv?>, map<name, gtv?>) -> unit
+    ) {
+        val values = map<name, gtv?>();
+        val listing = Marketplace.Listing.original_listing @? {.original.instance == instance};
+        
+        if(listing??) {
+            values.put_all([
+                "owner": listing.owner.id.to_gtv(),
+                "price": listing.price.to_gtv(),
+                "asset_id": listing.asset.id.to_gtv()
+            ]);
+        }
+        
+        mapper(instance_map, values); 
+    }
+    
+    /*
+     *  Reads all instance attributes by meta tag 
+     */
+    function map_attributes_by_meta_tag(
+        meta_tag: text,
+        mapper: (map<name, gtv?>, map<name, gtv?>) -> unit = Dip.Mapper.direct()
+    ): (Dip.instance, map<name, gtv?>) -> unit {
+        return _map_attributes_by_meta_tag(*, *, meta_tag, mapper);
+    }
+    
+    function _map_attributes_by_meta_tag(     
+        Dip.instance, 
+        instance_map: map<name, gtv?>,
+        meta_tag: text,
+        mapper: (map<name, gtv?>, map<name, gtv?>) -> unit
+    ) {
+        val interfaces = Dip.Interface.get_all_in_instance(instance);
+        
+        val attributes = (a: Dip.attribute,  m: Dip.AttributeMeta.attribute_meta) @* {
+            a.dclass in interfaces,
+            m.meta_key == meta_tag,
+            m.attribute == a
+        } ((
+            Dip.Attribute.get_name_from_attribute(a), 
+            Dip.Attribute.get_value(instance, Dip.Mapper._get_attribute_name_from_attribute(a))
+        ));
+        
+        mapper(instance_map, map(attributes));
+    }
+    
+    /*
+     *  Reads all instance linked originals.
+     *  It is also possible to specify mapping rules for children instances.  
+     */
+    function map_linked(
+        children_mappers: list<(Dip.instance, map<name, gtv?>) -> unit> = [Dip.Mapper.map_all_attributes()],
+        mapper: (map<name, gtv?>, map<name, gtv?>) -> unit = Dip.Mapper.direct()
+    ): (Dip.instance, map<name, gtv?>) -> unit {
+        return _map_linked(*, *, children_mappers, mapper);
+    }
+    
+    function _map_linked(
+        Dip.instance, 
+        instance_map: map<name, gtv?>, 
+        children_mappers: list<(Dip.instance, map<name, gtv?>) -> unit>,
+        mapper: (map<name, gtv?>, map<name, gtv?>) -> unit
+    ) {
+        val mapped_instances = (i: Dip.Instance.instance_attribute, ai: Id.asset_instance) @* {
+            i.instance == instance, i.value == ai.instance
+        } ((ai.asset.name, Dip.Mapper.map_instance(i.value, children_mappers).to_gtv()));
+        
+        mapper(instance_map, map<name, gtv?>(mapped_instances));
+    }
+    
+    /*
+     *  Reads all instance badges
+     *  can be replaced by map_attributes_implementing_interface when set of instances are supported
+     */
+    function map_badges(
+        mapper: (map<name, gtv?>, map<name, gtv?>) -> unit = Dip.Mapper.direct()
+    ): (Dip.instance, map<name, gtv?>) -> unit {
+        return _map_badges(*, *, mapper);
+    }
+    
+    function _map_badges(     
+        Dip.instance, 
+        instance_map: map<name, gtv?>,
+        mapper: (map<name, gtv?>, map<name, gtv?>) -> unit
+    ) {
+        val values = list<gtv?>();
+        val badge_instances = Badge.Original.get_all(instance);
+        
+        for(badge_instance in badge_instances) {
+            values.add(
+                Dip.Mapper.map_instance(
+                    badge_instance,
+                    [Dip.Mapper.map_attributes_of_interfaces([chromia.IBadge.get()])]
+                ).to_gtv()
+            );
+        }
+        
+        mapper(instance_map, ["badges": values.to_gtv()]);
+    }
+    
+    function map_tx_history(
+        mapper: (map<name, gtv?>, map<name, gtv?>) -> unit = Dip.Mapper.direct()
+    ): (Dip.instance, map<name, gtv?>) -> unit {
+        return _map_tx_history(*, *, mapper);
+    }
+    
+    function _map_tx_history(     
+        Dip.instance, 
+        instance_map: map<name, gtv?>,
+        mapper: (map<name, gtv?>, map<name, gtv?>) -> unit
+    ) {
+        val trade_events = Marketplace.History.find_original_trade_events(instance);
+        val trade_events_map = map<name, gtv?>();
+        
+        for(trade_event in trade_events) {
+            trade_events_map[trade_event.block_height.to_text()] = trade_event.to_gtv_pretty();
+        }
+        
+        mapper(instance_map, trade_events_map); 
+    }
+}
+

@@ -1,0 +1,22 @@
+object random_pool { 
+  mutable state: byte_array = chain_context.blockchain_rid;
+}
+
+function random(): byte_array {
+  val new_state = (
+  	random_pool.state, 
+  	op_context.transaction.tx_hash,
+  	block @ { .block_height == op_context.block_height - 1} .block_rid
+  ).hash(); 
+    
+  random_pool.state = new_state;
+  
+  return new_state;
+}
+
+function random_hex(): text {
+  return random().to_hex();
+}
+
+function random_integer(max: integer) = 
+  integer.from_hex(random().to_hex().sub(0, 14)) % max;

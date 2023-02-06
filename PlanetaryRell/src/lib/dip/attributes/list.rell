@@ -1,0 +1,401 @@
+namespace List {
+	entity list_attribute {
+		index instance, attribute;
+	}
+	
+	function T(inner_type: Attribute.type, value: gtv? = null): attribute_type {
+		return attribute_type(inner_type = inner_type.to_gtv(), type = Attribute.type.ordered_container, value = value?.to_gtv());
+	}
+	
+	function create_type(attribute, value_type: Attribute.type) {
+		util.ensure_simple_type(value_type);
+		Map.create_type(attribute, Attribute.type.integer, value_type);
+	}
+	
+	function create_elements(instance, attribute_name: Attribute.I, elements: gtv) {
+		val attribute = Attribute.get(attribute_name);
+		util.ensure_not_implemented(instance, attribute);
+		Meta.Engine.execute_value(instance, attribute, elements);
+		Unsafe.add_elements_by_attribute(instance, attribute, elements);
+	}
+	
+	function add_elements(instance, attribute_name: Attribute.I, elements: gtv) {
+		val attribute = Attribute.get(attribute_name);
+		util.ensure_attribute_can_be_added(instance, attribute);
+		Meta.Engine.execute_value(instance, attribute, elements);
+		Unsafe.add_elements_by_attribute(instance, attribute, elements);
+	}
+	
+	function update_elements(instance, attribute_name: Attribute.I, elements: gtv) {
+		val attribute = Attribute.get(attribute_name);
+		Meta.Engine.execute_value(instance, attribute, elements);
+		Unsafe.update_elements_by_attribute(instance, attribute, elements);
+	}
+	
+	function set_elements(instance, attribute_name: Attribute.I, elements: gtv) {
+		val attribute = Attribute.get(attribute_name);
+		var attr = list_attribute @? {instance, attribute};
+		if(attr == null) {
+			add_elements(instance, attribute_name, elements);
+		} else {
+			update_elements(instance, attribute_name, elements);
+		}
+	}
+	
+	function remove_elements(instance, attribute_name: Attribute.I): gtv {
+		val attribute = Attribute.get(attribute_name);
+		util.ensure_optional(attribute);
+		return Unsafe.remove_elements_by_attribute(instance, attribute);
+	}
+	
+	function add_element(instance, attribute_name: Attribute.I, element: gtv) {
+		val attribute = Attribute.get(attribute_name);
+		Meta.Engine.execute_value(instance, attribute, element);
+		Unsafe.add_by_attribute(instance, attribute, element);
+	}
+	
+	function remove_element(instance, attribute_name: Attribute.I, element: gtv) {
+		val attribute = Attribute.get(attribute_name);
+		Meta.Engine.execute_value(instance, attribute, element);
+		Unsafe.remove_by_attribute(instance, attribute, element);
+	}
+	
+	function unpack(instance, attribute_name: Attribute.I): (type: Attribute.type, values: gtv)? {
+		val attribute = Attribute.get(attribute_name);
+		return unpack_by_attribute(instance, attribute);
+	}
+	
+	function unpack_by_attribute(instance, attribute): (type: Attribute.type, values: gtv)? {
+		val list_attrs = _get_list_types(attribute);
+		if (not util.is_implemented(instance, attribute)) return null;
+			
+		var ret: gtv? = null;
+		val instances = Prototype.get_all(instance);
+		instances.add(instance);
+		
+		when (list_attrs.V.type) {
+			Attribute.type.boolean -> ret = (i: Instance.instance_attribute, k: Integer.integer_attribute, v: Boolean.boolean_attribute) @* {
+					i.value in instances, 
+					i.attribute == list_attrs.I,
+					i.instance == k.instance,
+					i.instance == v.instance,
+					k.attribute == list_attrs.K,
+					v.attribute == list_attrs.V
+				} (v.value, @sort @omit k.value).to_gtv();
+			Attribute.type.byte_array -> ret = (i: Instance.instance_attribute, k: Integer.integer_attribute, v: ByteArray.byte_array_attribute) @* {
+					i.value in instances, 
+					i.attribute == list_attrs.I,
+					i.instance == k.instance,
+					i.instance == v.instance,
+					k.attribute == list_attrs.K,
+					v.attribute == list_attrs.V
+				} (v.value, @sort @omit k.value).to_gtv();
+			Attribute.type.decimal -> ret = (i: Instance.instance_attribute, k: Integer.integer_attribute, v: Decimal.decimal_attribute) @* {
+					i.value in instances, 
+					i.attribute == list_attrs.I,
+					i.instance == k.instance,
+					i.instance == v.instance,
+					k.attribute == list_attrs.K,
+					v.attribute == list_attrs.V
+				} (v.value, @sort @omit k.value).to_gtv();
+			Attribute.type.instance -> ret = (i: Instance.instance_attribute, k: Integer.integer_attribute, v: Instance.instance_attribute) @* {
+					i.value in instances, 
+					i.attribute == list_attrs.I,
+					i.instance == k.instance,
+					i.instance == v.instance,
+					k.attribute == list_attrs.K,
+					v.attribute == list_attrs.V
+				} (v.value, @sort @omit k.value).to_gtv();
+			Attribute.type.integer -> ret = (i: Instance.instance_attribute, k: Integer.integer_attribute, v: Integer.integer_attribute) @* {
+					i.value in instances, 
+					i.attribute == list_attrs.I,
+					i.instance == k.instance,
+					i.instance == v.instance,
+					k.attribute == list_attrs.K,
+					v.attribute == list_attrs.V
+				} (v.value, @sort @omit k.value).to_gtv();
+			Attribute.type.text -> ret = (i: Instance.instance_attribute, k: Integer.integer_attribute, v: Text.text_attribute) @* {
+					i.value in instances, 
+					i.attribute == list_attrs.I,
+					i.instance == k.instance,
+					i.instance == v.instance,
+					k.attribute == list_attrs.K,
+					v.attribute == list_attrs.V
+				} (v.value, @sort @omit k.value).to_gtv();
+			else -> require(false, "Unimplemented path");
+		}
+		
+		return (type = list_attrs.V.type, values = ret!!);
+	}
+	
+	function sizeof(instance, attribute_name: Attribute.I) {
+		return Map.sizeof(instance, attribute_name);
+	}
+	
+	function contains(instance, attribute_name: Attribute.I, value: gtv) {
+		val attribute = Attribute.get(attribute_name);
+		val list_attrs = _get_list_types(attribute);
+		return Map._find_instance_by_value_in_map(instance, value, list_attrs) != null;
+	}
+	
+	function contains_all(instance, attribute_name: Attribute.I, values: gtv) {
+		val attribute = Attribute.get(attribute_name);
+		val list_attrs = _get_list_types(attribute);
+		val l = util.gtv_to_list_of_gtv(values, list_attrs.V.type);
+		
+		for (e in l) {
+			if (Map._find_instance_by_value_in_map(instance, e, list_attrs) == null) {
+				return false;
+			}
+		}
+		
+		return true;
+	}
+	
+	function get(instance, attribute_name: Attribute.I, idx: integer) {
+		return Map.get(instance, attribute_name, idx.to_gtv());
+	}
+	
+	function is_empty(instance, attribute_name: Attribute.I) {
+		return Map.sizeof(instance, attribute_name) == 0;
+	}
+	
+	function fetch_range_from(attribute, value: gtv, from: rowid) {
+		val list_attrs = _get_list_types(attribute);
+		
+		when (list_attrs.V.type) {
+			Attribute.type.boolean -> return (i: Instance.instance_attribute, a: Boolean.boolean_attribute) @* {
+					a.attribute == list_attrs.V,
+					a.value == boolean.from_gtv(value),
+					i.attribute == list_attrs.I,
+					i.instance == a.instance,
+					i.value.rowid > from
+				} (i.value) limit 100;
+			Attribute.type.byte_array -> return (i: Instance.instance_attribute, a: ByteArray.byte_array_attribute) @* {
+					a.attribute == list_attrs.V,
+					a.value == byte_array.from_gtv(value),
+					i.attribute == list_attrs.I,
+					i.instance == a.instance,
+					i.value.rowid > from
+				} (i.value) limit 100;
+			Attribute.type.decimal -> return (i: Instance.instance_attribute, a: Decimal.decimal_attribute) @* {
+					a.attribute == list_attrs.V,
+					a.value == decimal.from_gtv(value),
+					i.attribute == list_attrs.I,
+					i.instance == a.instance,
+					i.value.rowid > from
+				} (i.value) limit 100;
+			Attribute.type.instance -> return (i: Instance.instance_attribute, a: Instance.instance_attribute) @* {
+					a.attribute == list_attrs.V,
+					a.value == instance.from_gtv(value),
+					i.attribute == list_attrs.I,
+					i.instance == a.instance,
+					i.value.rowid > from
+				} (i.value) limit 100;
+			Attribute.type.integer -> return (i: Instance.instance_attribute, a: Integer.integer_attribute) @* {
+					a.attribute == list_attrs.V,
+					a.value == integer.from_gtv(value),
+					i.attribute == list_attrs.I,
+					i.instance == a.instance,
+					i.value.rowid > from
+				} (i.value) limit 100;
+			Attribute.type.text -> return (i: Instance.instance_attribute, a: Text.text_attribute) @* {
+					a.attribute == list_attrs.V,
+					a.value == text.from_gtv(value),
+					i.attribute == list_attrs.I,
+					i.instance == a.instance,
+					i.value.rowid > from
+				} (i.value) limit 100;
+			else -> {require(false, "Unimplemented path"); return list<instance>();}
+		}
+	}
+	
+	function _get_list_types(attr: attribute): (K: attribute, V: attribute, I: attribute) {
+		return Map._get_map_types(attr);
+	}
+	
+	function _index_of(instance, attribute, value: gtv): integer {
+		val list_attrs = _get_list_types(attribute);
+		val f = Map._find_instance_by_value_in_map(instance, value, list_attrs);
+		if (f??) {
+			return Integer.integer_attribute @ {f.instance, list_attrs.K}.value;
+		}
+		
+		return -1;
+	}
+}
+
+namespace List.Unsafe {
+		
+	function add_elements (instance, attribute_name: Attribute.I, elements: gtv) {
+		val attribute = Attribute.get(attribute_name);
+		add_elements_by_attribute(instance, attribute, elements);
+	}
+	
+	function add_elements_by_attribute (instance, attribute, elements: gtv) {
+		util.ensure_type(Attribute.type.ordered_container, attribute.type);
+		
+		val list_attrs = _get_list_types(attribute);
+		var m = _list_to_map(util.gtv_to_list_of_gtv(elements, list_attrs.V.type));
+		
+		create list_attribute (instance, attribute);
+		Map.Unsafe._create_map_attribute(instance, attribute, m.to_gtv());
+	}
+	
+	function update_elements(instance, attribute_name: Attribute.I, elements: gtv) {
+		val attribute = Attribute.get(attribute_name);
+		update_elements_by_attribute(instance, attribute, elements);
+	}
+	
+	function update_elements_by_attribute(instance, attribute, elements: gtv) {
+		val list_attrs = _get_list_types(attribute);
+		val l = util.gtv_to_list_of_gtv(elements, list_attrs.V.type);
+		val m = _list_to_map(l);
+		
+		Map.Unsafe.update_elements_by_attribute(instance, attribute, m.to_gtv());
+	}
+	
+	function set_elements(instance, attribute_name: Attribute.I, elements: gtv) {
+		val attribute = Attribute.get(attribute_name);
+		set_elements_by_attribute(instance, attribute, elements);
+	}
+	
+	function set_elements_by_attribute(instance, attribute, elements: gtv) {
+		var attr = list_attribute @? {instance, attribute};
+		if(attr == null) {
+			add_elements_by_attribute(instance, attribute, elements );
+		} else {
+			update_elements_by_attribute(instance, attribute, elements );
+		}
+	}
+	
+	function remove_elements(instance, attribute_name: Attribute.I): gtv {
+		val attribute = Attribute.get(attribute_name);
+		return remove_elements_by_attribute(instance, attribute);
+	}
+	
+	function remove_elements_by_attribute(instance, attribute): gtv {
+		val l = unpack_by_attribute(instance, attribute);
+		
+		clear_by_attribute(instance, attribute);
+		delete list_attribute @ {instance, attribute};
+		
+		return l!!.to_gtv();
+	}
+	
+	function add(instance, attribute_name: Attribute.I, value: gtv, pos: integer = -1) {
+		val attribute = Attribute.get(attribute_name);
+		add_by_attribute(instance, attribute, value, pos);
+	}
+	
+	function add_by_attribute(instance, attribute, value: gtv, pos: integer = -1) {
+		val list_attrs = _get_list_types(attribute);
+		val add_pos = _get_list_add_position(instance, attribute, list_attrs, pos);
+		
+		Map.Unsafe.put_by_attribute(instance, attribute, (add_pos.to_gtv(), value).to_gtv());
+	}
+	
+	function add_all(instance, attribute_name: Attribute.I, values: gtv, pos: integer = -1) {
+		val attribute = Attribute.get(attribute_name);
+		add_all_by_attribute(instance, attribute, values, pos);
+	}
+	
+	function add_all_by_attribute(instance, attribute, values: gtv, pos: integer = -1) {
+		val list_attrs = _get_list_types(attribute);
+		val l = util.gtv_to_list_of_gtv(values, list_attrs.V.type);
+		val add_pos = _get_list_add_position(instance, attribute, list_attrs, pos, l.size());
+		
+		val m = _list_to_map(l, add_pos);	
+		Map.Unsafe.put_all_by_attribute(instance, attribute, m);
+	}
+	
+	function clear(instance, attribute_name: Attribute.I) {
+		val attribute = Attribute.get(attribute_name);
+		clear_by_attribute(instance, attribute);
+	}
+	
+	function clear_by_attribute(instance, attribute) {
+		Map.Unsafe.clear_by_attribute(instance, attribute);
+	}
+		
+	function remove(instance, attribute_name: Attribute.I, value: gtv) {
+		val attribute = Attribute.get(attribute_name);
+		remove_by_attribute(instance, attribute, value);
+	}
+	
+	function remove_by_attribute(instance, attribute, value: gtv) {
+		val list_attrs = _get_list_types(attribute);
+		Map.Unsafe._map_remove(instance, list_attrs.V, list_attrs.I, list_attrs.K, value);
+		_reduce_list_position(instance, list_attrs, _index_of(instance, attribute, value));
+	}
+	
+	function remove_all(instance, attribute_name: Attribute.I, values: gtv) {
+		val attribute = Attribute.get(attribute_name);
+		remove_all_by_attribute(instance, attribute, values);
+	}
+	
+	function remove_all_by_attribute(instance, attribute, values: gtv) {
+		val list_attrs = _get_list_types(attribute);
+		val l = util.gtv_to_list_of_gtv(values, list_attrs.V.type);
+		
+		for (e in l) {
+			Map.Unsafe._map_remove(instance, list_attrs.V, list_attrs.I, list_attrs.K, e);
+		}
+		_reduce_list_position(instance, list_attrs, _index_of(instance, attribute, l[0]), l.size());
+	}
+	
+	function remove_at(instance, attribute_name: Attribute.I, idx: integer) {
+		val attribute = Attribute.get(attribute_name);
+		remove_at_by_attribute(instance, attribute, idx);
+	}
+	
+	function remove_at_by_attribute(instance, attribute, idx: integer) {
+		val list_attrs = _get_list_types(attribute);
+		Map.Unsafe.remove_by_attribute(instance, attribute, idx.to_gtv());
+		_reduce_list_position(instance, list_attrs, idx);
+	}
+	
+	function _reduce_list_position(
+		instance,
+		list_attrs: (K: attribute, V: attribute, I: attribute),
+		pos: integer, elements: integer = 1
+	) {
+		update (a: Integer.integer_attribute, i: Instance.instance_attribute) @* {
+			i.value == instance,
+			i.instance == a.instance,
+			i.attribute == list_attrs.I,
+			a.attribute == list_attrs.K,
+			a.value >= pos
+		} (a.value - elements);
+	}
+	
+	function _list_to_map(values: list<gtv>, pos: integer = 0) {
+		val m = map<gtv,gtv>();
+		var i = pos;
+		
+		for (value in values) {
+			m.put(i.to_gtv(), value);
+			i++;
+		}
+		return m;
+	}
+	
+	function _get_list_add_position(instance, attribute,
+		list_attrs: (K: attribute, V: attribute, I: attribute), pos: integer, elements: integer = 1
+	) {
+		if (pos >= 0) {
+			update (a: Integer.integer_attribute, i: Instance.instance_attribute) @* {
+				i.value == instance,
+				i.instance == a.instance,
+				i.attribute == list_attrs.I,
+				a.attribute == list_attrs.K,
+				a.value >= pos
+			} (a.value + elements);
+			
+			return pos;
+		}
+		
+		return Map.sizeof_by_attribute(instance, attribute);
+	}
+}
+

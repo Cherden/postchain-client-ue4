@@ -1,0 +1,140 @@
+
+query find_originals_q (
+	attribute_name: Dip.Attribute.I,
+	value: gtv,
+	from: Dip.Filter.p_from,
+	page_size: integer
+): (original_ids: list<byte_array>, bookmark: Dip.Filter.p_from) {	
+	val ids = list<byte_array>();
+	val ret = Wrapper.Attribute.find_instances(attribute_name, value, from, page_size);
+	for (instance in ret.results) {
+		ids.add(Id.get_id(instance));
+	}
+	
+	return (original_ids = ids, bookmark = ret.from);
+}
+
+query filter_originals_q(
+	filters: list<Dip.Filter.I>,
+	from: Dip.Filter.p_from,
+	page_size: integer
+): (original_ids: list<byte_array>, bookmark: Dip.Filter.p_from) {
+	val ids = list<byte_array>();
+	val ret = Wrapper.Attribute.filter_instances(filters, from, page_size);
+	for (instance in ret.results) {
+		ids.add(Id.get_id(instance));
+	}
+	
+	return (original_ids = ids, bookmark = ret.from);
+}
+
+query get_originals_with_interface_q(
+	account_id: byte_array,
+	interface: text,
+	from: integer,
+	page_size: integer
+): list<byte_array> {
+	return Ownership.find_all_original_ids_with_interface(
+		account_id,
+		Dip.Interface.get(interface),
+		page_size,
+		from
+	);
+}
+
+query get_unlocked_originals_from_owner_q(
+	account_id: byte_array,
+	from: integer,
+	page_size: integer
+): list<byte_array> {
+	return Ownership.get_unlocked_original_ids_from_owner(
+		account_id,
+		page_size,
+		from
+	);
+}
+
+query get_locked_originals_from_owner_q(
+	account_id: byte_array,
+	from: integer,
+	page_size: integer
+): list<byte_array> {
+	return Ownership.get_locked_original_ids_from_owner(
+		account_id,
+		page_size,
+		from
+	);
+}
+
+query get_all_originals_from_owner_q(
+	account_id: byte_array,
+	from: integer,
+	page_size: integer
+): list<byte_array> {
+	return Ownership.get_all_original_ids_from_owner(
+		account_id,
+		page_size,
+		from
+	);
+}
+
+query get_original_value_q(
+	original_id: byte_array,
+	attribute_name: Dip.Attribute.I
+): gtv? {
+	return Dip.Attribute.get_value(
+		Id.get_instance(original_id),
+		attribute_name
+	);
+}
+
+query get_original_values_q(
+	original_id: byte_array,
+	attribute_names: list<Dip.Attribute.I>
+): map<Dip.Attribute.I, gtv?> {
+	val result = map<Dip.Attribute.I, gtv?>();
+	
+	val instance = Id.get_instance(original_id);
+	for (attribute_name in attribute_names) {
+		result.put(
+			attribute_name,
+			Dip.Attribute.get_value(instance, attribute_name)
+		);
+	}
+	
+	return result;
+}
+
+//query get_all_original_values_q(original_id: byte_array): map<text, gtv> {
+//	return _get_original(original_id);
+//}
+//
+//query get_all_original_values_batch_q(original_ids: list<byte_array>): map<byte_array, map<text, gtv>> {
+//	val result = map<byte_array, map<text, gtv>>();
+//	
+//	for (original_id in original_ids) {
+//		result.put(original_id, _get_original(original_id));
+//	}
+//	
+//	return result;
+//}
+//
+//query get_all_original_values_from_interface_q(original_id: byte_array, interface_name: text): map<text, gtv> {
+//	return _get_original(original_id, interface_name);
+//}
+//
+//// TODO resolve badge instances to value map
+//query get_account_badges_q(account_id: byte_array): list<instance> {
+//	return get_badges_by_account_id(account_id);
+//}
+//
+//query get_original_badges_q(original_id: byte_array): set<instance> {
+//	val instance = get_instance_by_asset_id(original_id)!!;
+//	
+//	return get_badges_by_instance(instance);
+//}
+//
+//// TODO do after we know how to return originals
+//query get_original_definition_q(original_id: byte_array) {
+//	return null;
+//}

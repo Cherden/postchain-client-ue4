@@ -1,0 +1,83 @@
+
+namespace Category {
+	struct node {
+		name;
+		interfaces: list<text>;
+		subcategories: list<node>;
+	}
+	
+	function _category_node(
+		name, 
+		interface_map: map<name, list<name>>, 
+		category_names: map<name, name>
+	): node {
+		val category_nodes = list<node>();
+		
+		if (not interface_map.contains(name)) {
+			return node(
+				name = if (category_names.contains(name)) category_names[name] else name,
+				interfaces = [name],
+				subcategories = list<node>()
+			);
+		}
+		
+		for (child in interface_map[name]) {
+			category_nodes.add(_category_node(child, interface_map, category_names));
+		}
+		
+		return node(
+			name = if (category_names.contains(name)) category_names[name] else name,
+			interfaces = [name],
+			subcategories = category_nodes
+		);
+	}
+	
+	function get_all(): list<node> {
+		val meta_tags = Meta.get_category_values();
+		
+		val category_names = map<name, name>();
+		
+		for ((name, interface) in meta_tags) {
+			category_names[interface] = name;
+		}
+		
+		val tradable_interface = Originals.chromia.ITradable.get();
+		val nodes_indirect = (
+			d1: Dip.Interface.dclass_dependency,
+			d2: Dip.Interface.dclass_dependency
+		) @* {
+			d1.parent == tradable_interface,
+			d2.parent == d1.dclass,
+			d2.direct == true
+		} (
+			interface = d2.dclass.name,
+			base = d2.parent.name
+		);
+		
+		val nodes_direct = Dip.Interface.dclass_dependency @* { 
+			.parent == tradable_interface,
+			.direct == true
+		} (
+			interface = .dclass.name,
+			base = .parent.name
+		);
+		
+		val interfaces = set<(interface: name, base: name)>();
+		interfaces.add_all(nodes_indirect);
+		interfaces.add_all(nodes_direct);
+		
+		val interface_map = map<name, list<name>>();
+		
+		for ((interface, base) in interfaces) {
+			if (interface_map.contains(base)) {
+				interface_map[base].add(interface);
+			} else {
+				interface_map[base] = [interface];
+			}
+		}
+		
+		return _category_node(
+			tradable_interface.name, interface_map, category_names
+		).subcategories; 
+	}
+}

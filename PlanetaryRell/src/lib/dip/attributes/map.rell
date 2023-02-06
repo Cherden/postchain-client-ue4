@@ -1,0 +1,498 @@
+
+namespace Map {
+	val MAP = "/map";
+	val MAP_K = "/key";
+	val MAP_V = "/value";
+	val MAP_I = "/instance";
+	
+	struct types {
+		K: Attribute.type;
+		V: Attribute.type;
+	}
+	
+	entity map_attribute {
+		index instance, attribute;
+	}
+	
+	function T(inner_types: types, value: map<gtv, gtv>? = null): attribute_type {
+		return attribute_type(inner_type = inner_types.to_gtv(), type = Attribute.type.addressable_container, value = value?.to_gtv());
+	}
+	
+	function create_type(attribute, key_type: Attribute.type, value_type: Attribute.type) {
+		util.ensure_simple_type(key_type);
+		util.ensure_simple_type(value_type);
+		
+		require(key_type in [Attribute.type.integer, Attribute.type.text], "Invalid key type, only integer and text are allowed");
+		
+		val elements_dclass = create Interface.dclass(.name = attribute.dclass.name + attribute.name + MAP);
+		val key_attribute = create attribute(elements_dclass, attribute.name + MAP_K, key_type);
+		val value_attribute = create attribute(elements_dclass, attribute.name + MAP_V, value_type);
+		val instance_attribute = create attribute(elements_dclass, attribute.name + MAP_I, Attribute.type.instance);
+	}
+	
+	function create_elements(instance, attribute_name: Attribute.I, elements: gtv) {
+		val attribute = Attribute.get(attribute_name);
+		util.ensure_not_implemented(instance, attribute);
+		Meta.Engine.execute_value(instance, attribute, elements);
+		Unsafe.add_elements_by_attribute(instance, attribute, elements);
+	}
+	
+	function add_elements(instance, attribute_name: Attribute.I, elements: gtv) {
+		val attribute = Attribute.get(attribute_name);
+		util.ensure_attribute_can_be_added(instance, attribute);
+		Meta.Engine.execute_value(instance, attribute, elements);
+		Unsafe.add_elements_by_attribute(instance, attribute, elements);
+	}
+	
+	function update_elements(instance, attribute_name: Attribute.I, elements: gtv) {
+		val attribute = Attribute.get(attribute_name);
+		Meta.Engine.execute_value(instance, attribute, elements);
+		Unsafe.update_elements_by_attribute(instance, attribute, elements);
+	}
+	
+	function set_elements(instance, attribute_name: Attribute.I, elements: gtv) {
+		val attribute = Attribute.get(attribute_name);
+		var attr = map_attribute @? {instance, attribute};
+		if(attr == null) {
+			add_elements(instance, attribute_name, elements);
+		} else {
+			update_elements(instance, attribute_name, elements);
+		}
+	}
+	
+	function remove_elements(instance, attribute_name: Attribute.I): gtv {
+		val attribute = Attribute.get(attribute_name);
+		util.ensure_optional(attribute);
+		return Unsafe.remove_elements_by_attribute(instance, attribute);
+	}
+	
+	function add_element(instance, attribute_name: Attribute.I, element: gtv) {
+		val attribute = Attribute.get(attribute_name);
+		Meta.Engine.execute_value(instance, attribute, element);
+		Unsafe.put_by_attribute(instance, attribute, element);
+	}
+	
+	function remove_element(instance, attribute_name: Attribute.I, element: gtv) {
+		val attribute = Attribute.get(attribute_name);
+		Meta.Engine.execute_value(instance, attribute, element);
+		Unsafe.remove_by_attribute(instance, attribute, element);
+	}
+	
+	function unpack(instance, attribute_name: Attribute.I): (types: (K: Attribute.type, V: Attribute.type), values: map<gtv, gtv>)? {
+		val attribute = Attribute.get(attribute_name);
+		return unpack_by_attribute(instance, attribute);
+	}
+	
+	function unpack_by_attribute(instance, attribute): (types: (K: Attribute.type, V: Attribute.type), values: map<gtv, gtv>)? {
+		val map_attrs = _get_map_types(attribute);
+		if (not util.is_implemented(instance, attribute)) return null;
+		
+		val instances = Instance.instance_attribute @* {.value == instance, map_attrs.I};
+		var ret = map<gtv, gtv>();
+		
+		for (i in instances) {
+			ret.put(_get_map_value_by_instance(i.instance, map_attrs.K)!!, _get_map_value_by_instance(i.instance, map_attrs.V)!!);
+		}
+		
+		return (types = (K=map_attrs.K.type, V=map_attrs.V.type), values = ret);
+	}
+	
+	function get(instance, attribute_name: Attribute.I, idx: gtv): gtv {
+		val attribute = Attribute.get(attribute_name);
+		val map_attrs = _get_map_types(attribute);
+		val instance_attr = _find_instance_by_key_in_map(instance, idx, map_attrs)!!;
+		
+		return _get_map_value_by_instance(instance_attr.instance, map_attrs.V)!!;
+	}
+	
+	function sizeof(instance, attribute_name: Attribute.I): integer {
+		val attribute = Attribute.get(attribute_name);
+		return sizeof_by_attribute(instance, attribute);
+	}
+	
+	function sizeof_by_attribute(instance, attribute): integer {
+		val map_attrs = _get_map_types(attribute);
+		
+		return Instance.instance_attribute @ {.value == instance, map_attrs.I} (@sum 1);
+	}
+	
+	function is_empty(instance, attribute_name: Attribute.I): boolean {
+		return sizeof(instance, attribute_name) == 0;
+	}
+	
+	function contains_key(instance, attribute_name: Attribute.I, idx: gtv): boolean {
+		val attribute = Attribute.get(attribute_name);
+		val map_attrs = _get_map_types(attribute);
+		
+		return _find_instance_by_key_in_map(instance, idx, map_attrs) != null;
+	}
+	
+	function keys(instance, attribute_name: Attribute.I): (type: Attribute.type, keys: gtv) {
+		val attribute = Attribute.get(attribute_name);
+		val map_attrs = _get_map_types(attribute);
+		
+		return (type = map_attrs.K.type, keys = _get_map_values(instance, map_attrs.K, map_attrs.I)!!);
+	}
+	
+	function values(instance, attribute_name: Attribute.I): (type: Attribute.type, values: gtv) {
+		val attribute = Attribute.get(attribute_name);
+		val map_attrs = _get_map_types(attribute);
+		
+		return (type = map_attrs.V.type, values = _get_map_values(instance, map_attrs.V, map_attrs.I)!!);
+	}
+	
+	function _get_map_types(attr: attribute): (K: attribute, V: attribute, I: attribute) {
+		val e = Interface.dclass @ {attr.dclass.name + attr.name + MAP};
+		val k_attr = attribute @ {e, attr.name + MAP_K};
+		val v_attr = attribute @ {e, attr.name + MAP_V};
+		val i_attr = attribute @ {e, attr.name + MAP_I};
+		
+		return (K=k_attr, V=v_attr, I=i_attr);
+	}
+	
+	function _get_map_value_by_instance(instance, attribute) {
+		when (attribute.type) {
+			Attribute.type.boolean -> return Boolean.boolean_attribute @? {attribute, instance} (.value)?.to_gtv();
+			Attribute.type.byte_array -> return ByteArray.byte_array_attribute @? {attribute, instance} (.value)?.to_gtv();
+			Attribute.type.decimal -> return Decimal.decimal_attribute @? {attribute, instance} (.value)?.to_gtv();
+			Attribute.type.instance -> return Instance.instance_attribute @? {attribute, instance} (.value)?.to_gtv();
+			Attribute.type.integer -> return Integer.integer_attribute @? {attribute, instance} (.value)?.to_gtv();
+			Attribute.type.text -> return Text.text_attribute @? {attribute, instance} (.value)?.to_gtv();
+			else -> {require(false, "Unimplemented path"); return null;}
+		}
+	}
+	
+	function fetch_range_from(attribute, value: gtv, from: rowid) {
+		val map_attrs = _get_map_types(attribute);
+		when (map_attrs.K.type) {
+			Attribute.type.integer -> {
+				return (i: Instance.instance_attribute, a: Integer.integer_attribute) @* {
+						a.attribute == map_attrs.K,
+						a.value == integer.from_gtv(value),
+						i.attribute == map_attrs.I,
+						i.instance == a.instance,
+						i.value.rowid > from
+					} (i.value) limit 100;	
+			}
+			Attribute.type.text -> {
+				return (i: Instance.instance_attribute, a: Text.text_attribute) @* {
+						a.attribute == map_attrs.K,
+						a.value == text.from_gtv(value),
+						i.attribute == map_attrs.I,
+						i.instance == a.instance,
+						i.value.rowid > from
+					} (i.value) limit 100;	
+			}
+			else -> {require(false, "Unimplemented path"); return list<instance>();}
+		}
+	}
+	
+	function _find_instance_by_key_in_map(instance, key_val: gtv, map_attrs: (K: attribute, V: attribute, I: attribute)): Instance.instance_attribute? {
+		when (map_attrs.K.type) {
+			Attribute.type.integer -> return (i: Instance.instance_attribute, a: Integer.integer_attribute) @? {
+					i.value == instance,
+					i.instance == a.instance,
+					i.attribute == map_attrs.I,
+					a.attribute == map_attrs.K,
+					a.value == integer.from_gtv(key_val)
+				} (i);
+			Attribute.type.text -> return (i: Instance.instance_attribute, a: Text.text_attribute) @? {
+					i.value == instance,
+					i.instance == a.instance,
+					i.attribute == map_attrs.I,
+					a.attribute == map_attrs.K,
+					a.value == text.from_gtv(key_val)
+				} (i);
+			else -> {require(false, "Unimplemented path"); return null;};
+		}
+	}
+	
+	function _find_instance_by_value_in_map(_instance: instance, value: gtv, map_attrs: (K: attribute, V: attribute, I: attribute)): Instance.instance_attribute? {
+		when (map_attrs.V.type) {
+			Attribute.type.boolean -> return (i: Instance.instance_attribute, a: Boolean.boolean_attribute) @? {
+					i.value == _instance,
+					i.instance == a.instance,
+					i.attribute == map_attrs.I,
+					a.attribute == map_attrs.V,
+					a.value == boolean.from_gtv(value)
+				} (i);
+			Attribute.type.byte_array -> return (i: Instance.instance_attribute, a: ByteArray.byte_array_attribute) @? {
+					i.value == _instance,
+					i.instance == a.instance,
+					i.attribute == map_attrs.I,
+					a.attribute == map_attrs.V,
+					a.value == byte_array.from_gtv(value)
+				} (i);
+			Attribute.type.decimal -> return (i: Instance.instance_attribute, a: Decimal.decimal_attribute) @? {
+					i.value == _instance,
+					i.instance == a.instance,
+					i.attribute == map_attrs.I,
+					a.attribute == map_attrs.V,
+					a.value == decimal.from_gtv(value)
+				} (i);
+			Attribute.type.instance -> return (i: Instance.instance_attribute, a: Instance.instance_attribute) @? {
+					i.value == _instance,
+					i.instance == a.instance,
+					i.attribute == map_attrs.I,
+					a.attribute == map_attrs.V,
+					a.value == instance.from_gtv(value)
+				} (i);
+			Attribute.type.integer -> return (i: Instance.instance_attribute, a: Integer.integer_attribute) @? {
+					i.value == _instance,
+					i.instance == a.instance,
+					i.attribute == map_attrs.I,
+					a.attribute == map_attrs.V,
+					a.value == integer.from_gtv(value)
+				} (i);
+			Attribute.type.text -> return (i: Instance.instance_attribute, a: Text.text_attribute) @? {
+					i.value == _instance,
+					i.instance == a.instance,
+					i.attribute == map_attrs.I,
+					a.attribute == map_attrs.V,
+					a.value == text.from_gtv(value)
+				} (i);
+			else -> {require(false, "Unimplemented path"); return null;};
+		}
+	}
+	
+	function _get_map_values(instance, attribute, I: attribute): gtv? {
+		when (attribute.type) {
+			Attribute.type.boolean -> return set((i: Instance.instance_attribute, a: Boolean.boolean_attribute) @* {
+					i.value == instance,
+					i.instance == a.instance,
+					i.attribute == I,
+					a.attribute == attribute
+				} (a.value)).to_gtv();
+			Attribute.type.byte_array -> return set((i: Instance.instance_attribute, a: ByteArray.byte_array_attribute) @* {
+					i.value == instance,
+					i.instance == a.instance,
+					i.attribute == I,
+					a.attribute == attribute
+				} (a.value)).to_gtv();
+			Attribute.type.decimal -> return set((i: Instance.instance_attribute, a: Decimal.decimal_attribute) @* {
+					i.value == instance,
+					i.instance == a.instance,
+					i.attribute == I,
+					a.attribute == attribute
+				} (a.value)).to_gtv();
+			Attribute.type.instance -> return set((i: Instance.instance_attribute, a: Instance.instance_attribute) @* {
+					i.value == instance,
+					i.instance == a.instance,
+					i.attribute == I,
+					a.attribute == attribute
+				} (a.value)).to_gtv();
+			Attribute.type.integer -> return set((i: Instance.instance_attribute, a: Integer.integer_attribute) @* {
+					i.value == instance,
+					i.instance == a.instance,
+					i.attribute == I,
+					a.attribute == attribute
+				} (a.value)).to_gtv();
+			Attribute.type.text -> return set((i: Instance.instance_attribute, a: Text.text_attribute) @* {
+					i.value == instance,
+					i.instance == a.instance,
+					i.attribute == I,
+					a.attribute == attribute
+				} (a.value)).to_gtv();
+			else -> {require(false, "Unimplemented path"); return null;}
+		}
+	}
+}
+
+namespace Map.Unsafe {
+	function add_elements (instance, attribute_name: Attribute.I, elements: gtv) {
+		val attribute = Attribute.get(attribute_name);
+		add_elements_by_attribute(instance, attribute, elements);
+	}
+	
+	function add_elements_by_attribute (instance, attribute, elements: gtv) {
+		util.ensure_type(Attribute.type.addressable_container, attribute.type);
+		
+		create map_attribute ( instance, attribute );
+		_create_map_attribute(instance, attribute, elements);
+	}
+	
+	function update_elements (instance, attribute_name: Attribute.I, elements: gtv) {
+		val attribute = Attribute.get(attribute_name);
+		update_elements_by_attribute(instance, attribute, elements);
+	}
+	
+	function update_elements_by_attribute (instance, attribute, elements: gtv) {
+		val m = map<gtv,gtv>.from_gtv(elements);
+		
+		clear_by_attribute(instance, attribute);
+		put_all_by_attribute(instance, attribute, m);
+	}
+	
+	function set_elements(instance, attribute_name: Attribute.I, elements: gtv) {
+		val attribute = Attribute.get(attribute_name);
+		set_elements_by_attribute(instance, attribute, elements);
+	}
+	
+	function set_elements_by_attribute(instance, attribute, elements: gtv) {		
+		var attr = map_attribute @? {instance, attribute};
+		if(attr == null) {
+			add_elements_by_attribute(instance, attribute, elements );
+		} else {
+			update_elements_by_attribute(instance, attribute, elements );
+		}
+	}
+	
+	function remove_elements(instance, attribute_name: Attribute.I): gtv {
+		val attribute = Attribute.get(attribute_name);
+		return remove_elements_by_attribute(instance, attribute);
+	}
+	
+	function remove_elements_by_attribute(instance, attribute): gtv {
+		val m = unpack_by_attribute(instance, attribute);
+		
+		clear_by_attribute(instance, attribute);
+		delete map_attribute @ {instance, attribute};
+		
+		return m!!.to_gtv();
+	}
+	
+	function put(instance, attribute_name: Attribute.I, element: gtv) {
+		val attribute = Attribute.get(attribute_name);
+		put_by_attribute(instance, attribute, element);
+	}
+	
+	function put_by_attribute(instance, attribute, element: gtv) {
+		val map_attrs = _get_map_types(attribute);
+		val e = list<gtv>.from_gtv(element);
+		_create_map_element(instance, attribute, (e[0], e[1]), map_attrs);
+	}
+
+	function put_all(instance, attribute_name: Attribute.I, elements: map<gtv, gtv>) {
+		val attribute = Attribute.get(attribute_name);
+		put_all_by_attribute(instance, attribute, elements);
+	}
+	
+	function put_all_by_attribute(instance, attribute, elements: map<gtv, gtv>) {
+		val map_attrs = _get_map_types(attribute);
+		_create_map_elements(instance, attribute, elements, map_attrs);
+	}
+	
+	function clear(instance, attribute_name: Attribute.I) {
+		val attribute = Attribute.get(attribute_name);
+		clear_by_attribute(instance, attribute);
+	}
+	
+	function clear_by_attribute(instance, attribute) {
+		val map_attrs = _get_map_types(attribute);
+		
+		val instances = Instance.instance_attribute @* {.value == instance, map_attrs.I};
+		for (i in instances) {
+			_remove_map_value(i.instance, map_attrs.K);
+			_remove_map_value(i.instance, map_attrs.V);
+		}
+		
+		delete instances;
+	}
+	
+	function remove(instance, attribute_name: Attribute.I, idx: gtv) {
+		val attribute = Attribute.get(attribute_name);
+		remove_by_attribute(instance, attribute, idx);
+	}
+	
+	function remove_by_attribute(instance, attribute, idx: gtv) {
+		val map_attrs = _get_map_types(attribute);
+		_map_remove(instance, map_attrs.K, map_attrs.I, map_attrs.V, idx);
+	}
+	
+	function _create_map_attribute (instance, attribute, elements: gtv?) {
+		if (elements??) {
+			val map_attrs = _get_map_types(attribute);
+			_create_map_elements(instance, attribute, map<gtv,gtv>.from_gtv(elements), map_attrs);
+		}
+	}
+	
+	function _create_map_elements(instance, attribute, elements: map<gtv, gtv>, map_attrs: (K: attribute, V: attribute, I: attribute)) {
+		for (element in elements) {
+			_create_map_element(instance, attribute, element, map_attrs);
+		}
+	}
+	
+	function _create_map_element(instance, attribute, element: (gtv, gtv), map_attrs: (K: attribute, V: attribute, I: attribute)) {
+		var element_instance = _find_instance_by_key_in_map(instance, element[0], map_attrs)?.instance;
+		if (element_instance == null) {
+			element_instance = create instance();
+			Instance.Unsafe.add_value_by_attribute(element_instance, map_attrs.I, instance);
+			
+			when (map_attrs.K.type) {
+				Attribute.type.integer -> Integer.Unsafe.add_value_by_attribute(element_instance, map_attrs.K, integer.from_gtv(element[0]));
+				Attribute.type.text -> Text.Unsafe.add_value_by_attribute(element_instance, map_attrs.K, text.from_gtv(element[0]));
+				else -> require(false, "Unimplemented path");
+			}
+			_create_map_value(element_instance, map_attrs.V, element[1]);
+		} else {
+			_update_map_value(element_instance, map_attrs.V, element[1]);
+		}
+	}
+	
+	function _create_map_value(i: instance, v_attr: attribute, value: gtv) {
+		when (v_attr.type) {
+			Attribute.type.boolean -> Boolean.Unsafe.add_value_by_attribute(i, v_attr, boolean.from_gtv(value));
+			Attribute.type.byte_array -> ByteArray.Unsafe.add_value_by_attribute(i, v_attr, byte_array.from_gtv(value));
+			Attribute.type.decimal -> Decimal.Unsafe.add_value_by_attribute(i, v_attr, decimal.from_gtv(value));
+			Attribute.type.instance -> Instance.Unsafe.add_value_by_attribute(i, v_attr, instance.from_gtv(value));
+			Attribute.type.integer -> Integer.Unsafe.add_value_by_attribute(i, v_attr, integer.from_gtv(value));
+			Attribute.type.text -> Text.Unsafe.add_value_by_attribute(i, v_attr, text.from_gtv(value));
+			else -> require(false, "Unimplemented path");
+		}
+	}
+	
+	function _update_map_value(i: instance, v_attr: attribute, value: gtv) {
+		when (v_attr.type) {
+			Attribute.type.boolean -> Boolean.Unsafe.update_value_by_attribute(i, v_attr, boolean.from_gtv(value));
+			Attribute.type.byte_array -> ByteArray.Unsafe.update_value_by_attribute(i, v_attr, byte_array.from_gtv(value));
+			Attribute.type.decimal -> Decimal.Unsafe.update_value_by_attribute(i, v_attr, decimal.from_gtv(value));
+			Attribute.type.instance -> Instance.Unsafe.update_value_by_attribute(i, v_attr, instance.from_gtv(value));
+			Attribute.type.integer -> Integer.Unsafe.update_value_by_attribute(i, v_attr, integer.from_gtv(value));
+			Attribute.type.text -> Text.Unsafe.update_value_by_attribute(i, v_attr, text.from_gtv(value));
+			else -> require(false, "Unimplemented path");
+		}
+	}
+	
+	function _map_remove(instance, k_attr: attribute, i_attr: attribute, v_attr: attribute, value: gtv) {
+		when (k_attr.type) {
+			Attribute.type.integer -> {
+				val (i, k) = (i: Instance.instance_attribute, a: Integer.integer_attribute) @ {
+					i.value == instance,
+					i.instance == a.instance,
+					i.attribute == i_attr,
+					a.attribute == k_attr,
+					a.value == integer.from_gtv(value)
+				} (i, a);
+				
+				delete k;
+				_remove_map_value(i.instance, v_attr);
+				delete i;
+			}
+			Attribute.type.text -> {
+				val (i, k) = (i: Instance.instance_attribute, a: Text.text_attribute) @ {
+					i.value == instance,
+					i.instance == a.instance,
+					i.attribute == i_attr,
+					a.attribute == k_attr,
+					a.value == text.from_gtv(value)
+				} (i, a);
+				
+				delete k;
+				_remove_map_value(i.instance, v_attr);
+				delete i;
+			}
+			else -> require(false, "Unimplemented path");
+		}
+	}
+	
+	function _remove_map_value(instance, attribute) {
+		when (attribute.type) {
+			Attribute.type.boolean -> delete Boolean.boolean_attribute @ {.instance == instance, attribute};
+			Attribute.type.byte_array -> delete ByteArray.byte_array_attribute @ {.instance == instance, attribute};
+			Attribute.type.decimal -> delete Decimal.decimal_attribute @ {.instance == instance, attribute};
+			Attribute.type.instance -> delete Instance.instance_attribute @ {.instance == instance, attribute};
+			Attribute.type.integer -> delete Integer.integer_attribute @ {.instance == instance, attribute};
+			Attribute.type.text -> delete Text.text_attribute @ {.instance == instance, attribute};
+		}
+	}
+}

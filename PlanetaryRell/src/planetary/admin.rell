@@ -1,0 +1,34 @@
+
+function admin_auth_descriptor(): ft3.acc.auth_descriptor {
+  return ft3.acc.auth_descriptor(
+    "S",
+    [chain_context.args.admin_pubkey],
+    [["A", "T"].to_gtv(), chain_context.args.admin_pubkey.to_hex().to_gtv()],
+    null.to_gtv()
+  );
+}
+
+function get_or_create_admin_account() {
+  val auth_descriptor = admin_auth_descriptor();
+  var account_id = auth_descriptor.hash();
+  val account = ft3.acc.account @? { .id == account_id };
+
+  if (account??) return account;
+    
+  account_id = ft3.acc.create_account_with_auth(auth_descriptor);
+  return ft3.acc.account @ { account_id };
+}
+
+function register_asset_if_needed() {
+  val asset = ft3.asset @? { 
+    .name == chain_context.args.asset_name, 
+    .issuing_chain_rid == chain_context.blockchain_rid
+  };
+  
+  if (empty(asset)) {
+    ft3.register_asset(
+      chain_context.args.asset_name, 
+      chain_context.blockchain_rid
+    );
+  }
+}

@@ -1,0 +1,161 @@
+@test module;
+import ^^^.tests.*;
+
+// should implement prototype
+// prototype should have p_index 0
+function test_prototype_1() {
+    val admin_account = create_ft3_test_acc(admin_keypair());
+    
+	val id = Attribute.def_I("ITest", "id");
+	val prototype_def = "PrototypeName1";
+	
+	def_interface_op(admin_account.auth_id, "ITest", [id: Type(Integer.T())]).sign(admin_account.keypair).run();
+	def_prototype_op(admin_account.auth_id, 
+		"ITest",
+		[id: Integer.T(2)],
+		"PrototypeName1"
+	).sign(admin_account.keypair).run();
+	
+	val prototype = Prototype.get(prototype_def);
+
+	def_instance_op(admin_account.auth_id, 
+		"ITest",
+		[:],
+		prototype_def
+	).sign(admin_account.keypair).run();
+	val instance = get_last_instance();
+	
+	assert_true( Prototype.get_all(instance).contains_all( [prototype] ) );
+	assert_equals( instance_prototype @ {.instance == instance, .prototype == prototype}.p_index, 0 );
+}
+
+// should create n linear prototype chain with p_indices
+// should implement prototypes
+function test_prototype_2() {
+    val admin_account = create_ft3_test_acc(admin_keypair());
+    
+	val id = Attribute.def_I("ITest", "id");
+	val grand_prototype_def = "GrandPrototypeName";
+	val prototype_def = "PrototypeName";
+	
+	def_interface_op(admin_account.auth_id, "ITest", [id: Type(Integer.T())]).sign(admin_account.keypair).run();
+	
+	def_prototype_op(admin_account.auth_id, 
+		"ITest",
+		[:],
+		"GrandPrototypeName"
+	).sign(admin_account.keypair).run();
+	val grand_prototype = Prototype.get(grand_prototype_def);
+	
+	def_prototype_op(admin_account.auth_id, 
+		"ITest",
+		[id: Integer.T(2)],
+		"PrototypeName",
+		grand_prototype_def
+	).sign(admin_account.keypair).run();
+	val prototype = Prototype.get(prototype_def);
+	
+	def_instance_op(admin_account.auth_id, 
+		"ITest",
+		[:],
+		prototype_def
+	).sign(admin_account.keypair).run();
+	val instance = get_last_instance();
+	
+	assert_true( Prototype.get_all(prototype).contains_all( [grand_prototype] ) );
+	assert_true( Prototype.get_all(instance).contains_all( [prototype, grand_prototype] ) );
+	assert_equals(instance_prototype @ {.instance == instance, .prototype == prototype}.p_index, 0);
+	assert_equals(instance_prototype @ {.instance == instance, .prototype == grand_prototype}.p_index, 1);
+}
+
+// instances should implement prototype branches
+function test_prototype_3() {
+    val admin_account = create_ft3_test_acc(admin_keypair());
+    
+	val id = Attribute.def_I("ITest", "id");
+	val grand_prototype_def = "GrandPrototypeName";
+	val prototype1_def = "PrototypeName1";
+	val prototype2_def = "PrototypeName2";
+	
+	def_interface_op(admin_account.auth_id, "ITest", [id: Type(Integer.T())]).sign(admin_account.keypair).run();
+	
+	def_prototype_op(admin_account.auth_id, 
+		"ITest",
+		[:],
+		"GrandPrototypeName"
+	).sign(admin_account.keypair).run();
+	val grand_prototype = Prototype.get(grand_prototype_def);
+	
+	def_prototype_op(admin_account.auth_id, 
+		"ITest",
+		[id: Integer.T(2)],
+		"PrototypeName1",
+		grand_prototype_def
+	).sign(admin_account.keypair).run();
+	val prototype1 = Prototype.get(prototype1_def);
+	
+	def_prototype_op(admin_account.auth_id, 
+		"ITest",
+		[id: Integer.T(2)],
+		"PrototypeName2",
+		grand_prototype_def
+	).sign(admin_account.keypair).run();
+	val prototype2 = Prototype.get(prototype2_def);
+	
+	def_instance_op(admin_account.auth_id, 
+		"ITest",
+		[:],
+		prototype1_def
+	).sign(admin_account.keypair).run();
+	val instance1 = get_last_instance();
+	
+	def_instance_op(admin_account.auth_id, 
+		"ITest",
+		[:],
+		prototype2_def
+	).sign(admin_account.keypair).run();
+	val instance2 = get_last_instance();
+	
+	assert_true( Prototype.get_all(prototype1).contains_all( [grand_prototype] ) );
+	assert_true( Prototype.get_all(prototype2).contains_all( [grand_prototype] ) );
+	assert_true( Prototype.get_all(instance1).contains_all( [prototype1, grand_prototype] ) );
+	assert_true( Prototype.get_all(instance2).contains_all( [prototype2, grand_prototype] ) );
+	
+	assert_equals(instance_prototype @ {.prototype == grand_prototype} (@sum 1), 4);
+}
+
+// prototype should unpack instances
+function test_prototype_4() {
+    val admin_account = create_ft3_test_acc(admin_keypair());
+    
+	val id = Attribute.def_I("ITest", "id");
+	val prototype_def = "PrototypeName";
+	
+	def_interface_op(admin_account.auth_id, "ITest", [id: Type(Integer.T())]).sign(admin_account.keypair).run();
+	
+	def_prototype_op(admin_account.auth_id, 
+		"ITest",
+		[:],
+		"PrototypeName"
+	).sign(admin_account.keypair).run();
+	val prototype = Prototype.get(prototype_def);
+	
+	def_instance_op(admin_account.auth_id, 
+		"ITest",
+		[id: Integer.T(1)],
+		prototype_def
+	).sign(admin_account.keypair).run();
+	val instance1 = get_last_instance();
+	
+	def_instance_op(admin_account.auth_id, 
+		"ITest",
+		[id: Integer.T(2)],
+		prototype_def
+	).sign(admin_account.keypair).run();
+	val instance2 = get_last_instance();
+	
+	var res = Prototype.unpack_instances([prototype], Filter.p_from(), 100);
+	assert_true( res.results.contains_all( [instance1, instance2] ) );
+}
+
+

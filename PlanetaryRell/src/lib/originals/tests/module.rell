@@ -1,0 +1,26 @@
+@test module;
+
+import ^.external.*;
+import ^.external.dev.*;
+import ^^.dip.dip_basic.*;
+import ^^.ft3_helper.tests.*;
+
+/* Query Helper */
+function get_last_id() {
+	return Id.asset_instance @ {} (.asset.id, @omit @sort_desc .rowid) limit 1;
+}
+
+function get_last(): (byte_array, Dip.instance) {
+	val id = get_last_id();
+	
+	return (
+		id,
+		Id.get_instance(id)
+	);
+}
+
+val dummy_file = Dip.File.data(
+	hash = x"affe",
+	hub_brid = x"deadbeef",
+	hub_location = "localhost:7740"
+);

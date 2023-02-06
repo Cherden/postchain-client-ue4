@@ -1,0 +1,211 @@
+/***************************************************************************************
+ *                                 Query mapping helper
+ ***************************************************************************************/
+
+function map_original_instance(Dip.instance): map<name, gtv?> {
+    val mapping_rules = [
+        Originals.OMapper.map_original_meta([
+            Originals.OMapper.type.id, 
+            Originals.OMapper.type.owner, 
+            Originals.OMapper.type.interfaces, 
+            Originals.OMapper.type.prototype
+        ]),
+        Originals.OMapper.map_marketplace_listing(Dip.Mapper.to_map("listing")),
+        Originals.OMapper.map_attributes_by_meta_tag(Meta.tag.marketplace_filter.name, Dip.Mapper.to_map("attributes")),
+        Originals.OMapper.map_tx_history(Dip.Mapper.to_list("tx_history")),
+        Originals.OMapper.map_badges(),
+        Dip.Mapper.map_attributes_of_interfaces([Originals.chromia.IOriginal.get()]),
+        Dip.Mapper.map_attributes([Originals.chromia.ITradable.image])
+    ];
+    
+    val children_rule = Originals.OMapper.map_linked(mapping_rules, Dip.Mapper.to_list("children"));
+    mapping_rules.add(children_rule);
+        
+    return Dip.Mapper.map_instance(instance, mapping_rules);
+}
+
+function map_instances_to_query_result(
+    instances: list<Dip.instance>, Dip.Filter.p_from? = null
+): (count: integer, instances: list<map<text, gtv?>>, last_p_from: Dip.Filter.p_from)
+{
+    val result = list<map<text, gtv?>>();
+    
+    for (instance in instances) {
+        result.add(map_original_instance(instance));
+    }
+    
+    var cur_from = p_from;
+    if(p_from == null) {
+        val last_rowid = 
+            if (instances.size() > 0) 
+                instances[instances.size()-1].rowid 
+            else 
+                Dip.r_zero();
+        
+        cur_from = Dip.Filter.p_from(instance_rowid = last_rowid);
+    }
+   
+    return (
+        count = instances.size(),
+        instances = result,
+        last_p_from = cur_from!!
+    );
+}
+
+/***************************************************************************************
+ *                              Query find instances wrapper
+ ***************************************************************************************/
+
+function find_distinct_original_names_by_interface(interface_name: name): list<(display_name: text)> {
+    var original_name = Originals.chromia.IOriginal.name;
+    
+    return (id: Dip.instance_dclass, t: Dip.Text.text_attribute) @* {
+        id.dclass.name == interface_name,
+        t.attribute.name == original_name.name, id.instance == t.instance
+    } (@group display_name = t.value);
+}
+
+function find_listed_originals_by_interface(
+    interface_name: name,
+    Dip.Filter.p_from,
+    page_size: integer
+): (count: integer, instances: list<map<text, gtv?>>, last_p_from: Dip.Filter.p_from) {
+    val instances = (ol: Listing.original_listing, id: Dip.instance_dclass) @* {
+        id.instance.rowid > p_from.instance_rowid,
+        id.dclass.name == interface_name,
+        ol.original.instance == id.instance
+    }(@sort ol.original.instance) limit page_size;
+    
+    return map_instances_to_query_result(instances);
+}
+
+function find_listed_originals_by_interface_price_range(
+    interface_name: name,
+    min: integer,
+    max: integer,
+    Dip.Filter.p_from,
+    page_size: integer
+): (count: integer, instances: list<map<text, gtv?>>, last_p_from: Dip.Filter.p_from) {
+    val instances = (ol: Listing.original_listing, id: Dip.instance_dclass) @* {
+        id.instance.rowid > p_from.instance_rowid,
+        id.dclass.name == interface_name,
+        ol.original.instance == id.instance,
+        ol.price > min, ol.price < max
+    }(@sort ol.original.instance) limit page_size;
+    
+    return map_instances_to_query_result(instances);
+}
+
+function find_original_by_id(id: byte_array): map<name, gtv?>? {
+    val instance = Originals.Id.asset_instance @? {.asset.id == id} .instance;
+    return if(instance??) map_original_instance(instance) else null;
+}
+
+function find_original_instances_by_owner_id(
+    owner_id: byte_array, 
+    Dip.Filter.p_from, 
+    page_size: integer
+): (count: integer, instances: list<map<text, gtv?>>, last_p_from: Dip.Filter.p_from) {
+    val original_account_id = Ft3Helper.get_original_account_id(owner_id);
+    val marketplace_account_id = special_account_id(LOCKED(Ft3Helper.LISTED), owner_id, list<gtv>().to_gtv());
+    
+    val instances = (a: Originals.Id.asset_instance, b: ft3.balance) @* {
+        a.instance.rowid > p_from.instance_rowid,
+        (b.account.id == original_account_id or b.account.id == marketplace_account_id),
+        a.asset == b.asset,
+        b.amount > 0
+    } .instance limit page_size;
+    
+    return map_instances_to_query_result(instances);
+}
+
+function find_original_instances_by_owner_id_and_status(
+    owner_id: byte_array,
+    listed_state: boolean,
+    Dip.Filter.p_from, 
+    page_size: integer
+): (count: integer, instances: list<map<text, gtv?>>, last_p_from: Dip.Filter.p_from) {
+    val original_account_id = Ft3Helper.get_original_account_id(owner_id);
+    val marketplace_account_id = special_account_id(LOCKED(Ft3Helper.LISTED), owner_id, list<gtv>().to_gtv());
+   
+    val instances = (ia: Originals.Id.asset_instance, b: ft3.balance) @* {
+        ia.instance.rowid > p_from.instance_rowid, b.amount > 0,
+        ia.asset == b.asset,
+        when (listed_state) {
+            true -> b.account.id == marketplace_account_id;
+            else -> b.account.id == original_account_id;
+        }
+    } (ia.instance) limit page_size;
+    return map_instances_to_query_result(instances);
+}
+
+function find_originals_by_creator_id(
+    creator_id: byte_array,
+    Dip.Filter.p_from, 
+    page_size: integer
+): (count: integer, instances: list<map<text, gtv?>>, last_p_from: Dip.Filter.p_from) {
+    val instances = Dip.Attribute.find_instances(
+        Originals.chromia.IOriginal.creator_id,
+        creator_id.to_gtv(),
+        p_from,
+        page_size
+    );
+    
+    return map_instances_to_query_result(instances.results, instances.from);
+}
+
+function search(
+    text
+): (type: text, hit: gtv)? {
+    if (text.size() != 64) return null;
+    val id = byte_array(text);
+    
+    if (Ft3Helper.does_account_exist(id)) {
+    	return (
+    		type = "account",
+    		hit = find_original_instances_by_owner_id(id, Dip.Filter.p_from(), 10).to_gtv()
+    	);
+    } else if (Originals.Id.does_original_exist(id)) {
+    	return (
+    		type = "original",
+    		hit = find_original_by_id(id)!!.to_gtv()
+    	);
+    }
+    
+    return null;
+}
+
+function get_grouped_interfaces(): map<name, list<map<name, gtv>>> {
+	val category_interfaces = Meta.get_category_values();
+	
+	val grouped_interfaces = map<name, list<map<name, gtv>>>();
+	for ((category_name, interface_name) in category_interfaces) {
+		val interface = Dip.Interface.get(interface_name);
+		val dclasses = Dip.Interface.get_all(interface);
+		val attributes = Dip.Attribute.get_all_in_dclasses(dclasses);
+		val mapped_attributes = map<name, gtv>();
+		for (attribute in attributes) {
+			mapped_attributes.put(
+				Dip.Attribute.get_name_from_attribute(attribute),
+				(meta = list<integer>().to_gtv(), type = attribute.type.name).to_gtv()
+			);
+		}
+		
+		val meta = map<name, gtv>();
+		val description_tag = Meta.tag.marketplace_description.name;
+		val description = Dip.InterfaceMeta.get(interface, description_tag);
+		if (description??) {
+			meta.put(description_tag, description.to_gtv());	
+		}
+		
+		val name_tag = Meta.tag.marketplace_name.name;
+		val name = Dip.InterfaceMeta.get(interface, name_tag);
+		if (name??) {
+			meta.put(name_tag, name.to_gtv());	
+		}
+		
+		grouped_interfaces.put(category_name, [mapped_attributes, meta]);
+	}
+	
+	return grouped_interfaces;
+}

@@ -1,0 +1,166 @@
+
+entity exploration {
+  key account: ft3.acc.account;  // TODO probably change account  to planet
+  mutable time_out_block: integer = 0;
+  mutable iteration: integer = 0;
+  mutable out: boolean = false;
+}
+
+operation update_planet_mood(account_id: byte_array, auth_descriptor_id: byte_array, mood_type: text) {
+  val account = require(
+    ft3.acc.account @? { .id == account_id },
+    "Account not found: " + account_id
+  );
+
+  ft3.acc.require_auth(account, auth_descriptor_id, list<text>());
+
+  val original_ids = Ownership.find_all_original_ids_with_interface(
+    account_id,
+    IPlanet.get(),
+    100,
+    0
+  );
+
+  require(original_ids.size() == 1, "The number of planets is not correct");
+  val instance = Id.get_instance(original_ids[0]);
+
+  update_attribute(mood_type, instance);
+}
+
+function update_attribute(mood_type: text, instance: instance) {
+    val max_offset_ms = IPlanet.get_max_ts_offset();
+    val min_offset_ms = IPlanet.get_min_ts_offset();
+
+    val mood = require(IPlanet.mood.values() @? { .name == mood_type }, "Unknown mood type %s".format(mood_type));
+
+    when (mood) {
+      IPlanet.mood.clean_ts -> IPlanet.set_clean_ts(instance, calculate_next_timestamp(IPlanet.get_clean_ts(instance), min_offset_ms));
+      IPlanet.mood.feed_ts -> IPlanet.set_feed_ts(instance, calculate_next_timestamp(IPlanet.get_feed_ts(instance), min_offset_ms));
+      IPlanet.mood.fun_ts -> IPlanet.set_fun_ts(instance, calculate_next_timestamp(IPlanet.get_fun_ts(instance), max_offset_ms));
+    }
+}
+
+function calculate_next_timestamp(attribute: integer?, increment: integer) {
+    require(attribute, "Attribute was not correctly initialized");
+
+    val new_timestamp = if (attribute > op_context.last_block_time) attribute else op_context.last_block_time;
+    val max_total_offset = op_context.last_block_time + IPlanet.get_max_ts_offset();
+
+    return min(new_timestamp + increment, max_total_offset);
+}
+
+operation create_a_planet(account_id: byte_array, auth_descriptor_id: byte_array) {
+  val account = require(
+    ft3.acc.account @? { .id == account_id },
+    "Account not found: " + account_id
+  );
+  
+  ft3.acc.require_auth(account, auth_descriptor_id, list<text>());
+  
+  require(
+    Ownership.find_all_original_ids_with_interface(account_id, IPlanet.get(), 1, 0).size() == 0,
+    "User already has a planet"
+  );
+  
+  val face_prototypes = get_prototypes_implementing_interface(IFace.get());
+  val face_prototype = face_prototypes[random_integer(face_prototypes.size())];
+  
+  val face = Minter.mint_non_fungible_original(
+    account,
+    Minter.I(  
+      interface_name = IFace.interface, 
+      map<Attribute.I, attribute_type>(),
+      prototype_name = face_prototype.name
+    )
+  );
+
+  val planet_prototypes = get_prototypes_implementing_interface(IPlanet.get());
+  val planet_prototype = planet_prototypes[random_integer(planet_prototypes.size())];
+
+  val initial_mood_ts = op_context.last_block_time + IPlanet.get_max_ts_offset();
+  Minter.mint_non_fungible_original(
+    account,
+  	Minter.I(
+      interface_name = IPlanet.interface, 
+      [
+        IPlanet.face: Id.T(Id.get_id(face)),
+        IPlanet.clean_ts: Integer.T(initial_mood_ts),
+        IPlanet.feed_ts: Integer.T(initial_mood_ts),
+        IPlanet.fun_ts: Integer.T(initial_mood_ts)
+      ], 
+      prototype_name = planet_prototype.name
+  	)
+  );
+}
+
+function ensure_exploration(account: ft3.acc.account): exploration {
+  val exploration = exploration @? { account };
+  return exploration ?: create exploration(account);
+}
+
+function quick_pow(base: integer, exponent: integer): integer {
+  var res = 1;
+  for(i in range(exponent)) {
+  	res *= base;
+  }
+  return res;
+}
+
+operation send_to_space(account_id: byte_array, auth_descriptor_id: byte_array) {
+  val account = ft3.acc.account @ {.id == account_id};
+  ft3.acc.require_auth(account, auth_descriptor_id, list<text>());
+  
+  val exploration = ensure_exploration(account);
+  require(not exploration.out, "Already exploring");
+  require(exploration.iteration < 31, "Max exploration count reached");
+  
+  val end_block = op_context.block_height + quick_pow(2, exploration.iteration);
+  exploration.time_out_block = end_block;
+  exploration.out = true;
+}
+
+operation back_from_space(account_id: byte_array, auth_descriptor_id: byte_array) {
+  val account = ft3.acc.account @ { .id == account_id };
+  ft3.acc.require_auth(account, auth_descriptor_id, list<text>());
+  
+  val exploration = exploration @ { account };
+  require(exploration.out, "Planet is not exploring");
+  require(op_context.block_height >= exploration.time_out_block, "Planet is still exploring");
+  
+  exploration.out = false;
+    exploration.iteration += 1;	
+  
+  present_one_accessory(account);
+}
+
+function present_one_accessory(ft3.acc.account) {
+  val interfaces = [
+    IFace.interface, 
+    ITShirt.interface, 
+    IBodyAccessory.interface, 
+    IHeadAccessory.interface
+  ];
+  
+  val interface = Interface.get(interfaces[random_integer(interfaces.size())]);
+  val prototypes = get_prototypes_implementing_interface(interface);
+  val prototype = prototypes[random_integer(prototypes.size())];
+ 	
+  Minter.mint_non_fungible_original(
+    account,
+    Minter.I(
+      interface_name = interface.name,    
+      map<Attribute.I, attribute_type>(),
+      prototype_name = prototype.name      
+    )
+  );
+}
+
+function get_prototypes_implementing_interface(Interface.dclass) {
+  return (
+    p: Prototype.prototype,
+    id: instance_dclass
+  ) @* {
+    p.instance == id.instance,
+    id.dclass == dclass
+  } ( p );
+}

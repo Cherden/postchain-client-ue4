@@ -1,0 +1,208 @@
+
+namespace Mapper {
+	/*
+	 *  Maps instance entity to a map<name, gtv?> using provided mapping rules
+	 */
+	
+	function map_instance(
+		instance, 
+		mappers: list<(instance, map<name, gtv?>) -> unit>
+	): map<name, gtv?> {
+		val instance_map = map<name, gtv?>();
+	  	
+	  	for (mapper in mappers) {
+			mapper(instance, instance_map);
+	  	}
+	  	
+	  	return instance_map;
+	}
+	
+	/***************************************************************************************
+	 *                                 Mapping rules
+	 ***************************************************************************************/
+	
+	/*
+	 *	Reads instance attributes provided in the list
+	 */
+	
+	function map_attributes(
+		attribute_names: list<Attribute.I>, 
+		mapper: (map<name, gtv?>, map<name, gtv?>) -> unit = direct()
+	): (instance, map<name, gtv?>) -> unit {
+		return _map_attributes(*, *, attribute_names, mapper);
+	}
+	
+	function _map_attributes(
+		instance, 
+		instance_map: map<name, gtv?>, 
+		attribute_names: list<Attribute.I>, 
+		mapper: (map<name, gtv?>, map<name, gtv?>) -> unit
+	) {
+		val attributes = attribute_names 
+			@* {} ((
+				Attribute.get_name($), 
+				Attribute.get_value(instance, $)
+			)); 
+		
+		mapper(instance_map, map(attributes));
+	}
+	
+	/*
+	 *  Reads all instance attributes defined in provided interface list 
+	 */
+	
+	function map_attributes_of_interfaces(
+		interfaces: list<Interface.dclass>,
+		mapper: (map<name, gtv?>, map<name, gtv?>) -> unit = direct()
+	): (instance, map<name, gtv?>) -> unit {
+		return _map_attributes_of_interfaces(*, *, interfaces, mapper);
+	}
+	
+	function _map_attributes_of_interfaces(
+		instance, 
+		instance_map: map<name, gtv?>, 
+		interfaces: list<Interface.dclass>,
+		mapper: (map<name, gtv?>, map<name, gtv?>) -> unit
+	) {
+		val attributes = attribute 
+			@* { .dclass in interfaces }
+			@* {} ((
+				Attribute.get_name_from_attribute($), 
+				Attribute.get_value(instance, _get_attribute_name_from_attribute($))
+			)); 
+			
+		mapper(instance_map, map(attributes));
+	}
+	
+	/*
+	 *  Reads all instance attributes that implement one of the interfaces provided in the list.
+	 *  It is also possible to specify mapping rules for children instances.  
+	 */
+	
+	function map_attributes_implementing_interface(
+		interfaces: list<Interface.dclass>,
+		children_mappers: list<(instance, map<name, gtv?>) -> unit> = [map_all_attributes()],
+		mapper: (map<name, gtv?>, map<name, gtv?>) -> unit = direct()
+	): (instance, map<name, gtv?>) -> unit {
+		return _map_attributes_implementing_interface(*, *, children_mappers, interfaces, mapper);
+	}
+	
+	function _map_attributes_implementing_interface(
+		instance, 
+		instance_map: map<name, gtv?>, 
+		children_mappers: list<(instance, map<name, gtv?>) -> unit>,
+		interfaces: list<Interface.dclass>,
+		mapper: (map<name, gtv?>, map<name, gtv?>) -> unit
+	) {
+		val mapped_instances = (
+			ia: Instance.instance_attribute, 
+			id: instance_dclass
+		) @* {
+			ia.instance == instance,
+			id.dclass in interfaces,
+			id.instance == ia.value		
+		} ((
+			Attribute.get_name_from_attribute(ia.attribute), 
+			map_instance(ia.value, children_mappers).to_gtv()
+		));
+		
+		mapper(instance_map, map<name, gtv?>(mapped_instances));
+	}
+	
+	/*
+	 *  Reads all instance attributes  
+	 */
+	
+	function map_all_attributes(
+		mapper: (map<name, gtv?>, map<name, gtv?>) -> unit = direct()
+	): (instance, map<name, gtv?>) -> unit {
+		return _map_all_attributes(*, *, mapper);
+	}
+	
+	function _map_all_attributes(
+		instance,
+		instance_map: map<name, gtv?>,
+		mapper: (map<name, gtv?>, map<name, gtv?>) -> unit
+	) {
+	    var interfaces = Interface.get_all_in_instance(instance);
+	     
+		val attributes = attribute  
+			@* { .dclass in interfaces } (attribute)
+			@* {} ((
+				Attribute.get_name_from_attribute($), 
+				Attribute.get_value(instance, _get_attribute_name_from_attribute($))
+			)); 
+			
+		mapper(instance_map, map(attributes));
+	}
+	
+	/*
+	 *  Manually adds attributes to instance map.
+	 *  Used to add attributes which are already fetched to avoid unnecessary db access.  
+	 */
+	
+	function add_attributes(
+		attributes: map<name, gtv?>, 
+		mapper: (map<name, gtv?>, map<name, gtv?>) -> unit = direct()
+	): (instance, map<name, gtv?>) -> unit {
+		return _add_attributes(*, *, attributes, mapper);
+	}
+	
+	function _add_attributes(
+		instance,
+		instance_map: map<name, gtv?>,
+		attributes: map<name, gtv?>,
+		mapper: (map<name, gtv?>, map<name, gtv?>) -> unit
+	) {
+		mapper(instance_map, attributes);
+	}
+	
+	
+	/***************************************************************************************
+	 *                                 Mapping functions
+	 ***************************************************************************************/
+	
+	/*
+	 * 	Adds attributes map directly (merges) to instance map
+	 */
+	 
+	function direct(): (map<name, gtv?>, map<name, gtv?>) -> unit {
+		return _direct(*);
+	}
+	
+	function _direct(instance_map: map<name, gtv?>, attributes_map: map<name, gtv?>) {
+		instance_map.put_all(attributes_map);
+	}
+	
+	/*
+	 *  Assigns attributes map to `name` key in instance map
+	 */
+	 
+	function to_map(name): (map<name, gtv?>, map<name, gtv?>) -> unit {
+		return _map(*, *, name);
+	}
+	
+	function _map(instance_map: map<name, gtv?>, attributs_map: map<name, gtv?>, name) {
+		instance_map[name] = attributs_map.to_gtv();
+	}
+	
+	/*
+	 *  Assigns attributes map values as a list to `name` key in instance map
+	 */
+	 
+	function to_list(name): (map<name, gtv?>, map<name, gtv?>) -> unit {
+		return _list(*, *, name);
+	}
+	
+	function _list(instance_map: map<name, gtv?>, attributes_map: map<name, gtv?>, name) {
+		instance_map[name] = attributes_map.values().to_gtv();
+	}
+	
+	
+	/***************************************************************************************
+	 *                                      Helper 
+	 ***************************************************************************************/
+		    
+	function _get_attribute_name_from_attribute(attribute) =
+	    Attribute.I(interface = attribute.dclass.name, name = attribute.name);	    
+}
