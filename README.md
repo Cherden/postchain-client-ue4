@@ -4,7 +4,7 @@
 
 ## Pre-requirements
 
-1. Unreal Engine (I used 4.27 for this, but there should be no problem with older versions)
+1. Unreal Engine (Use 4.27 for `dev` branch and 5.1.1 for `ue5` branch)
 2. Visual Studio (I tested on both 2017 and 2019)
 3. Node JS
 4. Docker(Optional)

@@ -37,7 +37,7 @@ void ABlockchainClient::RegisterUser(FString username)
 		PrintLogOnScreen("RegisterUser fail. Missing KeyPair");
 		return;
 	}
-	std::shared_ptr<PostchainTransaction> transaction = BlockchainClientPtr->NewTransaction(std::vector<std::vector<byte>> { PublicKey }, [this](std::string error) {
+	std::shared_ptr<PostchainTransaction> transaction = BlockchainClientPtr->NewTransaction(std::vector<std::vector<BYTE>> { PublicKey }, [this](std::string error) {
 		PrintLogOnScreen(FString("Transaction failed: ")  + ChromaUtils::STDStringToFString(error));
 	});
 
@@ -111,7 +111,7 @@ FString ABlockchainClient::Operation(FString operationName, TArray<FString> oper
 {
 	FString result = "";
 
-	std::shared_ptr<PostchainTransaction> transaction = BlockchainClientPtr->NewTransaction(std::vector<std::vector<byte>> { PublicKey }, [this](std::string error) {
+	std::shared_ptr<PostchainTransaction> transaction = BlockchainClientPtr->NewTransaction(std::vector<std::vector<BYTE>> { PublicKey }, [this](std::string error) {
 		PrintLogOnScreen(FString("Transaction failed: ") + ChromaUtils::STDStringToFString(error));
 	});
 

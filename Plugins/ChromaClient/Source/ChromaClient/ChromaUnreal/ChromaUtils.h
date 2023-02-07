@@ -13,9 +13,9 @@ public:
 
 	static FString STDStringToFString(const std::string &string);
 
-	static std::vector<byte> TArrayToSTDArray(const TArray<byte> &input);
+	static std::vector<BYTE> TArrayToSTDArray(const TArray<BYTE> &input);
 
-	static TArray<byte> STDArrayToTArray(const std::vector<byte> &input);
+	static TArray<BYTE> STDArrayToTArray(const std::vector<BYTE> &input);
 
 	template <typename T>
 	static std::vector<T> GenericTArrayToSTDArray(const TArray<T>& input)

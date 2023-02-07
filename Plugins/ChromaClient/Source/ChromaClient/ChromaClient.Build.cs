@@ -1,14 +1,13 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 using UnrealBuildTool;
-using Tools.DotNETCommon;
+//using Tools.DotNETCommon;
 
 public class ChromaClient : ModuleRules
 {
 	public ChromaClient(ReadOnlyTargetRules Target) : base(Target)
 	{
 		//PCHUsage = ModuleRules.PCHUsageMode.UseExplicitOrSharedPCHs;
-
 		PCHUsage = ModuleRules.PCHUsageMode.NoSharedPCHs;
 
 		bUseRTTI = true;
@@ -19,27 +18,26 @@ public class ChromaClient : ModuleRules
 		PublicDefinitions.Add("CURL_STATICLIB");
 		PublicDefinitions.Add("CHROMIA_INSIDE_UNREAL_ENGINE");
 
-		AddEngineThirdPartyPrivateStaticDependencies(Target, "libcurl");
 		AddEngineThirdPartyPrivateStaticDependencies(Target, "OpenSSL");
 
 		string ChromiaPureInclude = System.IO.Path.GetFullPath(System.IO.Path.Combine(ModuleDirectory)) + "/chroma-cpp-pure";
-		Log.TraceWarning("ChromiaPureInclude path: {0}", ChromiaPureInclude);
+		//Log.TraceWarning("ChromiaPureInclude path: {0}", ChromiaPureInclude);
 
 		PublicIncludePaths.AddRange(
 			new string[] {
 				ChromiaPureInclude + "/src",
 				ChromiaPureInclude + "/tests"
 			}
-	    );
+		);
 
 
-        PrivateIncludePaths.AddRange(
+		PrivateIncludePaths.AddRange(
 			new string[] {
 				// ... add other private include paths required here ...
 			}
 			);
-			
-		
+
+
 		PublicDependencyModuleNames.AddRange(
 			new string[]
 			{
@@ -47,21 +45,21 @@ public class ChromaClient : ModuleRules
 				// ... add other public dependencies that you statically link with here ...
 			}
 			);
-			
-		
+
+
 		PrivateDependencyModuleNames.AddRange(
 			new string[]
 			{
 				"CoreUObject",
 				"Engine",
 				"Slate",
-				"SlateCore"
-                //"HTTP"
+				"SlateCore",
+                "HTTP"
 				// ... add private dependencies that you statically link with here ...	
 			}
 			);
-		
-		
+
+
 		DynamicallyLoadedModuleNames.AddRange(
 			new string[]
 			{
@@ -69,7 +67,62 @@ public class ChromaClient : ModuleRules
 			}
 			);
 
-        PublicAdditionalLibraries.AddRange(new string[] {
-        });
-    }
+		PublicAdditionalLibraries.AddRange(new string[] {
+		});
+	}
 }
+
+
+//// Copyright Epic Games, Inc. All Rights Reserved.
+
+//using UnrealBuildTool;
+
+//public class ChromaClient : ModuleRules
+//{
+//	public ChromaClient(ReadOnlyTargetRules Target) : base(Target)
+//	{
+//		PCHUsage = ModuleRules.PCHUsageMode.UseExplicitOrSharedPCHs;
+
+//		PublicIncludePaths.AddRange(
+//			new string[] {
+//				// ... add public include paths required here ...
+//			}
+//			);
+
+
+//		PrivateIncludePaths.AddRange(
+//			new string[] {
+//				// ... add other private include paths required here ...
+//			}
+//			);
+
+
+//		PublicDependencyModuleNames.AddRange(
+//			new string[]
+//			{
+//				"Core",
+//				// ... add other public dependencies that you statically link with here ...
+//			}
+//			);
+
+
+//		PrivateDependencyModuleNames.AddRange(
+//			new string[]
+//			{
+//				"CoreUObject",
+//				"Engine",
+//				"Slate",
+//				"SlateCore",
+//				// ... add private dependencies that you statically link with here ...	
+//			}
+//			);
+
+
+//		DynamicallyLoadedModuleNames.AddRange(
+//			new string[]
+//			{
+//				// ... add any modules that your module loads dynamically here ...
+//			}
+//			);
+//	}
+//}

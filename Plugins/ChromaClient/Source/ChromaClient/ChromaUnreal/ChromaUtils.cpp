@@ -12,10 +12,10 @@ FString ChromaUtils::STDStringToFString(const std::string &string)
 }
 
 
-std::vector<byte> ChromaUtils::TArrayToSTDArray(const TArray<byte> &input)
+std::vector<BYTE> ChromaUtils::TArrayToSTDArray(const TArray<BYTE> &input)
 {
-	std::vector<byte> out;
-	for (byte item : input)
+	std::vector<BYTE> out;
+	for (BYTE item : input)
 	{
 		out.push_back(item);
 	}
@@ -23,10 +23,10 @@ std::vector<byte> ChromaUtils::TArrayToSTDArray(const TArray<byte> &input)
 }
 
 
-TArray<byte> ChromaUtils::STDArrayToTArray(const std::vector<byte> &input)
+TArray<BYTE> ChromaUtils::STDArrayToTArray(const std::vector<BYTE> &input)
 {
-	TArray<byte> out;
-	for (byte item : input)
+	TArray<BYTE> out;
+	for (BYTE item : input)
 	{
 		out.Add(item);
 	}

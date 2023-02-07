@@ -64,8 +64,8 @@ public:
 
 private:
 	std::shared_ptr<BlockchainClient> BlockchainClientPtr;
-	std::vector<byte> PrivateKey;
-	std::vector<byte> PublicKey;
+	std::vector<BYTE> PrivateKey;
+	std::vector<BYTE> PublicKey;
 
 	// Reference to owning Widget Blueprint
 	UObject* MainWidget = nullptr;

@@ -2,8 +2,6 @@
 
 #include "ChromaClient.h"
 
-// #include "../ChromaUnreal/BlockchainClient.h"
-
 #define LOCTEXT_NAMESPACE "FChromaClientModule"
 
 void FChromaClientModule::StartupModule()

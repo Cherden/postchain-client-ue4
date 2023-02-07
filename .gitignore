@@ -8,3 +8,4 @@ Plugins/ChromaClient/Source/ChromaClient/chroma-cpp-pure/
 Administration/package-lock.json
 Administration/package-lock.json
 Administration/yarn.lock
+.vsconfig
