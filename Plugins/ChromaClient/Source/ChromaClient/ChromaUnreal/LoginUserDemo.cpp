@@ -68,6 +68,13 @@ void ALoginUserDemo::Setup(FString blockchainRID, FString baseURL, FString priva
     m_BlockchainConnector = new BlockchainConnector();
     m_BlockchainConnector->InitializeBlockchain(this->m_BlockchainRID, this->m_BaseURL);
 
+    if (!m_BlockchainConnector->IsInitialized())
+    {
+        // Stop here, the blockchain is down
+        UE_LOG(LogTemp, Display, TEXT("CHROMA::ALoginUserDemo::Setup failed, cannot connect to blockchain."));
+        return;
+    }
+
     // TODO make services async, this is just a demo
     m_AuthService = new AuthService();
     m_AuthService->Init();
@@ -114,6 +121,13 @@ void ALoginUserDemo::RenewLocalUserListOnNewChain()
 
 bool ALoginUserDemo::CreatePlayer(FString username, FString key)
 {
+    if (!m_BlockchainConnector->IsInitialized())
+    {
+        // Stop here, the blockchain is down
+        UE_LOG(LogTemp, Display, TEXT("CHROMA::ALoginUserDemo::CreatePlayer failed, cannot connect to blockchain."));
+        return false;
+    }
+
     if (username.Len() == 0)
     {
         UE_LOG(LogTemp, Display, TEXT("CHROMA::ALoginUserDemo::CreateEditorTestUser failed because username is empty"));
@@ -161,16 +175,37 @@ bool ALoginUserDemo::CreatePlayer(FString username, FString key)
 
 bool ALoginUserDemo::RemovePlayer(FString accountId)
 {
+    if (!m_BlockchainConnector->IsInitialized())
+    {
+        // Stop here, the blockchain is down
+        UE_LOG(LogTemp, Display, TEXT("CHROMA::ALoginUserDemo::RemovePlayer failed, cannot connect to blockchain."));
+        return false;
+    }
+
     return UserAccountManager::RemoveUserAndSaveLocal(accountId);
 }
 
 bool ALoginUserDemo::GivePlayerTrash(FString accountId, FString tokenName)
 {
+    if (!m_BlockchainConnector->IsInitialized())
+    {
+        // Stop here, the blockchain is down
+        UE_LOG(LogTemp, Display, TEXT("CHROMA::ALoginUserDemo::GivePlayerTrash failed, cannot connect to blockchain."));
+        return false;
+    }
+
     return m_AuthService->GivePlayerTrash(accountId, tokenName);
 }
 
 FString ALoginUserDemo::GetPlayerInventory(FString accountId)
 {
+    if (!m_BlockchainConnector->IsInitialized())
+    {
+        // Stop here, the blockchain is down
+        UE_LOG(LogTemp, Display, TEXT("CHROMA::ALoginUserDemo::GetPlayerInventory failed, cannot connect to blockchain."));
+        return "";
+    }
+
     return m_AuthService->GetPlayerInventory(accountId);
 }
 

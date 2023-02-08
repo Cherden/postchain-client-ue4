@@ -49,6 +49,8 @@ public:
 
 	std::shared_ptr<Blockchain> GetBlockchain();
 
+	bool IsInitialized();
+
 private:
 	FString m_BlockchainRID;
 	FString m_BlockchainUrl;

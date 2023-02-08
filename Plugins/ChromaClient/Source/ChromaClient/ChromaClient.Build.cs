@@ -1,7 +1,6 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 using UnrealBuildTool;
-//using Tools.DotNETCommon;
 
 public class ChromaClient : ModuleRules
 {
@@ -18,10 +17,14 @@ public class ChromaClient : ModuleRules
 		PublicDefinitions.Add("CURL_STATICLIB");
 		PublicDefinitions.Add("CHROMIA_INSIDE_UNREAL_ENGINE");
 
-		AddEngineThirdPartyPrivateStaticDependencies(Target, "OpenSSL");
+		AddEngineThirdPartyPrivateStaticDependencies(Target, new string[]{
+			"nghttp2",
+			"OpenSSL",
+			"libcurl",
+			"zlib"
+		});
 
 		string ChromiaPureInclude = System.IO.Path.GetFullPath(System.IO.Path.Combine(ModuleDirectory)) + "/chroma-cpp-pure";
-		//Log.TraceWarning("ChromiaPureInclude path: {0}", ChromiaPureInclude);
 
 		PublicIncludePaths.AddRange(
 			new string[] {

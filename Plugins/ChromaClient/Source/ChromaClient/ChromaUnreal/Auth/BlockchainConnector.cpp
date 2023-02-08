@@ -89,3 +89,8 @@ std::shared_ptr<Blockchain> BlockchainConnector::GetBlockchain()
 {
     return m_Blockchain;
 }
+
+bool BlockchainConnector::IsInitialized()
+{
+    return m_BlockchainIsInitialized;
+}
