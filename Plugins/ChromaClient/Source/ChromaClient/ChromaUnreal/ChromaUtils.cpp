@@ -1,4 +1,7 @@
 #include "ChromaUtils.h"
+#include "SSO/file_manager.h"
+
+using namespace chromia::postchain::ft3;
 
 std::string ChromaUtils::FStringToSTDString(const FString &fstring)
 {
@@ -31,6 +34,43 @@ TArray<BYTE> ChromaUtils::STDArrayToTArray(const std::vector<BYTE> &input)
 		out.Add(item);
 	}
 	return out;
+}
+
+bool ChromaUtils::GetBlockchainConfigFromFile(FString &url, FString &brid)
+{
+	FString configJsonPath = FPaths::Combine(FPaths::ProjectConfigDir(), BLOCKCHAIN_CONFIG_JSON_FILE);
+	std::string dataStr = "";
+
+	if (!ChromaFileManager::LoadFromAbsFile(FStringToSTDString(configJsonPath), dataStr))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("CHROMA::ChromaUtils::GetBlockchainConfigFromFile failed to read from %s"), *configJsonPath);
+		return false;
+	}
+
+	if (dataStr.size() == 0)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("CHROMA::ChromaUtils::GetBlockchainConfigFromFile dataStr.size() == 0"));
+		return false;
+	}
+
+	nlohmann::json json_obj = nlohmann::json::parse(dataStr);
+	
+	if (!json_obj.contains("blockchainUrl"))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("CHROMA::ChromaUtils::GetBlockchainConfigFromFile !json_obj.contains[blockchainUrl]"));
+		return false;
+	}
+
+	if (!json_obj.contains("brid"))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("CHROMA::ChromaUtils::GetBlockchainConfigFromFile !json_obj.contains[brid]"));
+		return false;
+	}
+
+	url = STDStringToFString(json_obj["blockchainUrl"]);
+	brid = STDStringToFString(json_obj["brid"]);
+
+	return true;
 }
 
 

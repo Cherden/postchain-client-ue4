@@ -119,7 +119,7 @@ bool UserAccountManager::SaveLocalUsers()
     UE_LOG(LogTemp, Display, TEXT("CHROMA::UserAccountManager::SaveLocalUsers serialized data: %s"), *ChromaUtils::STDStringToFString(dataStr));
 
     // Store in file
-    if (FileManager::WriteToFile(USER_ACCOUNT_MANAGER_FILENAME, dataStr))
+    if (ChromaFileManager::WriteToFile(USER_ACCOUNT_MANAGER_FILENAME, dataStr))
     {
         UE_LOG(LogTemp, Display, TEXT("CHROMA::UserAccountManager::SaveLocalUsers saved to: %s"), TEXT(USER_ACCOUNT_MANAGER_FILENAME));
         return true;
@@ -136,9 +136,8 @@ bool UserAccountManager::LoadLocalUsers()
     m_LocalUsers.Empty();
 
     std::string dataStr = "";
-    FileManager::LoadFromFile(USER_ACCOUNT_MANAGER_FILENAME, dataStr);
 
-    if (!FileManager::LoadFromFile(USER_ACCOUNT_MANAGER_FILENAME, dataStr))
+    if (!ChromaFileManager::LoadFromFile(USER_ACCOUNT_MANAGER_FILENAME, dataStr))
     {
         UE_LOG(LogTemp, Warning, TEXT("CHROMA::UserAccountManager::LoadLocalUsers failed to read from %s"), TEXT(USER_ACCOUNT_MANAGER_FILENAME));
         return false;

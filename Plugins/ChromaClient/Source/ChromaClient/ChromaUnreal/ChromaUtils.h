@@ -6,7 +6,9 @@
 
 using namespace chromia;
 
-class CHROMACLIENT_API ChromaUtils
+#define BLOCKCHAIN_CONFIG_JSON_FILE "blockchain-config.json"
+
+class ChromaUtils
 {
 public:
 	static std::string FStringToSTDString(const FString &fstring);
@@ -16,6 +18,8 @@ public:
 	static std::vector<BYTE> TArrayToSTDArray(const TArray<BYTE> &input);
 
 	static TArray<BYTE> STDArrayToTArray(const std::vector<BYTE> &input);
+
+	static bool GetBlockchainConfigFromFile(FString& url, FString& brid);
 
 	template <typename T>
 	static std::vector<T> GenericTArrayToSTDArray(const TArray<T>& input)

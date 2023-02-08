@@ -17,7 +17,7 @@
 #include "LoginUserDemo.generated.h"
 
 #define MOCK_USER_PRIVKEY "68484A224DC5A1C56B8B8C39A6FD5461BA4C3579506B3E85A6163350FD5E00CA"
-#define DEFAULT_USER_NAME "Default User"
+#define DEFAULT_USER_NAME "DefaultUser"
 
 using namespace chromia;
 using namespace chromia::postchain;
