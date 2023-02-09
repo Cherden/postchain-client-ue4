@@ -50,8 +50,7 @@ public:
 	/* Override from parent class AActor */
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
-	UFUNCTION(BlueprintCallable)
-	void Setup(FString blockchainRID, FString baseURL, FString privateKey);
+	void Setup();
 
 	UFUNCTION(BlueprintCallable)
 	TArray<USavedAccount*> GetLocalUserList();

@@ -36,7 +36,7 @@ TArray<BYTE> ChromaUtils::STDArrayToTArray(const std::vector<BYTE> &input)
 	return out;
 }
 
-bool ChromaUtils::GetBlockchainConfigFromFile(FString &url, FString &brid)
+bool ChromaUtils::GetBlockchainConfigFromFile(FString& blockchainURL, FString& blockchainRID, FString& privKey)
 {
 	FString configJsonPath = FPaths::Combine(FPaths::ProjectConfigDir(), BLOCKCHAIN_CONFIG_JSON_FILE);
 	std::string dataStr = "";
@@ -67,8 +67,9 @@ bool ChromaUtils::GetBlockchainConfigFromFile(FString &url, FString &brid)
 		return false;
 	}
 
-	url = STDStringToFString(json_obj["blockchainUrl"]);
-	brid = STDStringToFString(json_obj["brid"]);
+	blockchainURL = STDStringToFString(json_obj["blockchainUrl"]);
+	blockchainRID = STDStringToFString(json_obj["brid"]);
+	privKey = STDStringToFString(json_obj["privKey"]);
 
 	return true;
 }

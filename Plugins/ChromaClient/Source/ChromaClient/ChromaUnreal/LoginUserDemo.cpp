@@ -50,6 +50,8 @@ ALoginUserDemo::~ALoginUserDemo()
 void ALoginUserDemo::BeginPlay()
 {
     UE_LOG(LogTemp, Display, TEXT("CHROMA::ALoginUserDemo::BeginPlay"));
+
+    Setup();
 }
 
 void ALoginUserDemo::EndPlay(const EEndPlayReason::Type EndPlayReason)
@@ -57,13 +59,9 @@ void ALoginUserDemo::EndPlay(const EEndPlayReason::Type EndPlayReason)
     UE_LOG(LogTemp, Display, TEXT("CHROMA::ALoginUserDemo::EndPlay"));
 }
 
-void ALoginUserDemo::Setup(FString blockchainRID, FString baseURL, FString privateKey)
+void ALoginUserDemo::Setup()
 {
-    // TODO make services async, this is just a demo
-
-	this->m_BlockchainRID = blockchainRID;
-	this->m_BaseURL = baseURL;
-	this->m_PrivateKey = privateKey;
+    ChromaUtils::GetBlockchainConfigFromFile(this->m_BaseURL, this->m_BlockchainRID, this->m_PrivateKey);
 
     m_BlockchainConnector = new BlockchainConnector();
     m_BlockchainConnector->InitializeBlockchain(this->m_BlockchainRID, this->m_BaseURL);

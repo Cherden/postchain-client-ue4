@@ -19,7 +19,7 @@ public:
 
 	static TArray<BYTE> STDArrayToTArray(const std::vector<BYTE> &input);
 
-	static bool GetBlockchainConfigFromFile(FString& url, FString& brid);
+	static bool GetBlockchainConfigFromFile(FString& blockchainURL, FString& blockchainRID, FString &privKey);
 
 	template <typename T>
 	static std::vector<T> GenericTArrayToSTDArray(const TArray<T>& input)
