@@ -18,11 +18,22 @@ public class ChromaClient : ModuleRules
 		PublicDefinitions.Add("CHROMIA_INSIDE_UNREAL_ENGINE");
 
 		AddEngineThirdPartyPrivateStaticDependencies(Target, new string[]{
-			"nghttp2",
 			"OpenSSL",
-			"libcurl",
-			"zlib"
+			"libcurl"
 		});
+
+		// On UE5, two additional dependencies are needed
+		BuildVersion Version;
+        if (BuildVersion.TryRead(BuildVersion.GetDefaultFileName(), out Version))
+        {
+            if (Version.MajorVersion == 5)
+            {
+                AddEngineThirdPartyPrivateStaticDependencies(Target, new string[]{
+                    "nghttp2",
+                    "zlib"
+                });
+            }
+		}
 
 		string ChromiaPureInclude = System.IO.Path.GetFullPath(System.IO.Path.Combine(ModuleDirectory)) + "/chroma-cpp-pure";
 
