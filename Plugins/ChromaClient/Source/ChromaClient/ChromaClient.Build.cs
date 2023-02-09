@@ -56,8 +56,7 @@ public class ChromaClient : ModuleRules
 				"CoreUObject",
 				"Engine",
 				"Slate",
-				"SlateCore",
-                "HTTP"
+				"SlateCore"
 				// ... add private dependencies that you statically link with here ...	
 			}
 			);
