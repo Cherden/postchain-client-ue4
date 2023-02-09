@@ -29,10 +29,12 @@ class CHROMACLIENT_API ABlockchainClient : public AActor {
 public:
 	ABlockchainClient(const FObjectInitializer& ObjectInitializer);
 
-	// Begin blueprint exposed functions
-	UFUNCTION(BlueprintCallable)
-	void Setup(FString blockchainRID, FString baseURL);
+	/* Override from parent class AActor */
+	virtual void BeginPlay() override;
 
+	void Setup();
+
+	// Begin blueprint exposed functions
 	UFUNCTION(BlueprintCallable)
 	void SetMainWidget(UObject* mw);
 

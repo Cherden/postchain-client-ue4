@@ -50,7 +50,6 @@ ALoginUserDemo::~ALoginUserDemo()
 void ALoginUserDemo::BeginPlay()
 {
     UE_LOG(LogTemp, Display, TEXT("CHROMA::ALoginUserDemo::BeginPlay"));
-
     Setup();
 }
 

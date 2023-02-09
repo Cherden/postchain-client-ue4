@@ -17,15 +17,23 @@ ABlockchainClient::ABlockchainClient(const FObjectInitializer& ObjectInitializer
 	BlockchainClientPtr = std::make_shared<BlockchainClient>();
 }
 
+void ABlockchainClient::BeginPlay()
+{
+	UE_LOG(LogTemp, Display, TEXT("CHROMA::ABlockchainClient::BeginPlay"));
+	Setup();
+}
 
 void ABlockchainClient::SetMainWidget(UObject* mw)
 {
 	this->MainWidget = mw;
 }
 
-
-void ABlockchainClient::Setup(FString blockchainRID, FString baseURL)
+void ABlockchainClient::Setup()
 {
+	FString blockchainRID;
+	FString baseURL;
+	FString _; // not used
+	ChromaUtils::GetBlockchainConfigFromFile(baseURL, blockchainRID, _);
 	BlockchainClientPtr->Setup(ChromaUtils::FStringToSTDString(blockchainRID), ChromaUtils::FStringToSTDString(baseURL));
 }
 

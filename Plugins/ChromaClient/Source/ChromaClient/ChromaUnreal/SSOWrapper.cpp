@@ -20,6 +20,12 @@ ASSOWrapper::ASSOWrapper(const FObjectInitializer& ObjectInitializer) : Super(Ob
 {
 }
 
+void ASSOWrapper::BeginPlay()
+{
+	UE_LOG(LogTemp, Display, TEXT("CHROMA::ASSOWrapper::BeginPlay"));
+	Setup();
+}
+
 namespace
 {
 	bool authOk = true;
@@ -77,6 +83,8 @@ void ASSOWrapper::Login()
 			// Move back to the gamethread.
 			AsyncTask(ENamedThreads::GameThread, [&]()
 			{
+				this->LoginInProgress = false;
+
 				sso.FinalizeLogin(payload,
 				[this](SSO::AccUserPair user_pair) {
 					UE_LOG(LogTemp, Warning, TEXT("Authentication success for account: [%s]"), *ChromaUtils::STDStringToFString(user_pair.account->id_));
@@ -85,9 +93,7 @@ void ASSOWrapper::Login()
 				[this](std::string error) {
 					FString message = FString::Printf(TEXT("Authentication failed with error: %s"), *ChromaUtils::STDStringToFString(error));
 					PrintLogOnScreen(message);
-				});
-
-				this->LoginInProgress = false;
+				});			
 			});
 		}
 		else 
@@ -103,17 +109,15 @@ void ASSOWrapper::Login()
 	});
 }
 
-
 void ASSOWrapper::SetMainWidget(UObject* mw)
 {
 	this->MainWidget = mw;
 }
 
-
-void ASSOWrapper::Setup(FString blockchainRID, FString baseURL)
+void ASSOWrapper::Setup()
 {
-	this->BlockchainRID = blockchainRID;
-	this->BaseURL = baseURL;
+	FString _; // not used
+	ChromaUtils::GetBlockchainConfigFromFile(this->BaseURL, this->BlockchainRID, _);
 }
 
 bool ASSOWrapper::IsLoginInProgress()

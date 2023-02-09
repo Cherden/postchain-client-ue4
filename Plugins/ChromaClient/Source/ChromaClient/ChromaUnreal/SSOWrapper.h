@@ -22,17 +22,19 @@ class CHROMACLIENT_API ASSOWrapper : public AActor {
 public:
 	ASSOWrapper(const FObjectInitializer& ObjectInitializer);
 
+	/* Override from parent class AActor */
+	virtual void BeginPlay() override;
+
 	// Begin blueprint exposed functions
 	UFUNCTION(BlueprintCallable)
 	void Login();
 
 	UFUNCTION(BlueprintCallable)
 	void SetMainWidget(UObject* mw);
-
-	UFUNCTION(BlueprintCallable)
-	void Setup(FString blockchainRID, FString baseURL);
 	// End blueprint exposed functions
 
+	void Setup();
+	
 	/**
 	* Add some message to the end of the on-screen console view. 
 	* The message will be forwarded to main widget blueprint.
