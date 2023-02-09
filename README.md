@@ -23,8 +23,8 @@ The structure should look like this at this moment:
 
 ## Configure blockchain
 1. Generate a new admin keypair with optional keygen. If running locally the following test keys can be used:
-    `private key: 3132333435363738393031323334353637383930313233343536373839303131`
-    `public key: 0350fe40766bc0ce8d08b3f5b810e49a8352fdd458606bd5fafe5acdcdc8ff3f57` 
+    - `private key: 3132333435363738393031323334353637383930313233343536373839303131`
+    - `public key: 0350fe40766bc0ce8d08b3f5b810e49a8352fdd458606bd5fafe5acdcdc8ff3f57` 
 
 2. Open `Config/blockchain-config.sample.json` and update private key. Brid and url will be automatically set
  
@@ -58,8 +58,8 @@ The structure should look like this at this moment:
 
 ## Test SSODemo scene
 1. Prepare node local auth script. This will launch a small js server wich will intercept the rawTx code from SSO auth success, and transfers it to UE4 plugin, via some json file. 
-`cd SSOAuthServer/`
-`node index.js`
+  - `cd SSOAuthServer/`
+  - `node index.js`
 2. Open `Content/SSODemoLevel`
 3. Play
 
