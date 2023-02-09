@@ -67,6 +67,12 @@ bool ChromaUtils::GetBlockchainConfigFromFile(FString& blockchainURL, FString& b
 		return false;
 	}
 
+	if (!json_obj.contains("privKey"))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("CHROMA::ChromaUtils::GetBlockchainConfigFromFile !json_obj.contains[privKey]"));
+		return false;
+	}
+
 	blockchainURL = STDStringToFString(json_obj["blockchainUrl"]);
 	blockchainRID = STDStringToFString(json_obj["brid"]);
 	privKey = STDStringToFString(json_obj["privKey"]);

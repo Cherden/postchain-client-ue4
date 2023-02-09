@@ -47,8 +47,13 @@ void ASSOWrapper::Login()
 	// Perform authentication procedure async
 	AsyncTask(ENamedThreads::AnyHiPriThreadNormalTask, [&]()
 	{
+		
+		AsyncTask(ENamedThreads::GameThread, [&]()
+		{
+			FString message = FString::Printf(TEXT("AsyncTask(ENamedThreads::GameThread"));
+			PrintLogOnScreen(message);
+		});
 
-		//ft3::Postchain postchain("http://localhost:7740");
 		ft3::Postchain postchain(ChromaUtils::FStringToSTDString(BaseURL));
 		std::shared_ptr<Blockchain> blockchain;
 		postchain.Blockchain(ChromaUtils::FStringToSTDString(BlockchainRID),
@@ -80,21 +85,22 @@ void ASSOWrapper::Login()
 
 			std::string payload = sso.store_->GetTmpTx();
 
-			// Move back to the gamethread.
-			AsyncTask(ENamedThreads::GameThread, [&]()
-			{
-				this->LoginInProgress = false;
-
-				sso.FinalizeLogin(payload,
+			sso.FinalizeLogin(payload,
 				[this](SSO::AccUserPair user_pair) {
-					UE_LOG(LogTemp, Warning, TEXT("Authentication success for account: [%s]"), *ChromaUtils::STDStringToFString(user_pair.account->id_));
-					PrintLogOnScreen(FString("Authentication success for user: ") + ChromaUtils::STDStringToFString(user_pair.account->id_));
+					AsyncTask(ENamedThreads::GameThread, [&]()
+					{
+						UE_LOG(LogTemp, Warning, TEXT("Authentication success for account: [%s]"), *ChromaUtils::STDStringToFString(user_pair.account->id_));
+						PrintLogOnScreen(FString("Authentication success for user: ") + ChromaUtils::STDStringToFString(user_pair.account->id_));
+					});
 				},
 				[this](std::string error) {
-					FString message = FString::Printf(TEXT("Authentication failed with error: %s"), *ChromaUtils::STDStringToFString(error));
-					PrintLogOnScreen(message);
-				});			
-			});
+					AsyncTask(ENamedThreads::GameThread, [&]()
+					{
+						FString message = FString::Printf(TEXT("Authentication failed with error: %s"), *ChromaUtils::STDStringToFString(error));
+						PrintLogOnScreen(message);
+					});
+				}
+			);			
 		}
 		else 
 		{
