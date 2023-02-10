@@ -23,7 +23,7 @@
           </args>
           <args module="common">
             <arg key="admin_pubkey">
-              <bytea>03B519082C905096E4B658E7ACA7B971DF3A9D3A1D04BBEBE342B59CCCDC6DC3BA</bytea>
+              <bytea>0350fe40766bc0ce8d08b3f5b810e49a8352fdd458606bd5fafe5acdcdc8ff3f57</bytea>
             </arg>
           </args>
           <args module="dev">
