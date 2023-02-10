@@ -11,14 +11,17 @@
 
 ## Build Unreal Engine plugin
 
+##  !!! VERY IMPORTANT: IF YOU WANT TO MODIFY UASSETS, PLEASE DO THIS IN UE4 VERSION OR ON A SEPARATED BRANCH, BECAUSE YOU WILL NOT BE ABLE TO USE UASSETS MODIFIED IN UE4 ON UE5. UNFORTUNATELY UASSETS ARE NOT BACK COMPATIBLE. 
+
 1. Clone` https://github.com/Cherden/postchain-client-cpp` under `\Plugins\ChromaClient\Source\ChromaClient\` .
 Make sure new cloned dir name is `chroma-cpp-pure`
 The structure should look like this at this moment: 
 ![image](https://user-images.githubusercontent.com/85849035/140369944-0f6673a5-8ff0-4a06-b97d-a1ae08dc9517.png)
 
 2. Right click on `ChromaClientTest.uproject->GenerateProjectFiles` . Wait for `ChromaClientTest.sln` to be generated. 
-   Note: If you want to change Engine version, then first remove previously generated files: `.vs`, `Intermediate`, `Binaries`, `Saved`,
-  `.vsconfig`, `ChromaClientTest.sln` and then  Right click on `ChromaClientTest.uproject->SwitchUnrealEngineVersion`
+   Note: If you want to change Engine version, then:
+    - `git clean -fdx`
+    - Right click on `ChromaClientTest.uproject->SwitchUnrealEngineVersion`
 3. Open `ChromaClientTest.sln`
 4. Make sure build configuration is `Development Editor`  & `Win64`	
 5. Build & Run solution.
