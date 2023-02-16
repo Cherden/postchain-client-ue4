@@ -125,7 +125,7 @@ async function executeTimedTransaction(transaction, name) {
 
   const configFile = path.join(configDir, "blockchain-config.json");
 
-  fs.writeFile(configFile, JSON.stringify(sampleFile, null, 2), (error) => {
+  fs.writeFileSync(configFile, JSON.stringify(sampleFile, null, 2), (error) => {
     if (error) return console.log(error);
     console.log(`Saved BRID ${brid} in ${configFile}`);
   });
