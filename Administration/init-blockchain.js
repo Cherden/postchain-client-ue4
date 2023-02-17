@@ -11,6 +11,7 @@ const fs = require("fs");
 const request = require("requestretry");
 const path = require("path");
 require("dotenv").config();
+var exec = require('child_process').exec;
 
 class RewardFT3 {
   constructor(token, amount) {
@@ -106,6 +107,23 @@ async function executeTimedTransaction(transaction, name) {
   }
 }
 
+function setEnv(name, value, cb) {
+  if (!name) throw new Error('name required.');
+  if (typeof value === 'undefined') throw new Error('value required.');
+
+  var cmd;
+  if (value.indexOf('+=') === 0) value = process.env[name] + value.substring(2);
+  value = value.indexOf(' ') > -1 ? `"${value}"` : value;
+
+  switch (process.platform) {
+    case 'linux': cmd = `export ${name}=${value}`; break;
+    case 'win32': cmd = `setx ${name} ${value}`; break;
+    default: throw new Error('unsupported platform.'); break;
+  }
+
+  exec(cmd, cb);
+}
+
 (async function () {
   console.log("⏳ Getting blockchainID, please wait...");
   const brid = await getBlockchainRid();
@@ -121,14 +139,24 @@ async function executeTimedTransaction(transaction, name) {
     "blockchain-config.sample.json"
   ));
 
-  sampleFile.brid = brid;
+  function setEnvCB(error, stdout, stderr) {
+    console.log(`setEnvCB() error: ${error}`);
+    console.log(`setEnvCB() stdout: ${stdout}`);
+    console.log(`setEnvCB() stderr: ${stderr}`);
+  }
 
-  const configFile = path.join(configDir, "blockchain-config.json");
+  // Write values to env
+  setEnv('CHROMA_BLOCKCHAIN_URL', sampleFile.blockchainUrl, setEnvCB);
+  setEnv('CHROMA_BRID', brid, setEnvCB);
+  setEnv('CHROMA_PRIV_KEY', sampleFile.privKey, setEnvCB);
 
-  fs.writeFileSync(configFile, JSON.stringify(sampleFile, null, 2), (error) => {
-    if (error) return console.log(error);
-    console.log(`Saved BRID ${brid} in ${configFile}`);
-  });
+  // Old version, write json to config file
+  // sampleFile.brid = brid;
+  // const configFile = path.join(configDir, "blockchain-config.json");
+  // fs.writeFileSync(configFile, JSON.stringify(sampleFile, null, 2), (error) => {
+  //   if (error) return console.log(error);
+  //   console.log(`Saved BRID ${brid} in ${configFile}`);
+  // });
 
   // initialize blockchain
   const blockchain = await new Postchain(url).blockchain(brid);

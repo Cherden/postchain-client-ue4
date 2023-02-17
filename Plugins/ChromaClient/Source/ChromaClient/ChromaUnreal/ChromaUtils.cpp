@@ -1,4 +1,5 @@
 #include "ChromaUtils.h"
+#include "GenericPlatform/GenericPlatformMisc.h"
 #include "SSO/file_manager.h"
 
 using namespace chromia::postchain::ft3;
@@ -36,46 +37,35 @@ TArray<BYTE> ChromaUtils::STDArrayToTArray(const std::vector<BYTE> &input)
 	return out;
 }
 
-bool ChromaUtils::GetBlockchainConfigFromFile(FString& blockchainURL, FString& blockchainRID, FString& privKey)
+bool ChromaUtils::GetBlockchainConfigFromEnv(FString& blockchainURL, FString& blockchainRID, FString& privKey)
 {
-	FString configJsonPath = FPaths::Combine(FPaths::ProjectConfigDir(), BLOCKCHAIN_CONFIG_JSON_FILE);
-	std::string dataStr = "";
+	UE_LOG(LogTemp, Warning, TEXT("CHROMA::GetBlockchainConfigFromEnv()"));
 
-	if (!ChromaFileManager::LoadFromAbsFile(FStringToSTDString(configJsonPath), dataStr))
+	blockchainURL = FPlatformMisc::GetEnvironmentVariable(ENV_NAME_CHROMA_BLOCKCHAIN_URL);
+	blockchainRID = FPlatformMisc::GetEnvironmentVariable(ENV_NAME_CHROMA_BRID);
+	privKey = FPlatformMisc::GetEnvironmentVariable(ENV_NAME_CHROMA_PRIV_KEY);
+
+	UE_LOG(LogTemp, Display, TEXT("Environment config value: [%s] = [%s]"), ENV_NAME_CHROMA_BLOCKCHAIN_URL, *blockchainURL);
+	UE_LOG(LogTemp, Display, TEXT("Environment config value: [%s] = [%s]"), ENV_NAME_CHROMA_BRID, *blockchainRID);
+	UE_LOG(LogTemp, Display, TEXT("Environment config value: [%s] = [%s]"), ENV_NAME_CHROMA_PRIV_KEY, *privKey);
+
+	if (blockchainURL.Len() == 0) 
 	{
-		UE_LOG(LogTemp, Warning, TEXT("CHROMA::ChromaUtils::GetBlockchainConfigFromFile failed to read from %s"), *configJsonPath);
+		UE_LOG(LogTemp, Error, TEXT("Could not read value from [%s]"), ENV_NAME_CHROMA_BLOCKCHAIN_URL);
 		return false;
 	}
 
-	if (dataStr.size() == 0)
+	if (blockchainRID.Len() == 0)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("CHROMA::ChromaUtils::GetBlockchainConfigFromFile dataStr.size() == 0"));
+		UE_LOG(LogTemp, Error, TEXT("Could not read value from [%s]"), ENV_NAME_CHROMA_BRID);
 		return false;
 	}
-
-	nlohmann::json json_obj = nlohmann::json::parse(dataStr);
 	
-	if (!json_obj.contains("blockchainUrl"))
+	if (privKey.Len() == 0)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("CHROMA::ChromaUtils::GetBlockchainConfigFromFile !json_obj.contains[blockchainUrl]"));
+		UE_LOG(LogTemp, Error, TEXT("Could not read value from [%s]"), ENV_NAME_CHROMA_PRIV_KEY);
 		return false;
 	}
-
-	if (!json_obj.contains("brid"))
-	{
-		UE_LOG(LogTemp, Warning, TEXT("CHROMA::ChromaUtils::GetBlockchainConfigFromFile !json_obj.contains[brid]"));
-		return false;
-	}
-
-	if (!json_obj.contains("privKey"))
-	{
-		UE_LOG(LogTemp, Warning, TEXT("CHROMA::ChromaUtils::GetBlockchainConfigFromFile !json_obj.contains[privKey]"));
-		return false;
-	}
-
-	blockchainURL = STDStringToFString(json_obj["blockchainUrl"]);
-	blockchainRID = STDStringToFString(json_obj["brid"]);
-	privKey = STDStringToFString(json_obj["privKey"]);
 
 	return true;
 }

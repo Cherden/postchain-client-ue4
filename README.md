@@ -53,8 +53,9 @@ The structure should look like this at this moment:
   - `cd /Administration`
   - `npm i`
   - `node init_blockchain.js`
-7. Use a browser (not Mozilla Firefox!) to go to http://localhost:7740/brid/iid_0. Copy the RID shown.
-8. Open https://dev.vault.chromia-development.com/ and create a Custom D-App. Name: `Chromia Unity`, Host: `http://localhost`, Port: `7740`, Website: `http://localhost`, and paste the RID into ChainID.
+7. After this point restart `ChromaClientTest.sln` Visual studio instance, and UE4 project, for some environment variables to be updated.
+8. Use a browser (not Mozilla Firefox!) to go to http://localhost:7740/brid/iid_0. Copy the RID shown.
+9. Open https://dev.vault.chromia-development.com/ and create a Custom D-App. Name: `Chromia Unity`, Host: `http://localhost`, Port: `7740`, Website: `http://localhost`, and paste the RID into ChainID.
 
 
 ## Test PostchainDemo scene

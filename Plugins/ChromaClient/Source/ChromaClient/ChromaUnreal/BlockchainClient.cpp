@@ -33,7 +33,7 @@ void ABlockchainClient::Setup()
 	FString blockchainRID;
 	FString baseURL;
 	FString _; // not used
-	ChromaUtils::GetBlockchainConfigFromFile(baseURL, blockchainRID, _);
+	ChromaUtils::GetBlockchainConfigFromEnv(baseURL, blockchainRID, _);
 	BlockchainClientPtr->Setup(ChromaUtils::FStringToSTDString(blockchainRID), ChromaUtils::FStringToSTDString(baseURL));
 }
 

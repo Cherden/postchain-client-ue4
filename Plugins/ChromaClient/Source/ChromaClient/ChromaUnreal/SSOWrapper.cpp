@@ -123,7 +123,7 @@ void ASSOWrapper::SetMainWidget(UObject* mw)
 void ASSOWrapper::Setup()
 {
 	FString _; // not used
-	ChromaUtils::GetBlockchainConfigFromFile(this->BaseURL, this->BlockchainRID, _);
+	ChromaUtils::GetBlockchainConfigFromEnv(this->BaseURL, this->BlockchainRID, _);
 }
 
 bool ASSOWrapper::IsLoginInProgress()

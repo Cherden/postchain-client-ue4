@@ -60,7 +60,7 @@ void ALoginUserDemo::EndPlay(const EEndPlayReason::Type EndPlayReason)
 
 void ALoginUserDemo::Setup()
 {
-    ChromaUtils::GetBlockchainConfigFromFile(this->m_BaseURL, this->m_BlockchainRID, this->m_PrivateKey);
+    ChromaUtils::GetBlockchainConfigFromEnv(this->m_BaseURL, this->m_BlockchainRID, this->m_PrivateKey);
 
     m_BlockchainConnector = new BlockchainConnector();
     m_BlockchainConnector->InitializeBlockchain(this->m_BlockchainRID, this->m_BaseURL);
