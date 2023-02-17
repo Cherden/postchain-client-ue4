@@ -45,11 +45,13 @@ The structure should look like this at this moment:
 5. Open the .env file you juts created in the Administration folder and paste the private key after "ADMIN_PRIV_KEY=". Save it
 6. Run blockchain
 - If you want to run blockchain with Docker: 
+  - `Open terminal as Administrator`
   - `cd /Administration`  
   - `npm i`
   - `npm start`
 - If you don't want to use Docker, then:
   - Open and run ./Rell project with Eclipse (https://docs.chromia.com/tools/eclipse/installation)
+  - `Open terminal as Administrator`
   - `cd /Administration`
   - `npm i`
   - `node init_blockchain.js`
